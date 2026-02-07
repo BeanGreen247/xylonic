@@ -1,42 +1,41 @@
 import axios from 'axios';
-import md5 from '../utils/md5';
+import md5 from 'md5';  // ✅ This is correct - uses the npm package
 
 const API_VERSION = '1.16.1';
 const CLIENT_NAME = 'SubsonicMusicApp';
 
-const createAuthParams = (username: string, password: string) => {
+// Generate authentication parameters
+const generateAuthParams = (username: string, password: string) => {
+    // ✅ Generate NEW salt and token for EACH request
     const salt = Math.random().toString(36).substring(7);
-    const token = md5(password + salt);
+    const token = md5(password + salt);  // Token = md5(password + salt)
     
     return {
         u: username,
-        t: token,
-        s: salt,
+        t: token,    // Different every request
+        s: salt,     // Different every request
         v: API_VERSION,
         c: CLIENT_NAME,
         f: 'json'
     };
 };
 
-export const authenticateUser = async (username: string, password: string, serverUrl: string) => {
-    const params = createAuthParams(username, password);
-    const url = `${serverUrl}/rest/ping`;
-    
-    try {
-        const response = await axios.get(url, { params });
-        return response.data['subsonic-response']?.status === 'ok';
-    } catch (error) {
-        console.error('Authentication failed:', error);
-        return false;
-    }
+// Build full API URL
+const buildApiUrl = (serverUrl: string, endpoint: string, params: Record<string, string>) => {
+    const baseUrl = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
+    const queryParams = new URLSearchParams(params).toString();
+    return `${baseUrl}/rest/${endpoint}?${queryParams}`;
 };
 
-export const testConnection = async (username: string, password: string, serverUrl: string) => {
-    const params = createAuthParams(username, password);
-    const url = `${serverUrl}/rest/ping`;
-    
+// Test connection to Subsonic server
+export const testConnection = async (serverUrl: string, username: string, password: string) => {
     try {
-        const response = await axios.get(url, { params });
+        const authParams = generateAuthParams(username, password);
+        const url = buildApiUrl(serverUrl, 'ping.view', authParams);
+        
+        console.log('Testing connection to URL:', url);
+        
+        const response = await axios.get(url);
         return response;
     } catch (error) {
         console.error('Connection test failed:', error);
@@ -44,12 +43,15 @@ export const testConnection = async (username: string, password: string, serverU
     }
 };
 
-export const getArtists = async (username: string, password: string, serverUrl: string) => {
-    const params = createAuthParams(username, password);
-    const url = `${serverUrl}/rest/getArtists`;
-    
+// Get all artists
+export const getArtists = async (serverUrl: string, username: string, password: string) => {
     try {
-        const response = await axios.get(url, { params });
+        const authParams = generateAuthParams(username, password);
+        const url = buildApiUrl(serverUrl, 'getArtists.view', authParams);
+        
+        console.log('Fetching artists from URL:', url);
+        
+        const response = await axios.get(url);
         return response;
     } catch (error) {
         console.error('Failed to fetch artists:', error);
@@ -57,12 +59,13 @@ export const getArtists = async (username: string, password: string, serverUrl: 
     }
 };
 
-export const getArtist = async (username: string, password: string, serverUrl: string, id: string) => {
-    const params = createAuthParams(username, password);
-    const url = `${serverUrl}/rest/getArtist`;
-    
+// Get artist details
+export const getArtist = async (serverUrl: string, username: string, password: string, artistId: string) => {
     try {
-        const response = await axios.get(url, { params: { ...params, id } });
+        const authParams = generateAuthParams(username, password);
+        const url = buildApiUrl(serverUrl, 'getArtist.view', { ...authParams, id: artistId });
+        
+        const response = await axios.get(url);
         return response;
     } catch (error) {
         console.error('Failed to fetch artist:', error);
@@ -70,12 +73,13 @@ export const getArtist = async (username: string, password: string, serverUrl: s
     }
 };
 
-export const getAlbum = async (username: string, password: string, serverUrl: string, id: string) => {
-    const params = createAuthParams(username, password);
-    const url = `${serverUrl}/rest/getAlbum`;
-    
+// Get album details
+export const getAlbum = async (serverUrl: string, username: string, password: string, albumId: string) => {
     try {
-        const response = await axios.get(url, { params: { ...params, id } });
+        const authParams = generateAuthParams(username, password);
+        const url = buildApiUrl(serverUrl, 'getAlbum.view', { ...authParams, id: albumId });
+        
+        const response = await axios.get(url);
         return response;
     } catch (error) {
         console.error('Failed to fetch album:', error);
@@ -83,81 +87,90 @@ export const getAlbum = async (username: string, password: string, serverUrl: st
     }
 };
 
-export const fetchSongs = async (username: string, password: string, serverUrl: string, albumId?: string) => {
-    if (albumId) {
-        const album = await getAlbum(username, password, serverUrl, albumId);
-        return album.data['subsonic-response']?.album?.song || [];
-    }
-    
-    return await getAllSongs(username, password, serverUrl);
-};
-
-export const getAllSongs = async (username: string, password: string, serverUrl: string) => {
+// Get all songs (uses getRandomSongs as Subsonic doesn't have getAllSongs)
+export const getAllSongs = async (serverUrl: string, username: string, password: string) => {
     try {
-        const artistsResponse = await getArtists(username, password, serverUrl);
-        const indexes = artistsResponse.data['subsonic-response']?.artists?.index || [];
-        const allSongs: any[] = [];
-
-        for (const index of indexes) {
-            if (index.artist) {
-                for (const artist of index.artist) {
-                    try {
-                        const artistDetail = await getArtist(username, password, serverUrl, artist.id);
-                        const albums = artistDetail.data['subsonic-response']?.artist?.album || [];
-                        
-                        for (const album of albums) {
-                            try {
-                                const albumDetail = await getAlbum(username, password, serverUrl, album.id);
-                                const songs = albumDetail.data['subsonic-response']?.album?.song || [];
-                                allSongs.push(...songs);
-                            } catch (err) {
-                                console.error(`Failed to fetch album ${album.id}:`, err);
-                            }
-                        }
-                    } catch (err) {
-                        console.error(`Failed to fetch artist ${artist.id}:`, err);
-                    }
-                }
-            }
-        }
-
-        return allSongs;
+        const authParams = generateAuthParams(username, password);
+        const url = buildApiUrl(serverUrl, 'getRandomSongs.view', { ...authParams, size: '500' });
+        
+        console.log('Fetching songs from URL:', url);
+        
+        const response = await axios.get(url);
+        return response;
     } catch (error) {
-        console.error('Failed to fetch all songs:', error);
+        console.error('Failed to fetch songs:', error);
         throw error;
     }
 };
 
-export const getStreamUrl = (username: string, password: string, serverUrl: string, id: string, maxBitRate?: number) => {
-    const params = createAuthParams(username, password);
-    const queryParams = new URLSearchParams({
-        ...params as any,
-        id,
-        ...(maxBitRate && { maxBitRate: maxBitRate.toString() })
-    });
-    
-    return `${serverUrl}/rest/stream?${queryParams.toString()}`;
+// Get random songs (better for shuffle functionality)
+export const getRandomSongs = async (serverUrl: string, username: string, password: string, size: number = 50) => {
+    try {
+        const authParams = generateAuthParams(username, password);
+        const url = buildApiUrl(serverUrl, 'getRandomSongs.view', { 
+            ...authParams, 
+            size: size.toString() 
+        });
+        
+        console.log('Fetching random songs from URL:', url);
+        
+        const response = await axios.get(url);
+        return response;
+    } catch (error) {
+        console.error('Failed to fetch random songs:', error);
+        throw error;
+    }
 };
 
-export const getCoverArtUrl = (username: string, password: string, serverUrl: string, id: string, size?: number) => {
-    const params = createAuthParams(username, password);
-    const queryParams = new URLSearchParams({
-        ...params as any,
-        id,
-        ...(size && { size: size.toString() })
-    });
+// Get stream URL for a song
+export const getStreamUrl = (serverUrl: string, username: string, password: string, songId: string, bitrate?: number) => {
+    const authParams = generateAuthParams(username, password);
+    const params: Record<string, string> = { ...authParams, id: songId };
     
-    return `${serverUrl}/rest/getCoverArt?${queryParams.toString()}`;
+    if (bitrate) {
+        params.maxBitRate = bitrate.toString();
+    }
+    
+    return buildApiUrl(serverUrl, 'stream.view', params);
 };
 
-export const downloadSong = async (username: string, password: string, serverUrl: string, id: string) => {
-    const params = createAuthParams(username, password);
-    const url = `${serverUrl}/rest/download`;
+// Get cover art URL
+export const getCoverArtUrl = (serverUrl: string, username: string, password: string, coverArtId: string, size?: number) => {
+    const authParams = generateAuthParams(username, password);
+    const params: Record<string, string> = { ...authParams, id: coverArtId };
     
-    const response = await axios.get(url, {
-        params: { ...params, id },
-        responseType: 'arraybuffer'
-    });
+    if (size) {
+        params.size = size.toString();
+    }
     
-    return response.data;
+    return buildApiUrl(serverUrl, 'getCoverArt.view', params);
+};
+
+// Get song count from server
+export const getSongCount = async (serverUrl: string, username: string, password: string) => {
+    try {
+        const authParams = generateAuthParams(username, password);
+        // Use search with empty query to get count, or getAlbumList2 to count songs
+        const url = buildApiUrl(serverUrl, 'getAlbumList2.view', { 
+            ...authParams, 
+            type: 'alphabeticalByName',
+            size: '500' // Get many albums to count their songs
+        });
+        
+        console.log('Fetching albums to count songs');
+        
+        const response = await axios.get(url);
+        const albums = response.data['subsonic-response']?.albumList2?.album || [];
+        
+        // Sum up all song counts from albums
+        let totalSongs = 0;
+        for (const album of albums) {
+            totalSongs += album.songCount || 0;
+        }
+        
+        return totalSongs;
+    } catch (error) {
+        console.error('Failed to get song count:', error);
+        return 0;
+    }
 };

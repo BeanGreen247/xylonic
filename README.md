@@ -1,106 +1,177 @@
 # Xylonic - Subsonic Music Player
 
-A modern, beautiful Electron-based music player for Subsonic-compatible servers with offline download capabilities.
+A modern, beautiful Electron-based music player for Subsonic-compatible servers with a Spotify-like cyan-themed UI.
 
-Version: 26.2.7-dev
-
-License: MIT
+**Version:** 26.2.7-dev  
+**Author:** BeanGreen247  
+**License:** MIT
 
 ## Features
 
-- **Stream Music** - Connect to your Subsonic server and stream your entire library
-- **Offline Downloads** - Download songs for offline playback with quality selection
-- **Beautiful UI** - Modern blue-themed interface with album art display
-- **Playback Controls** - Full control with play, pause, next, previous
-- **Shuffle & Repeat** - Multiple playback modes (shuffle, repeat all, repeat one)
-- **Quality Selector** - Choose streaming quality (Original, 320, 256, 192, 128 kbps)
-- **Progress Bar** - Visual progress with seek functionality
-- **Volume Control** - Adjust volume with mute option
-- **Browse Library** - Navigate by Artists, Albums, and Songs
-- **Album Art** - Beautiful cover art display throughout the app
-- **Responsive Design** - Optimized desktop layout
+- **Stream Music** - Connect to any Subsonic-compatible server
+- **Beautiful UI** - Modern cyan/light blue Material You-inspired theme
+- **Full Playback Controls** - Play, pause, next, previous with seek
+- **Shuffle & Repeat** - Multiple modes (shuffle, repeat all, repeat one)
+- **Progress Bar** - Visual progress with time display
+- **Volume Control** - Adjustable volume slider
+- **Library Browser** - Navigate Artists → Albums → Songs hierarchy
+- **Album Art** - Beautiful cover art throughout the app
+- **Responsive Design** - Works on all window sizes
+- **Auto-play** - Songs automatically continue to next track
+- **Live Stats** - Real-time count of artists, albums, and songs
+- **No Menu Bar** - Clean, distraction-free interface
+- **Portable** - Runs without installation on Windows and Linux
+
+## Screenshots
+
+*Coming soon*
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 16+ and npm
-- A Subsonic-compatible server (Subsonic, Airsonic, Navidrome, etc.)
+- **For Users:** Nothing! Just download and run
+- **For Developers:** Node.js 16+ and npm
+- **Server:** A Subsonic-compatible server (Navidrome, Airsonic, Gonic, etc.)
 
-### Installation
+### Download & Run (End Users)
+
+#### Windows
+1. Download `Xylonic-26.2.7-dev-portable.exe` from [Releases](https://github.com/BeanGreen247/xylonic/releases)
+2. Double-click to run (no installation needed!)
+3. Enter your Subsonic server details and enjoy
+
+#### Linux
+1. Download `xylonic-26.2.7-dev.tar.gz` from [Releases](https://github.com/BeanGreen247/xylonic/releases)
+2. Extract the archive:
+   ```bash
+   tar -xzf xylonic-26.2.7-dev.tar.gz
+   ```
+3. Navigate to the folder:
+   ```bash
+   cd xylonic-26.2.7-dev
+   ```
+4. Make the binary executable:
+   ```bash
+   chmod +x xylonic
+   ```
+5. Run the app:
+   ```bash
+   ./xylonic
+   ```
+
+**Optional:** Create a desktop shortcut or add to your PATH for easier access.
+
+### Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/xylonic.git
+git clone https://github.com/BeanGreen247/xylonic.git
 cd xylonic
 
 # Install dependencies
 npm install
 
 # Start development server
-npm start
+npm run electron:serve
 ```
 
-### Build for Production
+## Building from Source
 
+### Build for Windows (on Windows)
 ```bash
-# Build web version
-npm run build
+npm run electron:build:win-portable
+```
+Output: `dist/Xylonic-26.2.7-dev-portable.exe`
 
-# Build Electron app for Windows
-npm run electron:build:win
+### Build for Linux (on Linux or WSL2)
+```bash
+npm run electron:build:linux-tar
+```
+Output: `dist/xylonic-26.2.7-dev.tar.gz`
 
-# Build Electron app for Linux
-npm run electron:build:linux
+### Build Both (Windows + Linux tar.gz)
+```bash
+npm run electron:build:all-portable
 ```
 
-## Usage
+**Note:** AppImage builds require native Linux environment. WSL2 can only build tar.gz archives.
 
-1. **Launch Application** - Start Xylonic
-2. **Connect to Server** - Enter your Subsonic server URL, username, and password
-3. **Test Connection** - Use the connection test to verify credentials
-4. **Browse Library** - Navigate through artists and albums
-5. **Play Music** - Click any song to start playback
-6. **Download Songs** - Use download buttons to save songs for offline playback
-7. **Shuffle All** - Use the shuffle button to play your entire library randomly
+## Usage Guide
+
+### First-Time Setup
+
+1. **Launch Xylonic**
+2. **Enter Server Details:**
+   - Server URL: `http://your-server:4533` (include `http://` or `https://`)
+   - Username: Your Subsonic username
+   - Password: Your Subsonic password
+3. **Test Connection** - Verify credentials before logging in
+4. **Click Login** - Your credentials are saved locally
+
+### Navigation
+
+- **Artists View** - Browse all artists in your library
+- **Click Artist** - View all albums by that artist
+- **Click Album** - View all songs in that album
+- **Click Song** - Start playback
+- **Back Buttons** - Navigate back up the hierarchy
+
+### Playback Controls
+
+| Control | Function |
+|---------|----------|
+| **⏮** Previous | Go to previous song (or restart if >3s) |
+| **⏸/▶** Play/Pause | Toggle playback |
+| **⏭** Next | Skip to next song |
+| **🔀** Shuffle | Randomize playback order |
+| **🔁** Repeat All | Loop entire playlist |
+| **🔂** Repeat One | Loop current song |
+
+### Features
+
+- **Auto-continue** - Songs automatically play next track
+- **Progress bar** - Click to seek to any position
+- **Volume control** - Adjust or mute with slider
+- **Real-time stats** - See your library size in header
+- **GitHub link** - Easy access to project repository
 
 ## Configuration
 
-### Server Compatibility
+### Compatible Servers
 
-Xylonic is compatible with:
-- Subsonic
-- Airsonic / Airsonic-Advanced
-- Navidrome
-- Gonic
-- Ampache (with Subsonic API enabled)
+Xylonic works with any Subsonic API-compatible server:
+- ✅ **Navidrome** (Recommended)
+- ✅ **Airsonic / Airsonic-Advanced**
+- ✅ **Gonic**
+- ✅ **Subsonic**
+- ✅ **Ampache** (with Subsonic API)
 
-### Quality Settings
+### Server URL Format
 
-Available streaming qualities:
-- **Original** - Server's original file quality
-- **320 kbps** - High quality
-- **256 kbps** - Very good quality
-- **192 kbps** - Good quality
-- **128 kbps** - Standard quality
+Always include the protocol and port:
+```
+✅ http://192.168.1.100:4533
+✅ https://music.example.com
+✅ http://localhost:4040
+❌ 192.168.1.100:4533 (missing protocol)
+❌ http://music.example.com/ (trailing slash)
+```
 
-### Storage
+### Data Storage
 
-Downloaded songs are stored locally using IndexedDB with the following structure:
-- Song metadata (title, artist, album)
-- Audio blob data
-- Quality level
-- Download timestamp
+- **Credentials:** Stored in browser localStorage (plain text - not production-ready)
+- **Settings:** Stored locally with the app
+- **Music:** Streamed from server (no local storage)
 
 ## Technology Stack
 
-- **React 18** - UI framework
-- **TypeScript** - Type safety and better developer experience
-- **Electron** - Cross-platform desktop application
-- **Subsonic API** - Music streaming protocol
-- **IndexedDB** - Local storage for downloads
-- **CSS Variables** - Theming system
-- **Context API** - State management
+- **Frontend:** React 18 + TypeScript
+- **Desktop:** Electron 27
+- **Styling:** Pure CSS with Material You variables
+- **State:** React Context API
+- **Auth:** Token-based (MD5 salted)
+- **API:** Subsonic REST API v1.16.1
 
 ## Project Structure
 
@@ -176,18 +247,22 @@ git merge feature/my-new-feature
 
 ## Known Issues
 
-None currently. All core features are working as expected.
+None currently! All features working as expected.
 
 ## Roadmap
 
-Potential future enhancements:
-- Playlists management
-- Search functionality
-- Lyrics display
-- Equalizer
-- Scrobbling support
-- Themes customization
-- Keyboard shortcuts
+Potential future features:
+- [ ] **Quality Control** - Select streaming bitrate (320, 256, 192, 128 kbps)
+- [ ] **Offline Mode** - Download songs for offline playback
+- [ ] Search functionality
+- [ ] Playlists management
+- [ ] Queue management
+- [ ] Lyrics display
+- [ ] Keyboard shortcuts
+- [ ] Theme customization
+- [ ] Scrobbling support
+- [ ] Equalizer
+- [ ] Mini player mode
 
 ## Contributing
 
@@ -219,6 +294,6 @@ For issues, questions, or feature requests:
 
 ---
 
-**Version 26.2.7-dev** - A stable, working version with clean blue theme and all core features implemented.
+**Built with ❤️ for music lovers who want a modern, beautiful way to stream their Subsonic library.**
 
-Built with care for music lovers who want a modern, beautiful way to enjoy their Subsonic library.
+**v26.2.7-dev** - Stable release with cyan theme, auto-play, and portable builds for Windows & Linux

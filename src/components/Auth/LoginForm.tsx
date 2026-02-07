@@ -1,124 +1,178 @@
 import React, { useState } from 'react';
-import { authenticateUser } from '../../services/subsonicApi';
-import { saveToStorage } from '../../utils/storage';
-import ConnectionTest from './ConnectionTest';
+import { useAuth } from '../../context/AuthContext';
+import { testConnection } from '../../services/subsonicApi';
 
 const LoginForm: React.FC = () => {
+    const { login } = useAuth();
     const [serverUrl, setServerUrl] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [showTest, setShowTest] = useState(false);
+    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+    const [testing, setTesting] = useState(false);
+    const [loggingIn, setLoggingIn] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setIsLoading(true);
+    const handleTestConnection = async () => {
+        setTesting(true);
+        setTestResult(null);
 
         try {
-            const isValid = await authenticateUser(username, password, serverUrl);
-            
-            if (isValid) {
-                saveToStorage(username, password, serverUrl);
-                window.location.reload();
-            } else {
-                setError('Authentication failed. Please check your credentials.');
+            // Validate inputs
+            if (!serverUrl || !username || !password) {
+                setTestResult({
+                    success: false,
+                    message: 'Please fill in all fields'
+                });
+                setTesting(false);
+                return;
             }
-        } catch (err) {
-            setError('Failed to connect to server. Please check your settings.');
-            console.error('Login error:', err);
+
+            console.log('Testing connection to:', serverUrl);
+            
+            const response = await testConnection(serverUrl, username, password);
+            
+            console.log('Connection test response:', response);
+
+            if (response.data['subsonic-response']?.status === 'ok') {
+                setTestResult({
+                    success: true,
+                    message: 'Connection successful! You can now login.'
+                });
+            } else {
+                setTestResult({
+                    success: false,
+                    message: response.data['subsonic-response']?.error?.message || 'Connection failed'
+                });
+            }
+        } catch (error) {
+            console.error('Connection test error:', error);
+            setTestResult({
+                success: false,
+                message: (error as Error).message || 'Failed to connect to server'
+            });
         } finally {
-            setIsLoading(false);
+            setTesting(false);
+        }
+    };
+
+    const handleLogin = async () => {
+        if (!testResult?.success) {
+            setTestResult({
+                success: false,
+                message: 'Please test connection first'
+            });
+            return;
+        }
+
+        setLoggingIn(true);
+        
+        try {
+            console.log('Logging in with credentials:', { serverUrl, username });
+            
+            // Call AuthContext login
+            login(serverUrl, username, password);
+            
+            console.log('Login successful, credentials stored');
+        } catch (error) {
+            console.error('Login error:', error);
+            setTestResult({
+                success: false,
+                message: 'Login failed: ' + (error as Error).message
+            });
+        } finally {
+            setLoggingIn(false);
         }
     };
 
     return (
         <div className="login-container">
             <div className="login-box">
-                <div className="login-header">
-                    <h1>Subsonic Music Player</h1>
-                    <p className="login-subtitle">Connect to your Subsonic server</p>
+                <h1>
+                    <i className="fas fa-music"></i>
+                    Xylonic
+                </h1>
+
+                <div className="form-group">
+                    <label>
+                        <i className="fas fa-server"></i>
+                        Server URL
+                    </label>
+                    <input
+                        type="text"
+                        value={serverUrl}
+                        onChange={(e) => setServerUrl(e.target.value)}
+                        placeholder="http://192.168.1.100:4040"
+                    />
+                    <small>Include http:// or https:// and port number</small>
                 </div>
 
-                {error && (
-                    <div className="error-message">
-                        <i className="fas fa-exclamation-circle"></i>
-                        <span>{error}</span>
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="login-form">
-                    <div className="form-group">
-                        <label htmlFor="serverUrl">
-                            <i className="fas fa-server"></i>
-                            <span>Server URL</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="serverUrl"
-                            value={serverUrl}
-                            onChange={(e) => setServerUrl(e.target.value)}
-                            placeholder="http://your-server:4533"
-                            required
-                            autoComplete="url"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="username">
-                            <i className="fas fa-user"></i>
-                            <span>Username</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Your username"
-                            required
-                            autoComplete="username"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="password">
-                            <i className="fas fa-lock"></i>
-                            <span>Password</span>
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Your password"
-                            required
-                            autoComplete="current-password"
-                        />
-                    </div>
-
-                    <button type="submit" className="login-button" disabled={isLoading}>
-                        <i className={isLoading ? "fas fa-spinner fa-spin" : "fas fa-sign-in-alt"}></i>
-                        <span>{isLoading ? 'Connecting...' : 'Connect'}</span>
-                    </button>
-
-                    <button 
-                        type="button" 
-                        className="test-button"
-                        onClick={() => setShowTest(!showTest)}
-                    >
-                        <i className="fas fa-vial"></i>
-                        <span>{showTest ? 'Hide' : 'Show'} Connection Test</span>
-                    </button>
-                </form>
-
-                {showTest && (
-                    <ConnectionTest 
-                        username={username}
-                        password={password}
-                        serverUrl={serverUrl}
+                <div className="form-group">
+                    <label>
+                        <i className="fas fa-user"></i>
+                        Username
+                    </label>
+                    <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Your username"
                     />
+                </div>
+
+                <div className="form-group">
+                    <label>
+                        <i className="fas fa-lock"></i>
+                        Password
+                    </label>
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Your password"
+                    />
+                </div>
+
+                <button
+                    className="test-button"
+                    onClick={handleTestConnection}
+                    disabled={testing || !serverUrl || !username || !password}
+                >
+                    {testing ? (
+                        <>
+                            <i className="fas fa-spinner fa-spin"></i>
+                            Testing...
+                        </>
+                    ) : (
+                        <>
+                            <i className="fas fa-plug"></i>
+                            Test Connection
+                        </>
+                    )}
+                </button>
+
+                {testResult && (
+                    <div className={`test-result ${testResult.success ? 'success' : 'error'}`}>
+                        <i className={`fas fa-${testResult.success ? 'check-circle' : 'times-circle'}`}></i>
+                        {testResult.message}
+                    </div>
                 )}
+
+                <button
+                    className="login-button"
+                    onClick={handleLogin}
+                    disabled={!testResult?.success || loggingIn}
+                >
+                    {loggingIn ? (
+                        <>
+                            <i className="fas fa-spinner fa-spin"></i>
+                            Logging in...
+                        </>
+                    ) : (
+                        <>
+                            <i className="fas fa-sign-in-alt"></i>
+                            Login
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );

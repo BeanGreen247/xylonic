@@ -1,58 +1,105 @@
-import React from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { PlayerProvider, usePlayer } from './context/PlayerContext';
-import Header from './components/Layout/Header';
+import React, { useState } from 'react';
+import { AuthProvider } from './context/AuthContext';
+import { PlayerProvider } from './context/PlayerContext';
+import { useAuth } from './context/AuthContext';
 import LoginForm from './components/Auth/LoginForm';
+import ReauthDialog from './components/Auth/ReauthDialog';
+import Header from './components/Layout/Header';
 import ArtistList from './components/Library/ArtistList';
+import AlbumList from './components/Library/AlbumList';
 import PlaybackControls from './components/Player/PlaybackControls';
-import ProgressBar from './components/Player/ProgressBar';
-import VolumeControl from './components/Player/VolumeControl';
-import QualitySelector from './components/Player/QualitySelector';
+import SongList from './components/Library/SongList';
 import './styles/index.css';
 
-const PlayerBar: React.FC = () => {
-    const { currentTime, duration, seek, volume, setVolume, bitrate, setBitrate } = usePlayer();
+type View = 'artists' | 'albums' | 'songs';
 
-    return (
-        <div className="player-bar">
-            <ProgressBar currentTime={currentTime} duration={duration} onSeek={seek} />
-            <div className="player-controls-container">
-                <PlaybackControls />
-                <div className="player-right-controls">
-                    <QualitySelector value={bitrate} onChange={setBitrate} />
-                    <VolumeControl volume={volume} onVolumeChange={setVolume} />
-                </div>
-            </div>
-        </div>
-    );
-};
+interface NavigationState {
+  view: View;
+  artistId?: string;
+  artistName?: string;
+  albumId?: string;
+  albumName?: string;
+}
 
 const AppContent: React.FC = () => {
-    const { isAuthenticated } = useAuth();
+  const { isAuthenticated, requiresReauth } = useAuth();
+  const [navigation, setNavigation] = useState<NavigationState>({ view: 'artists' });
 
-    if (!isAuthenticated) {
-        return <LoginForm />;
-    }
+  console.log('App: isAuthenticated =', isAuthenticated, 'requiresReauth =', requiresReauth);
 
-    return (
-        <div className="app">
-            <Header />
-            <main className="main-content">
-                <ArtistList />
-            </main>
-            <PlayerBar />
-        </div>
-    );
+  const handleArtistClick = (artistId: string, artistName: string) => {
+    setNavigation({ view: 'albums', artistId, artistName });
+  };
+
+  const handleAlbumClick = (albumId: string, albumName: string) => {
+    setNavigation({ 
+      ...navigation, 
+      view: 'songs', 
+      albumId, 
+      albumName 
+    });
+  };
+
+  const handleBackToArtists = () => {
+    setNavigation({ view: 'artists' });
+  };
+
+  const handleBackToAlbums = () => {
+    setNavigation({ 
+      view: 'albums', 
+      artistId: navigation.artistId, 
+      artistName: navigation.artistName 
+    });
+  };
+
+  // Show reauth dialog if credentials are partial/expired
+  if (requiresReauth) {
+    return <ReauthDialog />;
+  }
+
+  // Show login form if not authenticated (this is the fix)
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
+  // Main app interface (only shown when authenticated)
+  return (
+    <div className="app">
+      <Header />
+      <main className="main-content">
+        {navigation.view === 'artists' && (
+          <ArtistList onArtistClick={handleArtistClick} />
+        )}
+        {navigation.view === 'albums' && navigation.artistId && (
+          <AlbumList
+            artistId={navigation.artistId}
+            artistName={navigation.artistName || 'Unknown Artist'}
+            onBack={handleBackToArtists}
+            onAlbumClick={handleAlbumClick}
+          />
+        )}
+        {navigation.view === 'songs' && navigation.albumId && (
+          <SongList
+            albumId={navigation.albumId}
+            albumName={navigation.albumName || 'Unknown Album'}
+            artistName={navigation.artistName || 'Unknown Artist'}
+            onBack={handleBackToAlbums}
+          />
+        )}
+      </main>
+      <PlaybackControls />
+    </div>
+  );
 };
 
 function App() {
-    return (
-        <AuthProvider>
-            <PlayerProvider>
-                <AppContent />
-            </PlayerProvider>
-        </AuthProvider>
-    );
+  return (
+    <AuthProvider>
+      <PlayerProvider>
+        <AppContent />
+      </PlayerProvider>
+    </AuthProvider>
+  );
 }
 
 export default App;

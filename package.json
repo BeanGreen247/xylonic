@@ -1,50 +1,126 @@
 {
   "name": "xylonic",
   "version": "26.2.7-dev",
-  "description": "Xylonic - A modern Subsonic music player",
-  "author": "BeanGreen247 - Tomas Mozdren",
+  "description": "Modern Subsonic music streaming client with Spotify-like UI. Stream your music library from any Subsonic-compatible server (Navidrome, Airsonic, Gonic) with full playback controls, album art, and responsive design.",
+  "author": {
+    "name": "BeanGreen247",
+    "url": "https://github.com/BeanGreen247"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BeanGreen247/xylonic.git"
+  },
   "license": "MIT",
+  "keywords": [
+    "subsonic",
+    "music",
+    "streaming",
+    "player",
+    "navidrome",
+    "airsonic",
+    "electron",
+    "react",
+    "music-player"
+  ],
+  "private": true,
   "main": "public/electron.js",
   "homepage": "./",
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build && xcopy /Y public\\logo.svg build\\logo.svg*",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && electron-builder --config electron-builder.json",
-    "electron:build:win": "npm run build && electron-builder --win --config electron-builder.json",
-    "electron:build:linux": "npm run build && electron-builder --linux --config electron-builder.json"
-  },
   "dependencies": {
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.11",
-    "@types/react": "^18.0.26",
-    "@types/react-dom": "^18.0.10",
-    "axios": "^1.2.2",
-    "crypto-js": "^4.2.0",
+    "axios": "^1.6.0",
     "electron-is-dev": "^2.0.0",
+    "md5": "^2.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "typescript": "^4.9.4",
-    "web-vitals": "^2.1.4"
+    "react-scripts": "5.0.1"
   },
   "devDependencies": {
-    "@types/crypto-js": "^4.2.1",
-    "concurrently": "^7.6.0",
+    "@types/md5": "^2.3.5",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",  
+    "concurrently": "^8.2.0",
     "cross-env": "^7.0.3",
-    "electron": "^22.0.0",
-    "electron-builder": "^24.0.0",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.0",
+    "typescript": "^4.9.5",
     "wait-on": "^7.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "electron": "electron .",
+    "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:win-portable": "npm run build && electron-builder --win portable",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "electron:build:linux-tar": "npm run build && electron-builder --linux tar.gz",
+    "electron:build:linux-appimage": "npm run build && electron-builder --linux AppImage",
+    "electron:build:linux-portable": "npm run build && electron-builder --linux tar.gz",
+    "electron:build:all-portable": "npm run build && electron-builder --win portable --linux tar.gz"
+  },
+  "build": {
+    "appId": "com.xylonic.app",
+    "productName": "Xylonic",
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "public/electron.js"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "category": "AudioVideo"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icon.icns"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "react-app"
     ]
   },
   "browserslist": {

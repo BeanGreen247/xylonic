@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, protocol } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const isDev = require('electron-is-dev');
@@ -6,6 +6,9 @@ const isDev = require('electron-is-dev');
 let mainWindow;
 
 function createWindow() {
+    // Remove the default menu
+    Menu.setApplicationMenu(null);
+
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
@@ -26,6 +29,7 @@ function createWindow() {
     mainWindow.loadURL(startUrl);
 
     if (isDev) {
+        // Open DevTools in development
         mainWindow.webContents.openDevTools();
     }
 

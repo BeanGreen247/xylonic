@@ -1,6 +1,6 @@
 {
   "name": "xylonic",
-  "version": "26.2.7-dev",
+  "version": "26.2.8-dev",
   "description": "Modern Subsonic music streaming client with Spotify-like UI. Stream your music library from any Subsonic-compatible server (Navidrome, Airsonic, Gonic) with full playback controls, album art, and responsive design.",
   "author": {
     "name": "BeanGreen247",
@@ -47,9 +47,12 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "cross-env NODE_ENV=production react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
     "electron": "electron .",
     "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:serve:persist": "concurrently -k \"cross-env BROWSER=none SKIP_DEV_CLEAR=true npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
     "electron:build:win-portable": "npm run build && electron-builder --win portable",
@@ -58,7 +61,8 @@
     "electron:build:linux-tar": "npm run build && electron-builder --linux tar.gz",
     "electron:build:linux-appimage": "npm run build && electron-builder --linux AppImage",
     "electron:build:linux-portable": "npm run build && electron-builder --linux tar.gz",
-    "electron:build:all-portable": "npm run build && electron-builder --win portable --linux tar.gz"
+    "electron:build:all-portable": "npm run build && electron-builder --win portable --linux tar.gz",
+    "electron:dev": "concurrently -k \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron . --inspect=5858\""
   },
   "build": {
     "appId": "com.xylonic.app",

@@ -13,40 +13,17 @@ const ShuffleAllButton: React.FC = () => {
             const serverUrl = localStorage.getItem('serverUrl') || '';
             const username = localStorage.getItem('username') || '';
             const password = localStorage.getItem('password') || '';
-            const bitrate = null; // or get from settings
 
-            console.log('Fetching all songs for shuffle...');
+            // getAllSongs now returns the songs array directly, not a response object
+            const rawSongs = await getAllSongs(serverUrl, username, password);
             
-            // Get the response and extract songs from the Subsonic response
-            const response = await getAllSongs(serverUrl, username, password);
-            const subsonicResponse = response.data['subsonic-response'];
-            
-            if (subsonicResponse?.status === 'failed') {
-                console.error('Failed to fetch songs:', subsonicResponse.error?.message);
-                return;
-            }
-
-            // Extract songs from randomSongs response
-            const allSongs = subsonicResponse?.randomSongs?.song || [];
-            
-            console.log(`Total songs available: ${allSongs.length}`);
-
-            if (allSongs.length === 0) {
-                console.log('No songs found to shuffle');
-                return;
-            }
-
-            // Shuffle the songs
-            const shuffledSongs = shuffleArray(allSongs);
-            console.log(`Shuffled ${shuffledSongs.length} songs`);
-
-            // Map songs to include streaming URLs with proper typing
-            const songsWithUrls = shuffledSongs.map((song: any) => ({
+            // Transform raw songs to Song format with stream URLs
+            const songs = rawSongs.map((song: any) => ({
                 id: song.id,
                 title: song.title,
                 artist: song.artist,
                 album: song.album,
-                url: getStreamUrl(serverUrl, username, password, song.id, bitrate || undefined),
+                url: getStreamUrl(serverUrl, username, password, song.id),
                 duration: song.duration,
                 coverArt: song.coverArt,
             }));
@@ -54,7 +31,7 @@ const ShuffleAllButton: React.FC = () => {
             console.log('Starting shuffled playback...');
             
             // Start playing the shuffled playlist
-            playPlaylist(songsWithUrls, 0);
+            playPlaylist(songs, 0);
             
         } catch (error) {
             console.error('Failed to shuffle all songs:', error);

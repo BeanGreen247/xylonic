@@ -2,10 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    requiresReauth: boolean;
+    username: string | null;
     login: (serverUrl: string, username: string, password: string) => void;
     logout: () => void;
-    requestReauth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,80 +22,65 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [requiresReauth, setRequiresReauth] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
 
-    // This runs ONCE when the app loads
-    useEffect(() => {
-        const auth = localStorage.getItem('auth');
-        const serverUrl = localStorage.getItem('serverUrl');
-        const username = localStorage.getItem('username');
-        const password = localStorage.getItem('password');
-        
-        console.log('AuthContext: Checking existing credentials', {
-            hasAuth: !!auth,
-            hasServerUrl: !!serverUrl,
-            hasUsername: !!username,
-            hasPassword: !!password,
-            serverUrl: serverUrl,
-            username: username
-        });
-        
-        // ✅ ALL credentials present → Set authenticated to true
-        if (auth && serverUrl && username && password) {
-            setIsAuthenticated(true);
-        } else if (auth || serverUrl || username || password) {
-            // ⚠️ Only SOME credentials → Request reauth
-            console.log('AuthContext: Partial credentials found, requesting reauth');
-            setRequiresReauth(true);
-        }
-        // ❌ NO credentials → Stay unauthenticated (show login form)
-    }, []);
+  // This runs ONCE when the app loads
+  useEffect(() => {
+    const auth = localStorage.getItem('auth');
+    const savedUsername = localStorage.getItem('username');
+    if (auth === 'true' && savedUsername) {
+      setIsAuthenticated(true);
+      setUsername(savedUsername);
+    }
+  }, []);
 
-    const login = (serverUrl: string, username: string, password: string) => {
-        console.log('AuthContext: Logging in', { serverUrl, username });
-        
-        // Store all credentials
-        localStorage.setItem('auth', 'true');
-        localStorage.setItem('serverUrl', serverUrl);
-        localStorage.setItem('username', username);
-        localStorage.setItem('password', password);
-        
-        // Verify storage
-        console.log('AuthContext: Credentials stored', {
-            auth: localStorage.getItem('auth'),
-            serverUrl: localStorage.getItem('serverUrl'),
-            username: localStorage.getItem('username'),
-            hasPassword: !!localStorage.getItem('password')
-        });
-        
-        setIsAuthenticated(true);
-        setRequiresReauth(false);
-    };
+  const login = (serverUrl: string, user: string, password: string) => {
+    console.log('AuthContext: Logging in', { serverUrl, user });
+    
+    // Store all credentials
+    localStorage.setItem('auth', 'true');
+    localStorage.setItem('serverUrl', serverUrl);
+    localStorage.setItem('username', user);
+    localStorage.setItem('password', password);
+    
+    // Verify storage
+    console.log('AuthContext: Credentials stored', {
+        auth: localStorage.getItem('auth'),
+        serverUrl: localStorage.getItem('serverUrl'),
+        username: localStorage.getItem('username'),
+        hasPassword: !!localStorage.getItem('password')
+    });
+    
+    setIsAuthenticated(true);
+    setUsername(user);
 
-    const logout = () => {
-        console.log('AuthContext: Logging out');
-        localStorage.clear();
-        setIsAuthenticated(false);
-        setRequiresReauth(false);
-        
-        // Force reload to clear any cached state
-        window.location.reload();
-    };
+    // Notify ThemeContext (and anything else) that auth/user changed
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth-changed'));
+    }
+  };
 
-    const requestReauth = () => {
-        console.log('AuthContext: Requesting reauth');
-        setRequiresReauth(true);
-        setIsAuthenticated(false);
-    };
+  const logout = () => {
+    // Only remove auth-related keys, keep themes intact
+    localStorage.removeItem('auth');
+    localStorage.removeItem('serverUrl');
+    localStorage.removeItem('password');
+    // Keep 'username' so themes can still load!
+    // Keep any other user data
+    
+    setIsAuthenticated(false);
+    setUsername(null);
 
-    const value: AuthContextType = {
-        isAuthenticated,
-        requiresReauth,
-        login,
-        logout,
-        requestReauth,
-    };
+    // Notify ThemeContext that auth/user changed
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth-changed'));
+    }
+  };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, username, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

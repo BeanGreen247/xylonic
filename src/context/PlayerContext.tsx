@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
+import { logger } from '../utils/logger';
 
 interface Song {
     id: string;
@@ -75,10 +76,10 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const playSong = useCallback((song: Song) => {
         if (!audioRef.current) return;
 
-        console.log('Playing song:', song.title);
+        logger.log('Playing song:', song.title);
         setCurrentSong(song);
         audioRef.current.src = song.url;
-        audioRef.current.play().catch(err => console.error('Play error:', err));
+        audioRef.current.play().catch(err => logger.error('Play error:', err));
     }, []);
 
     const playNextWithRefs = useCallback(() => {
@@ -88,36 +89,36 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         const currentShuffle = shuffleRef.current;
 
         if (currentPlaylist.length === 0) {
-            console.log('No playlist, cannot play next');
+            logger.log('No playlist, cannot play next');
             return;
         }
 
-        console.log(`Current index: ${currentIdx}, Playlist length: ${currentPlaylist.length}, Repeat: ${currentRepeat}`);
+        logger.log(`Current index: ${currentIdx}, Playlist length: ${currentPlaylist.length}, Repeat: ${currentRepeat}`);
 
         let nextIndex: number;
 
         if (currentRepeat === 'one') {
-            console.log('Repeat one: replaying current song');
+            logger.log('Repeat one: replaying current song');
             if (audioRef.current) {
                 audioRef.current.currentTime = 0;
-                audioRef.current.play().catch(err => console.error('Play error:', err));
+                audioRef.current.play().catch(err => logger.error('Play error:', err));
             }
             return;
         }
 
         if (currentShuffle) {
             nextIndex = Math.floor(Math.random() * currentPlaylist.length);
-            console.log(`Shuffle: next index ${nextIndex}`);
+            logger.log(`Shuffle: next index ${nextIndex}`);
         } else {
             nextIndex = currentIdx + 1;
-            console.log(`Sequential: next index ${nextIndex}`);
+            logger.log(`Sequential: next index ${nextIndex}`);
             
             if (nextIndex >= currentPlaylist.length) {
                 if (currentRepeat === 'all') {
-                    console.log('Reached end, repeat all: going to index 0');
+                    logger.log('Reached end, repeat all: going to index 0');
                     nextIndex = 0;
                 } else {
-                    console.log('Reached end, no repeat: stopping');
+                    logger.log('Reached end, no repeat: stopping');
                     return;
                 }
             }
@@ -142,7 +143,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         };
 
         const handleEnded = () => {
-            console.log('Song ended, calling playNext');
+            logger.log('Song ended, calling playNext');
             playNextWithRefs();
         };
 
@@ -171,7 +172,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     }, [volume, playNextWithRefs]);
 
     const playPlaylist = (songs: Song[], startIndex = 0) => {
-        console.log(`Playing playlist: ${songs.length} songs, starting at index ${startIndex}`);
+        logger.log(`Playing playlist: ${songs.length} songs, starting at index ${startIndex}`);
         setPlaylist(songs);
         setCurrentIndex(startIndex);
         if (songs[startIndex]) {
@@ -185,7 +186,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         if (isPlaying) {
             audioRef.current.pause();
         } else {
-            audioRef.current.play().catch(err => console.error('Play error:', err));
+            audioRef.current.play().catch(err => logger.error('Play error:', err));
         }
     };
 

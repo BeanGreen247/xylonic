@@ -26,7 +26,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [albumCover, setAlbumCover] = useState<string | null>(null);
-  const { playPlaylist, currentSong, isPlaying } = usePlayer();
+  const { playPlaylist, currentSong, isPlaying, toggleShuffle, shuffle } = usePlayer();
 
   useEffect(() => {
     loadSongs();
@@ -101,6 +101,32 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
 
   const handlePlayAll = () => {
     handlePlaySong(0);
+  };
+
+  const handleShuffleAlbum = () => {
+    const serverUrl = localStorage.getItem('serverUrl') || '';
+    const username = localStorage.getItem('username') || '';
+    const password = localStorage.getItem('password') || '';
+
+    // Map songs to include streaming URLs
+    const songsWithUrls = songs.map((song) => ({
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      album: song.album,
+      url: getStreamUrl(serverUrl, username, password, song.id),
+      duration: song.duration,
+      coverArt: albumCover || undefined,
+    }));
+
+    // Enable shuffle if not already enabled
+    if (!shuffle) {
+      toggleShuffle();
+    }
+
+    // Start playing from a RANDOM song index for true shuffle experience
+    const randomIndex = Math.floor(Math.random() * songsWithUrls.length);
+    playPlaylist(songsWithUrls, randomIndex);
   };
 
   const formatDuration = (seconds?: number): string => {
@@ -181,14 +207,24 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
           </div>
         </div>
         
-        <button 
-          className="play-album-button"
-          onClick={handlePlayAll}
-          disabled={songs.length === 0}
-        >
-          <i className="fas fa-play"></i>
-          Play Album
-        </button>
+        <div className="album-header-actions">
+          <button 
+            className="play-album-button"
+            onClick={handlePlayAll}
+            disabled={songs.length === 0}
+          >
+            <i className="fas fa-play"></i>
+            Play Album
+          </button>
+          <button 
+            className="shuffle-album-button"
+            onClick={handleShuffleAlbum}
+            disabled={songs.length === 0}
+          >
+            <i className="fas fa-random"></i>
+            Shuffle
+          </button>
+        </div>
       </div>
 
       {/* Songs List */}

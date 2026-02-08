@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { PlayerProvider } from './context/PlayerContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import LoginForm from './components/Auth/LoginForm';
-import ReauthDialog from './components/Auth/ReauthDialog';
 import Header from './components/Layout/Header';
 import ArtistList from './components/Library/ArtistList';
 import AlbumList from './components/Library/AlbumList';
-import PlaybackControls from './components/Player/PlaybackControls';
 import SongList from './components/Library/SongList';
+import PlaybackControls from './components/Player/PlaybackControls';
 import './styles/index.css';
 
 type View = 'artists' | 'albums' | 'songs';
@@ -22,10 +23,11 @@ interface NavigationState {
 }
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, requiresReauth } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const [navigation, setNavigation] = useState<NavigationState>({ view: 'artists' });
 
-  console.log('App: isAuthenticated =', isAuthenticated, 'requiresReauth =', requiresReauth);
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
 
   const handleArtistClick = (artistId: string, artistName: string) => {
     setNavigation({ view: 'albums', artistId, artistName });
@@ -52,20 +54,18 @@ const AppContent: React.FC = () => {
     });
   };
 
-  // Show reauth dialog if credentials are partial/expired
-  if (requiresReauth) {
-    return <ReauthDialog />;
-  }
+  const handleLogout = () => {
+    logout();
+    setNavigation({ view: 'artists' });
+  };
 
-  // Show login form if not authenticated (this is the fix)
   if (!isAuthenticated) {
     return <LoginForm />;
   }
 
-  // Main app interface (only shown when authenticated)
   return (
     <div className="app">
-      <Header />
+      <Header onLogout={handleLogout} />
       <main className="main-content">
         {navigation.view === 'artists' && (
           <ArtistList onArtistClick={handleArtistClick} />
@@ -94,11 +94,13 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <PlayerProvider>
-        <AppContent />
-      </PlayerProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <PlayerProvider>
+          <AppContent />
+        </PlayerProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

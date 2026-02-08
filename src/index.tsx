@@ -11,3 +11,10 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// Clear localStorage on development start (unless SKIP_DEV_CLEAR is set)
+if (process.env.NODE_ENV === 'development' && !process.env.SKIP_DEV_CLEAR) {
+  localStorage.clear();
+
+
+}  console.log('Development mode: localStorage cleared for clean testing');// }

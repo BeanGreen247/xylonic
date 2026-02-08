@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { getArtists, getSongCount } from '../../services/subsonicApi';
+import { getArtists, getSongCount, getAllSongs, getStreamUrl, getCoverArtUrl } from '../../services/subsonicApi';
+import { usePlayer } from '../../context/PlayerContext';
+import { Song } from '../../types';
 import './ArtistList.css';
+import { logger } from '../../utils/logger';
 
 interface Artist {
   id: string;
@@ -18,6 +21,8 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalSongs, setTotalSongs] = useState(0);
+  const { playPlaylist, toggleShuffle, shuffle } = usePlayer();
+  const [isShufflingAll, setIsShufflingAll] = useState(false);
 
   useEffect(() => {
     loadArtists();
@@ -79,6 +84,45 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick }) => {
     }
   };
 
+  const handleShuffleAll = async () => {
+    setIsShufflingAll(true);
+    try {
+      const serverUrl = localStorage.getItem('serverUrl') || '';
+      const username = localStorage.getItem('username') || '';
+      const password = localStorage.getItem('password') || '';
+
+      const rawSongs = await getAllSongs(serverUrl, username, password);
+      
+      // Transform raw songs to Song format with stream URLs
+      const songs: Song[] = rawSongs.map((song: any) => ({
+        id: song.id,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        url: getStreamUrl(serverUrl, username, password, song.id),
+        duration: song.duration,
+        coverArt: song.coverArt ? getCoverArtUrl(serverUrl, username, password, song.coverArt, 300) : undefined
+      }));
+
+      // Enable shuffle if not already enabled
+      if (!shuffle) {
+        toggleShuffle();
+      }
+      
+      // Start playing from a RANDOM song index for true shuffle experience
+      const randomIndex = Math.floor(Math.random() * songs.length);
+      playPlaylist(songs, randomIndex);
+    } catch (error) {
+      logger.error('Failed to shuffle all songs:', error);
+      setError('Failed to load songs for shuffle');
+    } finally {
+      setIsShufflingAll(false);
+    }
+  };
+
+  // Calculate totals
+  const totalAlbums = artists.reduce((sum, artist) => sum + (artist.albumCount || 0), 0);
+
   if (loading) {
     return (
       <div className="loading">
@@ -117,25 +161,33 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick }) => {
   }
 
   return (
-    <div>
+    <div className="artist-list">
       <div className="library-header">
-        <h2 className="library-title">
+        <div className="library-title">
           <i className="fas fa-users"></i>
-          Your Artists
-        </h2>
+          <span>Your Artists</span>
+        </div>
         <div className="library-header-right">
           <div className="library-stats">
-            <i className="fas fa-user-circle"></i>
+            <i className="fas fa-user-friends"></i>
             <span>{artists.length} artists</span>
           </div>
           <div className="library-stats">
-            <i className="fas fa-compact-disc"></i>
-            <span>{artists.reduce((sum, a) => sum + (a.albumCount || 0), 0)} albums</span>
+            <i className="fas fa-record-vinyl"></i>
+            <span>{totalAlbums} albums</span>
           </div>
           <div className="library-stats">
             <i className="fas fa-music"></i>
-            <span>{totalSongs.toLocaleString()} songs</span>
+            <span>{totalSongs} songs</span>
           </div>
+          <button 
+            className="shuffle-all-button"
+            onClick={handleShuffleAll}
+            disabled={isShufflingAll || loading}
+          >
+            <i className="fas fa-random"></i>
+            {isShufflingAll ? 'Loading...' : 'Shuffle All'}
+          </button>
         </div>
       </div>
 

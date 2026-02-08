@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import './Header.css';
+import ThemeSelector from '../common/ThemeSelector';
+import KeyboardHelp from '../common/KeyboardHelp';
 
-const Header: React.FC = () => {
-  const { logout } = useAuth();
-  
-  const username = localStorage.getItem('username') || 'User';
+interface HeaderProps {
+  onLogout: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onLogout }) => {
+  const { username } = useAuth();
   const serverUrl = localStorage.getItem('serverUrl') || '';
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+
+  const handleHelp = () => {
+    setShowKeyboardHelp(true);
+  };
 
   const handleGitHubClick = () => {
     // In Electron, use shell.openExternal
@@ -26,11 +34,7 @@ const Header: React.FC = () => {
           <i className="fas fa-music"></i>
           Xylonic
         </h1>
-        <button 
-          className="github-link" 
-          onClick={handleGitHubClick}
-          title="View on GitHub"
-        >
+        <button className="github-link" onClick={handleGitHubClick} title="View on GitHub">
           <i className="fab fa-github"></i>
         </button>
       </div>
@@ -51,11 +55,18 @@ const Header: React.FC = () => {
       </div>
 
       <div className="header-right">
-        <button className="logout-button" onClick={logout}>
+        <ThemeSelector />
+        <button className="help-button" onClick={handleHelp}>
+          <i className="fas fa-question-circle"></i>
+          <span>Help</span>
+        </button>
+        <button className="logout-button" onClick={onLogout}>
           <i className="fas fa-sign-out-alt"></i>
-          Logout
+          <span>Logout</span>
         </button>
       </div>
+
+      <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
     </header>
   );
 };

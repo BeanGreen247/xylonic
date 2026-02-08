@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getArtist, getCoverArtUrl } from '../../services/subsonicApi';
+import { usePlayer } from '../../context/PlayerContext';
+import { Song } from '../../types';
 import './AlbumList.css';
 
 interface Album {
@@ -23,6 +25,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { playPlaylist, toggleShuffle, shuffle } = usePlayer();
 
   useEffect(() => {
     loadAlbums();
@@ -100,7 +103,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   const totalSongs = albums.reduce((sum, album) => sum + (album.songCount || 0), 0);
 
   return (
-    <div>
+    <div className="album-list">
       <div className="library-header">
         <button className="back-button" onClick={onBack}>
           <i className="fas fa-arrow-left"></i>

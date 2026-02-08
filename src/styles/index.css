@@ -447,40 +447,45 @@ body {
     color: var(--primary-color);
 }
 
-/* Shuffle All Button */
+/* Shuffle All Button - styled like stats badges */
 .shuffle-all-button {
-    width: 100%;
-    padding: 18px;
-    margin-bottom: 32px;
-    background: var(--primary-color);
-    border: none;
-    border-radius: var(--radius-md);
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    box-shadow: var(--elevation-2);
+  background-color: rgba(var(--primary-color-rgb), 0.15);
+  color: var(--primary-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.3);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .shuffle-all-button:hover:not(:disabled) {
-    background: var(--primary-light);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 188, 212, 0.4);
+  background-color: rgba(var(--primary-color-rgb), 0.25);
+  border-color: rgba(var(--primary-color-rgb), 0.5);
+  transform: translateY(-1px);
 }
 
-.shuffle-all-button:active {
-    transform: translateY(0);
+.shuffle-all-button:active:not(:disabled) {
+  transform: translateY(0);
+  background-color: rgba(var(--primary-color-rgb), 0.3);
 }
 
 .shuffle-all-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
+  background-color: rgba(108, 117, 125, 0.15);
+  border-color: rgba(108, 117, 125, 0.3);
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.shuffle-all-button i {
+  font-size: 14px;
 }
 
 /* Loading State */
@@ -669,16 +674,17 @@ body {
     color: var(--primary-light);
 }
 
-.album-artist {
-    font-size: 18px;
-    color: var(--text-secondary);
-    margin: 0 0 8px 0;
-}
-
 .album-year {
     font-size: 14px;
     color: var(--text-muted);
     margin: 0;
+}
+
+.album-header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 .play-album-button {
@@ -695,13 +701,40 @@ body {
     gap: 10px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--elevation-2);
-    align-self: flex-start;
 }
 
 .play-album-button:hover {
     background: var(--primary-light);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+}
+
+.shuffle-album-button {
+    background: rgba(var(--primary-color-rgb), 0.15);
+    border: 1px solid rgba(var(--primary-color-rgb), 0.3);
+    color: var(--primary-color);
+    font-size: 18px;
+    font-weight: 600;
+    padding: 16px 32px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--elevation-2);
+}
+
+.shuffle-album-button:hover {
+    background: rgba(var(--primary-color-rgb), 0.25);
+    border-color: rgba(var(--primary-color-rgb), 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--primary-color-rgb), 0.4);
+}
+
+.shuffle-album-button:active {
+    transform: translateY(0);
+    background: rgba(var(--primary-color-rgb), 0.3);
 }
 
 /* Songs List (from SongList.css) */

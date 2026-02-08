@@ -1,12 +1,12 @@
 import axios from 'axios';
-import md5 from 'md5';  // ✅ This is correct - uses the npm package
+import md5 from 'md5';
+import { logger } from '../utils/logger';
 
 const API_VERSION = '1.16.1';
 const CLIENT_NAME = 'SubsonicMusicApp';
 
 // Generate authentication parameters
 const generateAuthParams = (username: string, password: string) => {
-    // ✅ Generate NEW salt and token for EACH request
     const salt = Math.random().toString(36).substring(7);
     const token = md5(password + salt);  // Token = md5(password + salt)
     
@@ -33,12 +33,12 @@ export const testConnection = async (serverUrl: string, username: string, passwo
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'ping.view', authParams);
         
-        console.log('Testing connection to URL:', url);
+        logger.log('Testing connection to URL:', url);
         
         const response = await axios.get(url);
         return response;
     } catch (error) {
-        console.error('Connection test failed:', error);
+        logger.error('Connection test failed:', error);
         throw error;
     }
 };
@@ -49,12 +49,12 @@ export const getArtists = async (serverUrl: string, username: string, password: 
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getArtists.view', authParams);
         
-        console.log('Fetching artists from URL:', url);
+        logger.log('Fetching artists from URL:', url);
         
         const response = await axios.get(url);
         return response;
     } catch (error) {
-        console.error('Failed to fetch artists:', error);
+        logger.error('Failed to fetch artists:', error);
         throw error;
     }
 };
@@ -68,7 +68,7 @@ export const getArtist = async (serverUrl: string, username: string, password: s
         const response = await axios.get(url);
         return response;
     } catch (error) {
-        console.error('Failed to fetch artist:', error);
+        logger.error('Failed to fetch artist:', error);
         throw error;
     }
 };
@@ -82,23 +82,49 @@ export const getAlbum = async (serverUrl: string, username: string, password: st
         const response = await axios.get(url);
         return response;
     } catch (error) {
-        console.error('Failed to fetch album:', error);
+        logger.error('Failed to fetch album:', error);
         throw error;
     }
 };
 
-// Get all songs (uses getRandomSongs as Subsonic doesn't have getAllSongs)
+// Get all songs from all artists and albums
 export const getAllSongs = async (serverUrl: string, username: string, password: string) => {
     try {
-        const authParams = generateAuthParams(username, password);
-        const url = buildApiUrl(serverUrl, 'getRandomSongs.view', { ...authParams, size: '500' });
+        const artistsResponse = await getArtists(serverUrl, username, password);
+        const artistsData = artistsResponse.data['subsonic-response'];
         
-        console.log('Fetching songs from URL:', url);
+        if (artistsData?.status === 'failed') {
+            throw new Error(artistsData.error?.message || 'Failed to fetch artists');
+        }
         
-        const response = await axios.get(url);
-        return response;
+        const allSongs: any[] = [];
+        const indexes = artistsData?.artists?.index || [];
+        
+        for (const index of indexes) {
+            for (const artist of index.artist || []) {
+                try {
+                    const artistResponse = await getArtist(serverUrl, username, password, artist.id);
+                    const artistData = artistResponse.data['subsonic-response']?.artist;
+                    
+                    for (const album of artistData?.album || []) {
+                        try {
+                            const albumResponse = await getAlbum(serverUrl, username, password, album.id);
+                            const albumData = albumResponse.data['subsonic-response']?.album;
+                            const songs = albumData?.song || [];
+                            allSongs.push(...songs);
+                        } catch (error) {
+                            logger.error(`Failed to fetch album ${album.id}:`, error);
+                        }
+                    }
+                } catch (error) {
+                    logger.error(`Failed to fetch artist ${artist.id}:`, error);
+                }
+            }
+        }
+        
+        return allSongs;
     } catch (error) {
-        console.error('Failed to fetch songs:', error);
+        logger.error('Failed to get all songs:', error);
         throw error;
     }
 };
@@ -112,12 +138,12 @@ export const getRandomSongs = async (serverUrl: string, username: string, passwo
             size: size.toString() 
         });
         
-        console.log('Fetching random songs from URL:', url);
+        logger.log('Fetching random songs from URL:', url);
         
         const response = await axios.get(url);
         return response;
     } catch (error) {
-        console.error('Failed to fetch random songs:', error);
+        logger.error('Failed to fetch random songs:', error);
         throw error;
     }
 };
@@ -157,7 +183,7 @@ export const getSongCount = async (serverUrl: string, username: string, password
             size: '500' // Get many albums to count their songs
         });
         
-        console.log('Fetching albums to count songs');
+        logger.log('Fetching albums to count songs');
         
         const response = await axios.get(url);
         const albums = response.data['subsonic-response']?.albumList2?.album || [];
@@ -170,7 +196,7 @@ export const getSongCount = async (serverUrl: string, username: string, password
         
         return totalSongs;
     } catch (error) {
-        console.error('Failed to get song count:', error);
+        logger.error('Failed to get song count:', error);
         return 0;
     }
 };

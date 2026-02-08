@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllSongs } from '../services/subsonicApi';
+import { getAllSongs, getStreamUrl, getCoverArtUrl } from '../services/subsonicApi';
 
 interface Song {
     id: string;
@@ -22,23 +22,24 @@ export const useSongList = () => {
                 const username = localStorage.getItem('username') || '';
                 const password = localStorage.getItem('password') || '';
 
-                console.log('Fetching songs...');
+                // getAllSongs now returns the songs array directly, not a response object
+                const rawSongs = await getAllSongs(serverUrl, username, password);
                 
-                const response = await getAllSongs(serverUrl, username, password);
-                const subsonicResponse = response.data['subsonic-response'];
-                
-                if (subsonicResponse?.status === 'failed') {
-                    throw new Error(subsonicResponse.error?.message || 'Failed to fetch songs');
-                }
+                // Transform songs if needed
+                const songs = rawSongs.map((song: any) => ({
+                    id: song.id,
+                    title: song.title,
+                    artist: song.artist,
+                    album: song.album,
+                    url: getStreamUrl(serverUrl, username, password, song.id),
+                    duration: song.duration,
+                    coverArt: song.coverArt ? getCoverArtUrl(serverUrl, username, password, song.coverArt, 300) : undefined
+                }));
 
-                // Extract songs from randomSongs response
-                const songsList = subsonicResponse?.randomSongs?.song || [];
-                setSongs(songsList);
-                
-                console.log(`Loaded ${songsList.length} songs`);
-            } catch (err) {
-                setError((err as Error).message);
-                console.error('Error fetching songs:', err);
+                setSongs(songs);
+            } catch (error) {
+                console.error('Failed to fetch songs:', error);
+                setError((error as Error).message);
             } finally {
                 setLoading(false);
             }

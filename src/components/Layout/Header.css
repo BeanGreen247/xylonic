@@ -1,1 +1,197 @@
 /* Header styles - defined in index.css */
+
+/* Mini player button - consistent with other header buttons */
+.mini-player-button,
+button.mini-player-button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mini-player-button:hover:not(:disabled),
+button.mini-player-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color, #00bcd4);
+}
+
+/* Disabled state - must override all: unset */
+button.mini-player-button:disabled,
+button.mini-player-button[disabled],
+.mini-player-button:disabled,
+.mini-player-button[disabled] {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 20px !important;
+  border: 2px solid rgba(100, 100, 100, 0.3) !important;
+  border-radius: 999px !important;
+  background: rgba(50, 50, 50, 0.3) !important;
+  color: rgba(150, 150, 150, 0.5) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transition: none !important;
+}
+
+button.mini-player-button:disabled .btn-icon,
+button.mini-player-button:disabled .btn-label,
+button.mini-player-button[disabled] .btn-icon,
+button.mini-player-button[disabled] .btn-label,
+.mini-player-button:disabled .btn-icon,
+.mini-player-button:disabled .btn-label,
+.mini-player-button[disabled] .btn-icon,
+.mini-player-button[disabled] .btn-label {
+  opacity: 0.5 !important;
+  color: rgba(150, 150, 150, 0.5) !important;
+}
+
+/* Help button - consistent with other header buttons */
+.help-button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.help-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color, #00bcd4);
+}
+
+/* Logout button - consistent with other header buttons */
+.logout-button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color, #00bcd4);
+}
+/* Connection Status Indicator */
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.connection-status.online {
+  background: rgba(29, 185, 84, 0.15);
+  color: #1db954;
+  border: 2px solid rgba(29, 185, 84, 0.3);
+}
+
+.connection-status.offline {
+  background: rgba(255, 59, 48, 0.15);
+  color: #ff3b30;
+  border: 2px solid rgba(255, 59, 48, 0.3);
+}
+
+.status-label {
+  font-size: 12px;
+}
+
+/* Offline Mode Button */
+.offline-mode-button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.offline-mode-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color, #00bcd4);
+}
+
+.offline-mode-button.active {
+  background: var(--primary-color, #00bcd4);
+  border-color: var(--primary-color, #00bcd4);
+  color: white;
+}
+
+.offline-mode-button.active:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Download Manager Button */
+.download-manager-button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.download-manager-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color, #00bcd4);
+  transform: translateY(-1px);
+}

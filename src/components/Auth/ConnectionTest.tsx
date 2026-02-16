@@ -17,12 +17,12 @@ const ConnectionTest: React.FC<ConnectionTestProps> = ({ username, password, ser
         try {
             const response = await testConnection(username, password, serverUrl);
             if (response.data['subsonic-response']?.status === 'ok') {
-                setStatus('✓ Connection successful!');
+                setStatus('Connection successful!');
             } else {
-                setStatus('✗ Connection failed');
+                setStatus('Connection failed');
             }
         } catch (error) {
-            setStatus('✗ Connection failed: ' + (error as Error).message);
+            setStatus('Connection failed: ' + (error as Error).message);
         } finally {
             setTesting(false);
         }
@@ -33,7 +33,7 @@ const ConnectionTest: React.FC<ConnectionTestProps> = ({ username, password, ser
             <button onClick={handleTest} disabled={testing || !username || !password || !serverUrl}>
                 {testing ? 'Testing...' : 'Test Connection'}
             </button>
-            {status && <div className={`status ${status.includes('✓') ? 'success' : 'error'}`}>{status}</div>}
+            {status && <div className={`status ${status.includes('successful') ? 'success' : 'error'}`}>{status}</div>}
         </div>
     );
 };

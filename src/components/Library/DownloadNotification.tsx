@@ -100,7 +100,7 @@ const DownloadNotification: React.FC<DownloadNotificationProps> = ({ songs }) =>
                                         <div className="download-item-title">{task.title}</div>
                                         <div className="download-item-artist">{task.artist}</div>
                                     </div>
-                                    <div className="download-item-status">✓</div>
+                                    <div className="download-item-status">Done</div>
                                 </div>
                             ))}
                         </div>

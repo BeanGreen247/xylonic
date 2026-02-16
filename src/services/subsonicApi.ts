@@ -1,9 +1,19 @@
 import axios from 'axios';
 import md5 from 'md5';
 import { logger } from '../utils/logger';
+import { SearchResult3, SubsonicSearchResponse } from '../types/subsonic';
+import { offlineCacheService } from './offlineCacheService';
 
 const API_VERSION = '1.16.1';
 const CLIENT_NAME = 'SubsonicMusicApp';
+
+// Check if offline mode is enabled and block network requests
+const checkOfflineMode = () => {
+    const config = offlineCacheService.getConfig();
+    if (config.enabled) {
+        throw new Error('Network requests blocked: Offline mode is enabled');
+    }
+};
 
 // Generate authentication parameters
 const generateAuthParams = (username: string, password: string) => {
@@ -45,6 +55,7 @@ export const testConnection = async (serverUrl: string, username: string, passwo
 
 // Get all artists
 export const getArtists = async (serverUrl: string, username: string, password: string) => {
+    checkOfflineMode();
     try {
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getArtists.view', authParams);
@@ -61,6 +72,7 @@ export const getArtists = async (serverUrl: string, username: string, password: 
 
 // Get artist details
 export const getArtist = async (serverUrl: string, username: string, password: string, artistId: string) => {
+    checkOfflineMode();
     try {
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getArtist.view', { ...authParams, id: artistId });
@@ -75,6 +87,7 @@ export const getArtist = async (serverUrl: string, username: string, password: s
 
 // Get album details
 export const getAlbum = async (serverUrl: string, username: string, password: string, albumId: string) => {
+    checkOfflineMode();
     try {
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getAlbum.view', { ...authParams, id: albumId });
@@ -89,6 +102,7 @@ export const getAlbum = async (serverUrl: string, username: string, password: st
 
 // Get all songs from all artists and albums
 export const getAllSongs = async (serverUrl: string, username: string, password: string) => {
+    checkOfflineMode();
     try {
         const artistsResponse = await getArtists(serverUrl, username, password);
         const artistsData = artistsResponse.data['subsonic-response'];
@@ -131,6 +145,7 @@ export const getAllSongs = async (serverUrl: string, username: string, password:
 
 // Get random songs (better for shuffle functionality)
 export const getRandomSongs = async (serverUrl: string, username: string, password: string, size: number = 50) => {
+    checkOfflineMode();
     try {
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getRandomSongs.view', { 
@@ -155,9 +170,15 @@ export const getStreamUrl = (serverUrl: string, username: string, password: stri
     
     if (bitrate) {
         params.maxBitRate = bitrate.toString();
+        console.log(`[STREAM URL] Generating stream with maxBitRate=${bitrate} for song ${songId}`);
+    } else {
+        console.log(`[STREAM URL] Generating stream with NO transcoding (original quality) for song ${songId}`);
     }
     
-    return buildApiUrl(serverUrl, 'stream.view', params);
+    const url = buildApiUrl(serverUrl, 'stream.view', params);
+    console.log(`[STREAM URL] ${url}`);
+    
+    return url;
 };
 
 // Get cover art URL
@@ -174,6 +195,7 @@ export const getCoverArtUrl = (serverUrl: string, username: string, password: st
 
 // Get song count from server
 export const getSongCount = async (serverUrl: string, username: string, password: string) => {
+    checkOfflineMode();
     try {
         const authParams = generateAuthParams(username, password);
         // Use search with empty query to get count, or getAlbumList2 to count songs
@@ -199,4 +221,123 @@ export const getSongCount = async (serverUrl: string, username: string, password
         logger.error('Failed to get song count:', error);
         return 0;
     }
+};
+
+// Search function
+export const search = async (query: string): Promise<SearchResult3> => {
+  checkOfflineMode();
+  try {
+    // Debug: Check what's in localStorage
+    console.log('All localStorage keys:', Object.keys(localStorage));
+    console.log('auth key:', localStorage.getItem('auth'));
+    console.log('serverUrl key:', localStorage.getItem('serverUrl'));
+    console.log('username key:', localStorage.getItem('username'));
+    console.log('password key:', localStorage.getItem('password'));
+
+    // Try multiple storage formats (your app might use different keys)
+    let serverUrl, username, password;
+
+    // Format 1: Everything in 'auth' key
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      serverUrl = parsed.serverUrl;
+      username = parsed.username;
+      password = parsed.password;
+    }
+
+    // Format 2: Separate keys (fallback)
+    if (!serverUrl || !username || !password) {
+      serverUrl = localStorage.getItem('serverUrl');
+      username = localStorage.getItem('username');
+      password = localStorage.getItem('password');
+    }
+    
+    if (!serverUrl || !username || !password) {
+      console.error('Missing credentials. serverUrl:', serverUrl, 'username:', username, 'password:', !!password);
+      throw new Error('Missing credentials');
+    }
+
+    const salt = Math.random().toString(36).substring(7);
+    const token = md5(password + salt);
+
+    const params = new URLSearchParams({
+      u: username,
+      t: token,
+      s: salt,
+      v: '1.16.1',
+      c: 'SubsonicMusicApp',
+      f: 'json',
+      query: query,
+      artistCount: '20',
+      albumCount: '20',
+      songCount: '50'
+    });
+
+    const response = await axios.get<SubsonicSearchResponse>(
+      `${serverUrl}/rest/search3.view?${params}`
+    );
+
+    if (response.data['subsonic-response']?.status === 'ok') {
+      return response.data['subsonic-response'].searchResult3 || {};
+    }
+
+    throw new Error('Search failed');
+  } catch (error) {
+    console.error('Search error:', error);
+    throw error;
+  }
+};
+
+// Get starred/favorited songs from server
+export const getStarred = async (serverUrl: string, username: string, password: string) => {
+  checkOfflineMode();
+  try {
+    const authParams = generateAuthParams(username, password);
+    const url = buildApiUrl(serverUrl, 'getStarred2.view', authParams);
+    
+    logger.log('Fetching starred songs from:', url);
+    
+    const response = await axios.get(url);
+    return response;
+  } catch (error) {
+    logger.error('Failed to get starred songs:', error);
+    throw error;
+  }
+};
+
+// Star a song on the server
+export const starSong = async (serverUrl: string, username: string, password: string, songId: string) => {
+  checkOfflineMode();
+  try {
+    const authParams = generateAuthParams(username, password);
+    const params = { ...authParams, id: songId };
+    const url = buildApiUrl(serverUrl, 'star.view', params);
+    
+    logger.log('Starring song:', songId);
+    
+    const response = await axios.get(url);
+    return response;
+  } catch (error) {
+    logger.error('Failed to star song:', error);
+    throw error;
+  }
+};
+
+// Unstar a song on the server
+export const unstarSong = async (serverUrl: string, username: string, password: string, songId: string) => {
+  checkOfflineMode();
+  try {
+    const authParams = generateAuthParams(username, password);
+    const params = { ...authParams, id: songId };
+    const url = buildApiUrl(serverUrl, 'unstar.view', params);
+    
+    logger.log('Unstarring song:', songId);
+    
+    const response = await axios.get(url);
+    return response;
+  } catch (error) {
+    logger.error('Failed to unstar song:', error);
+    throw error;
+  }
 };

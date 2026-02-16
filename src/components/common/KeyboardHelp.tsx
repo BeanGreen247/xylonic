@@ -20,6 +20,7 @@ const KeyboardHelp: React.FC<KeyboardHelpProps> = ({ isOpen, onClose }) => {
     { key: 'S', action: 'Toggle Shuffle' },
     { key: 'R', action: 'Toggle Repeat' },
     { key: 'M', action: 'Mute / Unmute' },
+    { key: 'Ctrl + M', action: 'Toggle Mini Player' },
   ];
 
   return (

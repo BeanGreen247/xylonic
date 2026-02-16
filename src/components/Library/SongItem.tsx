@@ -3,6 +3,7 @@ import { usePlayer } from '../../context/PlayerContext';
 import { localStorageService } from '../../services/localStorageService';
 import { getFromStorage } from '../../utils/storage';
 import { getStreamUrl } from '../../services/subsonicApi';
+import { offlineCacheService } from '../../services/offlineCacheService';
 import DownloadButton from './DownloadButton';
 
 interface Song {
@@ -27,17 +28,20 @@ const SongItem: React.FC<SongItemProps> = ({ song, allSongs = [] }) => {
     // Check if downloaded (use 0 as fallback for null bitrate)
     const effectiveBitrate = bitrate || 0;
     const isDownloaded = localStorageService.isSongDownloaded(song.id, effectiveBitrate);
+    const isCached = offlineCacheService.isCached(song.id);
+    const isCoverArtCached = song.coverArt ? offlineCacheService.isCoverArtCached(song.coverArt) : false;
 
     const getUrl = (songId: string, currentBitrate: number | null): string => {
         // Check if song is downloaded at current quality
         const downloadedSong = localStorageService.getDownloadedSong(songId, currentBitrate || 0);
         if (downloadedSong) {
-            console.log('Playing from local storage:', downloadedSong.localPath);
+            console.log('[PLAYBACK] Playing from local storage:', downloadedSong.localPath);
             return downloadedSong.localPath;
         }
         
         // Fall back to streaming
         const { username, password, serverUrl } = getFromStorage();
+        console.log(`[PLAYBACK] Streaming song ${songId} at quality:`, currentBitrate === null ? 'Original' : `${currentBitrate} kbps`);
         return getStreamUrl(username, password, serverUrl, songId, currentBitrate || undefined);
     };
 
@@ -95,7 +99,11 @@ const SongItem: React.FC<SongItemProps> = ({ song, allSongs = [] }) => {
                 className="play-button"
                 onClick={handlePlayPause}
             >
-                {isCurrentlyPlaying ? '⏸' : '▶'}
+                {isCurrentlyPlaying ? (
+                    <><i className="fas fa-pause"></i> Pause</>
+                ) : (
+                    <><i className="fas fa-play"></i> Play</>
+                )}
             </button>
             
             <div className="song-info">
@@ -106,7 +114,17 @@ const SongItem: React.FC<SongItemProps> = ({ song, allSongs = [] }) => {
             <div className="song-meta">
                 {song.album && <span className="song-album">{song.album}</span>}
                 {song.duration && <span className="song-duration">{formatDuration(song.duration)}</span>}
-                {isDownloaded && <span className="downloaded-badge">📥</span>}
+                {isDownloaded && <span className="downloaded-badge"><i className="fas fa-download"></i> Downloaded</span>}
+                {isCached && (
+                    <span className="cached-badge" title="Song cached">
+                        <i className="fas fa-circle-check"></i>
+                    </span>
+                )}
+                {isCoverArtCached && (
+                    <span className="cached-art-badge" title="Album art cached">
+                        <i className="fas fa-image"></i>
+                    </span>
+                )}
             </div>
 
             <DownloadButton song={song} />

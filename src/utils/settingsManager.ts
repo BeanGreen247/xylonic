@@ -9,6 +9,7 @@ const isElectron = () => {
 interface UserSettings {
   theme: string;
   customThemes: Record<string, any>;
+  streamingQuality?: number | null;
 }
 
 interface AllSettings {

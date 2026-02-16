@@ -1,7 +1,7 @@
 # Subsonic Music Player - AI Coding Instructions
 
 ## Project Overview
-Electron + React + TypeScript music streaming app connecting to Subsonic API servers. Spotify-like UI with authentication, artist/album/song library browsing, and full playback controls.
+Electron + React + TypeScript music streaming app connecting to Subsonic API servers. UI with authentication, artist/album/song library browsing, **search functionality**, and full playback controls. Spotify-like UI with elements from tidal, youtube music and apple music with a hint of deezer.
 
 ## Architecture
 
@@ -27,8 +27,9 @@ Electron + React + TypeScript music streaming app connecting to Subsonic API ser
 ### Core Components
 - **Auth**: `LoginForm.tsx` (server URL + credentials + test), `ConnectionTest.tsx`
 - **Player**: `PlaybackControls.tsx` (bottom section), `ProgressBar.tsx`, `VolumeControl.tsx`
-- **Library**: `ArtistList.tsx` (main navigation), `SongList.tsx`, `SongItem.tsx`
-- **Layout**: `Header.tsx` (shows user/server, logout), `Sidebar.tsx`
+- **Library**: `ArtistList.tsx` (main navigation), `SongList.tsx`, `SongItem.tsx`, `SearchResults.tsx`
+- **Layout**: `Header.tsx` (shows user/server, logout, search bar), `Sidebar.tsx`
+- **Search**: `SearchBar.tsx` (in header), `SearchResults.tsx` (displays search results)
 
 ### Data Flow
 ```
@@ -61,6 +62,7 @@ const token = md5(password + salt);
 - `getAlbum.view?id={albumId}` - Get album's songs
 - `stream.view?id={songId}` - Audio stream URL (via `getStreamUrl()`)
 - `getCoverArt.view?id={coverArtId}` - Album/artist artwork
+- `search3.view?query={query}` - Search artists, albums, and songs
 
 ### Response Structure
 ```typescript
@@ -86,18 +88,18 @@ User must provide: `http://192.168.1.100:4040` or `https://music.example.com`
 ### Player Controls Layout
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [Song Info]    [⏮ ⏸/▶ ⏭]    [🔂 🔁 🔀]           │
+│ [Song Info]    [Previous Pause/Play Next]    [Repeat Once Repeat All Shuffle]           │
 │                [Progress Bar]                        │
 └─────────────────────────────────────────────────────┘
 ```
-- **Repeat Once** (🔂) and **Repeat All** (🔁) are SEPARATE independent buttons
+- **Repeat Once** and **Repeat All** are SEPARATE independent buttons
 - Active state: `.active` CSS class, color: `#1db954`
 - Repeat states: `'none'` | `'one'` | `'all'`
 - Shuffle toggles independently
 
 ### State Management
-- **Context API**: `AuthContext` (auth state), `PlayerContext` (wraps `usePlayer` hook)
-- **Custom hooks**: `useAuth`, `usePlayer`, `useSongList` - contain business logic
+- **Context API**: `AuthContext` (auth state), `PlayerContext` (wraps `usePlayer` hook), `SearchContext` (search state)
+- **Custom hooks**: `useAuth`, `usePlayer`, `useSongList`, `useSearch` - contain business logic
 - **localStorage**: Credentials stored as plain text (keys: `auth`, `serverUrl`, `username`, `password`)
 - Clear all storage on logout: `localStorage.clear()`
 

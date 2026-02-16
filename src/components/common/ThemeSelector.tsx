@@ -4,14 +4,23 @@ import { ThemeType } from '../../types/theme';
 import CustomThemeEditor from './CustomThemeEditor';
 import './ThemeSelector.css';
 
-const ThemeSelector: React.FC = () => {
+interface ThemeSelectorProps {
+  onClose?: () => void;
+}
+
+const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onClose }) => {
   const { currentTheme, setTheme, getAllThemes, resetCustomTheme } = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(onClose ? true : false); // Auto-open if onClose provided
   const [showEditor, setShowEditor] = useState(false);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose?.();
+  };
 
   const handleThemeChange = (theme: ThemeType) => {
     setTheme(theme);
-    setIsOpen(false);
+    handleClose();
   };
 
   const handleDeleteCustomTheme = (slot: 'custom1' | 'custom2' | 'custom3' | 'custom4', e: React.MouseEvent) => {
@@ -31,25 +40,28 @@ const ThemeSelector: React.FC = () => {
 
   return (
     <>
-      <button 
-        className="theme-selector-button"
-        onClick={() => setIsOpen(true)}
-        title="Change theme"
-      >
-        <i className="fas fa-palette"></i>
-        <span>Theme</span>
-      </button>
+      {!onClose && (
+        <button 
+          className="theme-button"
+          onClick={() => setIsOpen(true)}
+          title="Change theme"
+          aria-label="Theme"
+        >
+          <i className="fas fa-palette btn-icon"></i>
+          <span className="btn-label">Theme</span>
+        </button>
+      )}
 
       {isOpen && (
         <>
-          <div className="theme-modal-overlay" onClick={() => setIsOpen(false)} />
+          <div className="theme-modal-overlay" onClick={handleClose} />
           <div className="theme-modal">
             <div className="theme-modal-header">
               <h2>
                 <i className="fas fa-palette"></i>
                 Choose Theme
               </h2>
-              <button className="close-button" onClick={() => setIsOpen(false)}>
+              <button className="close-button" onClick={handleClose}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -126,7 +138,16 @@ const ThemeSelector: React.FC = () => {
 
       <CustomThemeEditor 
         isOpen={showEditor}
-        onClose={() => setShowEditor(false)}
+        onClose={() => {
+          setShowEditor(false);
+          if (onClose) {
+            // If we're in controlled mode (opened from HamburgerMenu), fully close
+            onClose();
+          } else {
+            // If standalone, reopen the theme selector
+            setIsOpen(true);
+          }
+        }}
       />
     </>
   );

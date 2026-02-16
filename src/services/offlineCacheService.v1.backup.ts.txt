@@ -1,0 +1,582 @@
+/**
+ * Offline Cache Service
+ * Manages permanent cache storage in AppData/permanent_cache
+ */
+
+import {
+  CacheIndex,
+  CachedSongMetadata,
+  DownloadQuality,
+  CacheStats,
+  OfflineModeConfig,
+  DownloadableSong
+} from '../types/offline';
+import { logger } from '../utils/logger';
+
+// Use the exposed Electron API from preload
+const electron = (window as any).electron;
+
+class OfflineCacheService {
+  private cacheIndex: CacheIndex | null = null;
+  private cacheDir: string = '';
+  private config: OfflineModeConfig = {
+    enabled: false,
+    preferCache: true, // Offline-first by default
+    warnCacheSizeAt: 1000 // Warn at 1GB
+  };
+
+  /**
+   * Initialize cache service
+   */
+  async initialize(username: string, serverUrl: string): Promise<void> {
+    try {
+      logger.log('[OfflineCache] Initializing cache for user:', username);
+      
+      // Get cache directory from Electron main process
+      if (electron && electron.getCacheDir) {
+        this.cacheDir = await electron.getCacheDir();
+        logger.log('[OfflineCache] Cache directory:', this.cacheDir);
+      } else {
+        // Fallback for browser mode (not supported)
+        logger.warn('[OfflineCache] Not running in Electron, cache disabled');
+        return;
+      }
+
+      // Load or create cache index
+      await this.loadOrCreateIndex(username, serverUrl);
+      
+      // Load configuration
+      this.loadConfig();
+      
+      // Rebuild cover art aliases for songs from the same album
+      await this.rebuildCoverArtAliases();
+      
+      logger.log('[OfflineCache] Initialized successfully');
+    } catch (error) {
+      logger.error('[OfflineCache] Initialization failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load existing cache index or create new one
+   */
+  private async loadOrCreateIndex(username: string, serverUrl: string): Promise<void> {
+    try {
+      // Try to load existing index
+      const indexData = await electron.readCacheIndex();
+      
+      if (indexData) {
+        this.cacheIndex = JSON.parse(indexData);
+        
+        if (this.cacheIndex) {
+          // Ensure backward compatibility - add missing fields
+          if (!this.cacheIndex.coverArt) {
+            console.log('🔧 [offlineCacheService] Adding missing coverArt field to cache index');
+            this.cacheIndex.coverArt = {};
+          }
+          if (!this.cacheIndex.likedSongs) {
+            console.log('🔧 [offlineCacheService] Adding missing likedSongs field to cache index');
+            this.cacheIndex.likedSongs = [];
+          }
+          
+          // Recalculate totalSize from cached songs in case it's stale
+          const songs = Object.values(this.cacheIndex.songs);
+          const calculatedSize = songs.reduce((total, song) => total + (song.fileSize || 0), 0);
+          
+          if (this.cacheIndex.totalSize !== calculatedSize) {
+            logger.log('[OfflineCache] Correcting totalSize:', this.cacheIndex.totalSize, '→', calculatedSize);
+            this.cacheIndex.totalSize = calculatedSize;
+            await this.saveIndex();
+          }
+          
+          console.log('[STATS] [offlineCacheService] Loaded cache index:', {
+            songs: songs.length,
+            coverArt: Object.keys(this.cacheIndex.coverArt).length,
+            likedSongs: this.cacheIndex.likedSongs.length,
+            totalSize: this.cacheIndex.totalSize
+          });
+          logger.log('[OfflineCache] Loaded existing cache index:', songs.length, 'songs,', this.cacheIndex.totalSize, 'bytes');
+        }
+      } else {
+        // Create new index
+        this.cacheIndex = {
+          version: '1.0.0',
+          username,
+          serverUrl,
+          songs: {},
+          coverArt: {},
+          likedSongs: [],
+          totalSize: 0,
+          lastUpdated: Date.now()
+        };
+        await this.saveIndex();
+        console.log('[NEW] [offlineCacheService] Created new cache index');
+        logger.log('[OfflineCache] Created new cache index');
+      }
+    } catch (error) {
+      logger.error('[OfflineCache] Failed to load/create index:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save cache index to disk
+   */
+  private async saveIndex(): Promise<void> {
+    if (!this.cacheIndex) return;
+    
+    this.cacheIndex.lastUpdated = Date.now();
+    
+    try {
+      await electron.writeCacheIndex(JSON.stringify(this.cacheIndex, null, 2));
+      logger.log('[OfflineCache] Index saved');
+    } catch (error) {
+      logger.error('[OfflineCache] Failed to save index:', error);
+    }
+  }
+
+  /**
+   * Check if a song is cached
+   */
+  isCached(songId: string): boolean {
+    return !!this.cacheIndex?.songs[songId];
+  }
+
+  /**
+   * Get cached song metadata
+   */
+  getCachedSong(songId: string): CachedSongMetadata | null {
+    return this.cacheIndex?.songs[songId] || null;
+  }
+
+  /**
+   * Get file path for cached song
+   */
+  async getCachedFilePath(songId: string): Promise<string | null> {
+    const metadata = this.getCachedSong(songId);
+    if (!metadata) return null;
+
+    // Update last accessed time
+    metadata.lastAccessed = Date.now();
+    await this.saveIndex();
+
+    // Return full path
+    return await electron.getCachedFilePath(metadata.filePath);
+  }
+
+  /**
+   * Add song to cache index after download
+   */
+  async addToCache(song: DownloadableSong, quality: DownloadQuality, filePath: string, fileSize: number, artistId?: string, artistCoverArtId?: string): Promise<void> {
+    if (!this.cacheIndex) return;
+
+    const metadata: CachedSongMetadata = {
+      songId: song.id,
+      title: song.title,
+      artist: song.artist || 'Unknown Artist',
+      album: song.album || 'Unknown Album',
+      albumId: song.albumId || '',
+      artistId,
+      artistCoverArtId,
+      duration: song.duration,
+      quality,
+      filePath,
+      fileSize,
+      cachedAt: Date.now(),
+      lastAccessed: Date.now(),
+      coverArtId: song.coverArt
+    };
+
+    this.cacheIndex.songs[song.id] = metadata;
+    this.cacheIndex.totalSize += fileSize;
+    
+    await this.saveIndex();
+    logger.log('[OfflineCache] Added song to cache:', song.title, `(${this.formatBytes(fileSize)})`);
+  }
+
+  /**
+   * Remove song from cache
+   */
+  async removeFromCache(songId: string): Promise<void> {
+    const metadata = this.getCachedSong(songId);
+    if (!metadata) return;
+
+    try {
+      // Delete file
+      await electron.deleteCachedFile(metadata.filePath);
+      
+      // Update index
+      if (this.cacheIndex) {
+        this.cacheIndex.totalSize -= metadata.fileSize;
+        delete this.cacheIndex.songs[songId];
+        await this.saveIndex();
+      }
+      
+      logger.log('[OfflineCache] Removed song from cache:', metadata.title);
+    } catch (error) {
+      logger.error('[OfflineCache] Failed to remove song:', error);
+    }
+  }
+
+  /**
+   * Remove entire album from cache
+   */
+  async removeAlbumFromCache(albumId: string): Promise<void> {
+    if (!this.cacheIndex) return;
+
+    const songsToRemove = Object.values(this.cacheIndex.songs)
+      .filter(song => song.albumId === albumId);
+
+    logger.log('[OfflineCache] Removing album from cache:', albumId, `(${songsToRemove.length} songs)`);
+
+    for (const song of songsToRemove) {
+      await this.removeFromCache(song.songId);
+    }
+  }
+
+  /**
+   * Get all cached albums
+   */
+  getCachedAlbums(): Array<{ albumId: string; albumName: string; artistName: string; songCount: number }> {
+    if (!this.cacheIndex) return [];
+
+    const albums = new Map<string, { albumName: string; artistName: string; songCount: number }>();
+    
+    Object.values(this.cacheIndex.songs).forEach(song => {
+      if (!albums.has(song.albumId)) {
+        albums.set(song.albumId, {
+          albumName: song.album,
+          artistName: song.artist,
+          songCount: 0
+        });
+      }
+      albums.get(song.albumId)!.songCount++;
+    });
+
+    return Array.from(albums.entries()).map(([albumId, data]) => ({
+      albumId,
+      ...data
+    }));
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): CacheStats {
+    if (!this.cacheIndex || Object.keys(this.cacheIndex.songs).length === 0) {
+      return {
+        totalSongs: 0,
+        totalSize: 0,
+        totalSizeFormatted: '0 MB',
+        albumCount: 0,
+        oldestCache: 0,
+        newestCache: 0
+      };
+    }
+
+    const songs = Object.values(this.cacheIndex.songs);
+    const albums = new Set(songs.map(s => s.albumId));
+    
+    const timestamps = songs.map(s => s.cachedAt);
+    const oldestCache = Math.min(...timestamps);
+    const newestCache = Math.max(...timestamps);
+
+    return {
+      totalSongs: songs.length,
+      totalSize: this.cacheIndex.totalSize,
+      totalSizeFormatted: this.formatBytes(this.cacheIndex.totalSize),
+      albumCount: albums.size,
+      oldestCache,
+      newestCache
+    };
+  }
+
+  /**
+   * Check if cache size warning should be shown
+   */
+  shouldWarnCacheSize(): boolean {
+    if (!this.cacheIndex) return false;
+    const sizeMB = this.cacheIndex.totalSize / (1024 * 1024);
+    return sizeMB >= this.config.warnCacheSizeAt;
+  }
+
+  /**
+   * Clear all cache
+   */
+  async clearAllCache(): Promise<void> {
+    if (!this.cacheIndex) return;
+
+    try {
+      // Delete all cached files
+      await electron.clearCacheDir();
+      
+      // Reset index
+      this.cacheIndex.songs = {};
+      this.cacheIndex.totalSize = 0;
+      await this.saveIndex();
+      
+      logger.log('[OfflineCache] All cache cleared');
+    } catch (error) {
+      logger.error('[OfflineCache] Failed to clear cache:', error);
+    }
+  }
+
+  /**
+   * Load offline mode configuration
+   */
+  private loadConfig(): void {
+    try {
+      const saved = localStorage.getItem('offlineModeConfig');
+      if (saved) {
+        this.config = { ...this.config, ...JSON.parse(saved) };
+      }
+    } catch (error) {
+      logger.error('[OfflineCache] Failed to load config:', error);
+    }
+  }
+
+  /**
+   * Save offline mode configuration
+   */
+  saveConfig(config: Partial<OfflineModeConfig>): void {
+    this.config = { ...this.config, ...config };
+    localStorage.setItem('offlineModeConfig', JSON.stringify(this.config));
+    logger.log('[OfflineCache] Config saved:', this.config);
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): OfflineModeConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Get cache index (all cached songs metadata)
+   */
+  getCacheIndex(): CacheIndex {
+    if (!this.cacheIndex) {
+      return {
+        version: '1.0',
+        username: '',
+        serverUrl: '',
+        songs: {},
+        coverArt: {},
+        likedSongs: [],
+        totalSize: 0,
+        lastUpdated: Date.now()
+      };
+    }
+    // Ensure backward compatibility - add missing fields
+    if (!this.cacheIndex.coverArt) {
+      this.cacheIndex.coverArt = {};
+    }
+    if (!this.cacheIndex.likedSongs) {
+      this.cacheIndex.likedSongs = [];
+    }
+    return { ...this.cacheIndex };
+  }
+
+  /**
+   * Cache cover art image
+   */
+  async cacheCoverArt(coverArtId: string, imageData: Uint8Array): Promise<string> {
+    if (!this.cacheIndex) {
+      throw new Error('Cache not initialized');
+    }
+
+    try {
+      const relativePath = `cover_art/${coverArtId}.jpg`;
+      console.log('[CACHE] [offlineCacheService] Caching cover art:', coverArtId, '| size:', imageData.length, 'bytes | path:', relativePath);
+      
+      // Save image via Electron IPC
+      await electron.downloadSongToCache(Array.from(imageData), relativePath);
+      console.log('[offlineCacheService] File saved via IPC');
+      
+      // Update cache index
+      this.cacheIndex.coverArt[coverArtId] = relativePath;
+      this.cacheIndex.lastUpdated = Date.now();
+      await this.saveIndex();
+      console.log('[offlineCacheService] Cache index updated and saved');
+      
+      logger.log('[OfflineCache] Cover art cached:', coverArtId);
+      return relativePath;
+    } catch (error) {
+      console.error('[ERROR] [offlineCacheService] Failed to cache cover art:', error);
+      logger.error('[OfflineCache] Failed to cache cover art:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get cached cover art path
+   */
+  getCachedCoverArtPath(coverArtId: string): string | null {
+    if (!this.cacheIndex || !this.cacheIndex.coverArt) {
+      console.log('[offlineCacheService] getCachedCoverArtPath - no cache index or coverArt:', coverArtId);
+      return null;
+    }
+    const path = this.cacheIndex.coverArt[coverArtId] || null;
+    console.log('[offlineCacheService] getCachedCoverArtPath:', coverArtId, '->', path);
+    return path;
+  }
+
+  /**
+   * Check if cover art is cached
+   */
+  isCoverArtCached(coverArtId: string): boolean {
+    const result = this.getCachedCoverArtPath(coverArtId) !== null;
+    console.log('[offlineCacheService] isCoverArtCached:', coverArtId, '->', result);
+    return result;
+  }
+
+  /**
+   * Create an alias for cover art (multiple IDs pointing to same file)
+   * Used when songs from the same album have different cover art IDs
+   */
+  async createCoverArtAlias(aliasCoverArtId: string, primaryCoverArtId: string): Promise<void> {
+    if (!this.cacheIndex || !this.cacheIndex.coverArt) {
+      throw new Error('Cache not initialized');
+    }
+
+    // Get the path of the primary cover art
+    const primaryPath = this.cacheIndex.coverArt[primaryCoverArtId];
+    
+    if (!primaryPath) {
+      console.warn('[WARNING] [offlineCacheService] Cannot create alias - primary cover art not found:', primaryCoverArtId);
+      return;
+    }
+
+    // Create alias pointing to the same file
+    this.cacheIndex.coverArt[aliasCoverArtId] = primaryPath;
+    this.cacheIndex.lastUpdated = Date.now();
+    await this.saveIndex();
+    
+    console.log('[offlineCacheService] Created cover art alias:', aliasCoverArtId, '→', primaryPath);
+    logger.log('[OfflineCache] Created cover art alias:', aliasCoverArtId, '→', primaryCoverArtId);
+  }
+
+  /**
+   * Rebuild cover art aliases for songs from the same album
+   * Scans all cached songs and creates aliases so all songs from an album
+   * can access the cover art even if they have different cover art IDs
+   */
+  private async rebuildCoverArtAliases(): Promise<void> {
+    if (!this.cacheIndex) return;
+
+    // Group songs by album
+    const albumSongs = new Map<string, CachedSongMetadata[]>();
+    
+    Object.values(this.cacheIndex.songs).forEach(song => {
+      if (!albumSongs.has(song.albumId)) {
+        albumSongs.set(song.albumId, []);
+      }
+      albumSongs.get(song.albumId)!.push(song);
+    });
+
+    let aliasesCreated = 0;
+
+    // For each album, find one cached cover art and create aliases for others
+    for (const [albumId, songs] of albumSongs.entries()) {
+      // Find the first song with a cached cover art
+      const primarySong = songs.find(s => s.coverArtId && this.isCoverArtCached(s.coverArtId));
+      
+      if (!primarySong || !primarySong.coverArtId) continue;
+
+      const primaryPath = this.cacheIndex.coverArt[primarySong.coverArtId];
+      
+      // Create aliases for all other songs in this album
+      for (const song of songs) {
+        if (song.coverArtId && 
+            song.coverArtId !== primarySong.coverArtId && 
+            !this.isCoverArtCached(song.coverArtId)) {
+          
+          this.cacheIndex.coverArt[song.coverArtId] = primaryPath;
+          aliasesCreated++;
+        }
+      }
+    }
+
+    if (aliasesCreated > 0) {
+      this.cacheIndex.lastUpdated = Date.now();
+      await this.saveIndex();
+      console.log('[offlineCacheService] Rebuilt', aliasesCreated, 'cover art aliases');
+      logger.log('[OfflineCache] Rebuilt', aliasesCreated, 'cover art aliases');
+    }
+  }
+
+  /**
+   * Add song to liked songs cache
+   */
+  async addLikedSong(songId: string): Promise<void> {
+    if (!this.cacheIndex) {
+      throw new Error('Cache not initialized');
+    }
+
+    if (!this.cacheIndex.likedSongs.includes(songId)) {
+      this.cacheIndex.likedSongs.push(songId);
+      this.cacheIndex.lastUpdated = Date.now();
+      await this.saveIndex();
+      logger.log('[OfflineCache] Added liked song:', songId);
+    }
+  }
+
+  /**
+   * Remove song from liked songs cache
+   */
+  async removeLikedSong(songId: string): Promise<void> {
+    if (!this.cacheIndex) {
+      throw new Error('Cache not initialized');
+    }
+
+    const index = this.cacheIndex.likedSongs.indexOf(songId);
+    if (index > -1) {
+      this.cacheIndex.likedSongs.splice(index, 1);
+      this.cacheIndex.lastUpdated = Date.now();
+      await this.saveIndex();
+      logger.log('[OfflineCache] Removed liked song:', songId);
+    }
+  }
+
+  /**
+   * Check if song is liked
+   */
+  isLiked(songId: string): boolean {
+    if (!this.cacheIndex || !this.cacheIndex.likedSongs) {
+      return false;
+    }
+    return this.cacheIndex.likedSongs.includes(songId);
+  }
+
+  /**
+   * Get all liked songs
+   */
+  getLikedSongs(): string[] {
+    if (!this.cacheIndex || !this.cacheIndex.likedSongs) {
+      return [];
+    }
+    return [...this.cacheIndex.likedSongs];
+  }
+
+  /**
+   * Format bytes to human-readable string
+   */
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  /**
+   * Get cache directory path
+   */
+  getCacheDir(): string {
+    return this.cacheDir;
+  }
+}
+
+// Export singleton instance
+export const offlineCacheService = new OfflineCacheService();

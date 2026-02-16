@@ -1,6 +1,7 @@
 {
   "appId": "beangreen247.xylonic.musicplayer",
   "productName": "Xylonic",
+  "asar": false,
   "directories": {
     "output": "dist"
   },

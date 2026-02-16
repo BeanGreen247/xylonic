@@ -16,6 +16,15 @@
     /* Styles defined in index.css */
 }
 
+/* Ensure AlbumArt component fits properly in player controls */
+.current-song-cover .album-art,
+.current-song-cover .album-art-fallback {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
 .player-right-controls {
     /* Styles defined in index.css */
 }

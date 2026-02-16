@@ -1,3 +1,111 @@
 /* LoginForm styles - main styles are in index.css */
 
+/* Two-column layout */
+.login-form-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 16px;
+    align-items: start;
+}
+
+.login-column-left,
+.login-column-right {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Responsive: stack columns on small screens */
+@media (max-width: 800px) {
+    .login-form-columns {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+/* Connection history dropdown */
+.connection-select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9999px !important;
+    background: var(--bg-light);
+    color: var(--text-primary);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 18px;
+    padding-right: 40px;
+    overflow: hidden;
+    -webkit-border-radius: 9999px;
+    -moz-border-radius: 9999px;
+}
+
+.connection-select:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.connection-select:focus:not(:disabled) {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.12);
+    background-color: var(--bg-medium);
+}
+
+.connection-select:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: var(--text-muted);
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
+.connection-select option {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    padding: 10px;
+}
+
+/* Offline mode toggle */
+.offline-mode-toggle {
+    margin: 8px 0;
+}
+
+.offline-mode-toggle .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    user-select: none;
+}
+
+.offline-mode-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.offline-mode-toggle input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.offline-mode-toggle .toggle-label i {
+    font-size: 16px;
+    color: var(--primary-color);
+    transition: color 0.2s ease;
+}
+
+.offline-mode-toggle input[type="checkbox"]:disabled + i {
+    color: var(--text-muted);
+}
+
 /* Additional component-specific styles can go here if needed */

@@ -1,12 +1,10 @@
-import { useEffect } from 'react';
-
-const STORAGE_KEY = 'subsonic_credentials';
-
 // Save credentials
 export const saveToStorage = (username: string, password: string, serverUrl: string): void => {
     try {
-        const credentials = { username, password, serverUrl };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(credentials));
+        // Store as individual keys to match AuthContext
+        localStorage.setItem('username', username);
+        localStorage.setItem('password', password);
+        localStorage.setItem('serverUrl', serverUrl);
     } catch (error) {
         console.error('Failed to save to storage:', error);
     }
@@ -15,9 +13,11 @@ export const saveToStorage = (username: string, password: string, serverUrl: str
 // Get credentials as object
 export const getFromStorage = () => {
     try {
-        const credentials = localStorage.getItem(STORAGE_KEY);
-        if (!credentials) return { username: '', password: '', serverUrl: '' };
-        return JSON.parse(credentials);
+        // Read from individual keys that AuthContext uses
+        const username = localStorage.getItem('username') || '';
+        const password = localStorage.getItem('password') || '';
+        const serverUrl = localStorage.getItem('serverUrl') || '';
+        return { username, password, serverUrl };
     } catch (error) {
         console.error('Failed to get from storage:', error);
         return { username: '', password: '', serverUrl: '' };
@@ -49,13 +49,4 @@ export const setItem = (key: string, value: string): void => {
     } catch (error) {
         console.error('Failed to set item in storage:', error);
     }
-};
-
-export const useCredentials = () => {
-    useEffect(() => {
-        const credentials = getFromStorage();
-        if (credentials) {
-            // Optionally, you can handle the retrieved credentials here
-        }
-    }, []);
 };

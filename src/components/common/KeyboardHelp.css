@@ -4,8 +4,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
   z-index: 9998;
   animation: fadeIn 0.2s ease;
 }
@@ -15,16 +15,16 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--elevation-4);
-  max-width: 500px;
+  background: var(--bg-dark);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-width: 520px;
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
   z-index: 9999;
   animation: slideUp 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.15);
 }
 
 @keyframes fadeIn {
@@ -52,39 +52,42 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg-light);
 }
 
 .keyboard-help-header h2 {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--primary-color);
   margin: 0;
 }
 
 .close-button {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-medium);
+  border: 2px solid rgba(255, 255, 255, 0.15);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
-  font-size: 18px;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .close-button:hover {
-  background: var(--bg-light);
-  color: var(--text-primary);
+  background: var(--primary-color);
+  color: white;
   border-color: var(--primary-color);
-  transform: scale(1.05);
+  transform: scale(1.08) rotate(90deg);
+  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
 }
 
 .keyboard-help-content {
@@ -97,34 +100,38 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  margin-bottom: 8px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
   background: var(--bg-light);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   transition: all 0.2s;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .shortcut-row:hover {
-  background: var(--surface-variant);
-  transform: translateX(4px);
+  background: var(--bg-medium);
+  transform: translateX(6px);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
 }
 
 .shortcut-key {
-  background: var(--bg-dark);
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
+  background: var(--bg-medium);
+  padding: 10px 18px;
+  border-radius: 8px;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: var(--primary-color);
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  min-width: 120px;
+  border: 2px solid var(--primary-color);
+  min-width: 130px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 188, 212, 0.3);
 }
 
 .shortcut-action {
-  font-size: 14px;
+  font-size: 0.95rem;
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
 }

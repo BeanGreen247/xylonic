@@ -23,7 +23,7 @@ export const readUserColorConfig = async (username: string): Promise<UserColorCo
       
       if (cfgContent) {
         const parsed = parseCfg(cfgContent);
-        console.log('✅ Parsed color config:', parsed);
+        console.log('Parsed color config:', parsed);
         return parsed[username] || null;
       }
     }
@@ -40,13 +40,13 @@ export const writeUserColorConfig = async (username: string, config: UserColorCo
   try {
     if (!username) return;
     
-    console.log('💾 Writing color config for:', username);
+    console.log('[ColorConfig] Writing color config for:', username);
     
     if (isElectron()) {
       const electron = (window as any).electron;
       const cfgContent = stringifyCfg({ [username]: config });
       await electron.writeColorConfig(username, cfgContent);
-      console.log('✅ Color config saved');
+      console.log('Color config saved');
     }
   } catch (error) {
     logger.error('Failed to write color config:', error);

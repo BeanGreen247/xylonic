@@ -99,7 +99,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       root.style.setProperty('--accent-color', theme.accentColor);
       root.style.setProperty('--accent-light', theme.accentLight);
       root.style.setProperty('--primary-color-rgb', hexToRgb(theme.primaryColor));
+      
+      // Set gradient variables for mini player
+      root.style.setProperty('--gradient-start', theme.primaryDark);
+      root.style.setProperty('--gradient-end', theme.primaryColor);
 
+      console.log('[ThemeContext] Applied theme to window:', themeKey, theme);
       logger.log('Applied theme:', themeKey, theme);
     },
     [customThemes]
@@ -108,24 +113,47 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Core loader: read config for current user and update state
   const loadUserTheme = useCallback(async () => {
     const username = getCurrentUser();
+    console.log('[ThemeContext] loadUserTheme called, username:', username);
     if (!username) {
-      // Logged out: don't touch existing CSS so login screen uses defaults
+      // Logged out: try to load from localStorage for mini player
+      const savedTheme = localStorage.getItem('currentTheme');
+      const savedCustomThemes = localStorage.getItem('customThemes');
+      if (savedTheme && savedCustomThemes) {
+        console.log('[ThemeContext] Loading theme from localStorage (no auth)');
+        setCurrentTheme(savedTheme as ThemeType);
+        setCustomThemes(JSON.parse(savedCustomThemes));
+      }
+      console.log('[ThemeContext] No authenticated user, leaving default CSS theme');
       logger.log('ThemeContext: no authenticated user, leaving default CSS theme');
       setLoaded(true);
       return;
     }
 
-    setLoaded(false);
+    // Try localStorage first for instant loading (especially for mini player)
+    const savedTheme = localStorage.getItem('currentTheme');
+    const savedCustomThemes = localStorage.getItem('customThemes');
+    if (savedTheme && savedCustomThemes) {
+      console.log('[ThemeContext] Loading theme from localStorage immediately');
+      setCurrentTheme(savedTheme as ThemeType);
+      setCustomThemes(JSON.parse(savedCustomThemes));
+      setLoaded(true);
+    } else {
+      setLoaded(false);
+    }
 
     try {
+      console.log('[ThemeContext] Loading theme from config file for user:', username);
       logger.log('ThemeContext: loading theme for user:', username);
       const config = await readUserColorConfig(username);
+      console.log('[ThemeContext] Config loaded from file:', config);
       if (config && config.customThemes && Object.keys(config.customThemes).length > 0) {
         // Use exactly what is in this user's cfg file
+        console.log('[ThemeContext] Applying user config theme:', config.theme);
         setCustomThemes(config.customThemes as Record<string, Theme>);
         setCurrentTheme((config.theme as ThemeType) || 'cyan');
       } else {
         // First time for this user: start from defaults (but ONLY for this user)
+        console.log('[ThemeContext] No config found, using defaults');
         setCustomThemes({
           custom1: defaultCustomTheme('My Theme 1'),
           custom2: defaultCustomTheme('My Theme 2'),
@@ -135,6 +163,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         setCurrentTheme('cyan');
       }
     } catch (error) {
+      console.error('[ThemeContext] Failed to load color config:', error);
       logger.error('Failed to load color config:', error);
       // Fallback to defaults for this user
       setCustomThemes({
@@ -157,9 +186,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // 1) Initial load based on persisted auth
   // 2) React to login/logout/user-switch via a custom event from AuthContext
   useEffect(() => {
+    console.log('[ThemeContext] Initializing theme system');
     loadUserTheme();
 
     const handleAuthChanged = () => {
+      console.log('[ThemeContext] auth-changed event received, reloading theme');
       logger.log('ThemeContext: auth-changed event received, reloading theme');
       loadUserTheme();
     };
@@ -172,6 +203,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Apply theme after loading to avoid flicker and avoid applying defaults over user theme
   useEffect(() => {
+    console.log('[ThemeContext] Apply theme effect triggered. loaded:', loaded, 'currentTheme:', currentTheme);
     if (loaded) {
       applyTheme(currentTheme);
     }
@@ -180,6 +212,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Persist theme changes per user (only when logged in & loaded)
   useEffect(() => {
     if (!loaded) return;
+    
+    // Always save to localStorage for instant access
+    localStorage.setItem('currentTheme', currentTheme);
+    localStorage.setItem('customThemes', JSON.stringify(customThemes));
+    console.log('[ThemeContext] Saved theme to localStorage:', currentTheme);
+    
     const username = getCurrentUser();
     if (!username) return;
 
@@ -189,9 +227,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           theme: currentTheme,
           customThemes,
         });
-        logger.log('✅ Color config saved for', username);
+        logger.log('Color config saved for', username);
       } catch (error) {
-        logger.error('❌ Failed to save color config:', error);
+        logger.error('ERROR: Failed to save color config:', error);
       }
     };
 

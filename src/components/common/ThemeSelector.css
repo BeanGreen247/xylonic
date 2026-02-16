@@ -1,27 +1,51 @@
-.theme-selector {
-  position: relative;
-}
+/* Remove any conflicting theme button styles - use Header.css styles instead */
 
-.theme-selector-button {
-  display: flex;
+/* Ensure theme-button uses Header.css styles */
+button.theme-button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--text-secondary);
-  border-radius: var(--radius-full);
-  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #ffffff);
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.theme-selector-button:hover {
-  color: var(--text-primary);
-  border-color: var(--primary-color);
-  background-color: rgba(var(--primary-color-rgb), 0.08);
-  transform: translateY(-1px);
+button.theme-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color, #00bcd4);
+}
+
+/* Ensure theme-button uses Header.css styles */
+button.theme-button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+button.theme-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color, #00bcd4);
 }
 
 .theme-modal-overlay {
@@ -30,9 +54,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  z-index: 9998;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 10001;
   animation: fadeIn 0.2s ease;
 }
 
@@ -41,18 +65,19 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--elevation-4);
-  max-width: 700px;
+  background: var(--bg-dark);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-width: 720px;
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
-  z-index: 9999;
+  z-index: 10002;
   animation: slideUp 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.15);
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
 }
 
 @keyframes fadeIn {
@@ -80,39 +105,42 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg-light);
 }
 
 .theme-modal-header h2 {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--primary-color);
   margin: 0;
 }
 
 .close-button {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-medium);
+  border: 2px solid rgba(255, 255, 255, 0.15);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
-  font-size: 18px;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .close-button:hover {
-  background: var(--bg-light);
-  color: var(--text-primary);
+  background: var(--primary-color);
+  color: white;
   border-color: var(--primary-color);
-  transform: scale(1.05);
+  transform: scale(1.08) rotate(90deg);
+  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.5);
 }
 
 .theme-modal-content {
@@ -142,9 +170,9 @@
 
 .theme-card {
   background: var(--bg-light);
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
-  padding: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 18px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -152,17 +180,20 @@
   align-items: center;
   gap: 12px;
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .theme-card:hover {
-  background: var(--surface-variant);
-  transform: translateY(-4px);
-  box-shadow: var(--elevation-2);
+  background: var(--bg-medium);
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-color: var(--primary-color);
 }
 
 .theme-card.active {
   border-color: var(--primary-color);
-  background: rgba(var(--primary-color-rgb), 0.12);
+  background: linear-gradient(135deg, rgba(0, 188, 212, 0.15), rgba(0, 188, 212, 0.08));
+  box-shadow: 0 4px 16px rgba(0, 188, 212, 0.4);
 }
 
 .theme-card-preview {
@@ -191,25 +222,27 @@
 
 .create-theme-button {
   width: 100%;
-  padding: 16px 24px;
+  padding: 18px 24px;
   background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
-  border: none;
-  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  border-radius: 12px;
   color: white;
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   transition: all 0.2s;
-  margin-top: 8px;
+  margin-top: 12px;
+  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.4);
 }
 
 .create-theme-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(var(--primary-color-rgb), 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 188, 212, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .theme-card-deletable {

@@ -100,9 +100,74 @@ export const useKeyboardShortcuts = () => {
           break;
 
         case 'KeyM':
-          // M: Mute/Unmute
-          logger.log('Keyboard: M - Toggle Mute');
-          setVolume(volume === 0 ? 0.7 : 0);
+          if (e.ctrlKey) {
+            // Ctrl+M: Toggle mini player (only if song loaded)
+            if (currentSong) {
+              logger.log('Keyboard: Ctrl+M - Toggle Mini Player');
+              e.preventDefault();
+              if (window.electron?.toggleMiniPlayer) {
+                window.electron.toggleMiniPlayer();
+              }
+            } else {
+              logger.log('Keyboard: Ctrl+M - Mini Player disabled (no song loaded)');
+              e.preventDefault();
+            }
+          } else {
+            // M: Mute/Unmute
+            logger.log('Keyboard: M - Toggle Mute');
+            setVolume(volume === 0 ? 0.7 : 0);
+          }
+          break;
+
+        case 'Delete':
+          if (e.ctrlKey && e.shiftKey) {
+            // Ctrl+Shift+Delete: Wipe all cache except permanent offline cache
+            e.preventDefault();
+            logger.log('Keyboard: Ctrl+Shift+Delete - Wiping all cache (except permanent)');
+            
+            const confirmWipe = window.confirm(
+              'Clear All Cache?\n\n' +
+              'This will wipe:\n' +
+              '• Image cache (artists & albums)\n' +
+              '• Search index cache\n' +
+              '• Pre-cache timestamp\n\n' +
+              'Permanent offline cache will NOT be affected.\n\n' +
+              'Continue?'
+            );
+            
+            if (confirmWipe) {
+              (async () => {
+                try {
+                  console.log('%cWIPING ALL CACHE (except permanent)', 'background: red; color: white; font-size: 14px; font-weight: bold; padding: 4px;');
+                  
+                  // Clear image cache
+                  const { imageCacheService } = await import('../services/imageCacheService');
+                  await imageCacheService.clearCache();
+                  console.log('%cImage cache cleared', 'color: green; font-weight: bold');
+                  
+                  // Clear search cache
+                  const { searchCacheService } = await import('../services/searchCacheService');
+                  await searchCacheService.clearCache();
+                  console.log('%cSearch cache cleared', 'color: green; font-weight: bold');
+                  
+                  // Clear pre-cache timestamp to trigger re-indexing on next launch
+                  localStorage.removeItem('cachePreloaded');
+                  localStorage.removeItem('cachePreloadTimestamp');
+                  console.log('%cPre-cache timestamp cleared', 'color: green; font-weight: bold');
+                  
+                  console.log('%cALL CACHE WIPED! Reload app to rebuild.', 'background: green; color: white; font-size: 14px; font-weight: bold; padding: 4px;');
+                  
+                  alert('Cache Cleared!\n\nReload the app to rebuild the cache.');
+                  
+                  // Reload the app
+                  window.location.reload();
+                } catch (error) {
+                  console.error('Failed to wipe cache:', error);
+                  alert('ERROR: Error clearing cache. Check console for details.');
+                }
+              })();
+            }
+          }
           break;
 
         default:

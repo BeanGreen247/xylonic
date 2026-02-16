@@ -1159,7 +1159,7 @@ stateDiagram-v2
     LOADED: LOADED (Audio ready)
     LOADED: audioRef.current.src = audioUrl
     LOADED: audioRef.current.load()
-    LOADED: Event: 'canplay' fired
+    LOADED: canplay event fired
     
     PLAYING: PLAYING
     PLAYING: isPlaying = true
@@ -1172,10 +1172,10 @@ stateDiagram-v2
     PAUSED: Can: resume, seek, change song
     
     ENDED: ENDED
-    ENDED: Check repeat mode:
-    ENDED: - Repeat One → Replay
-    ENDED: - Repeat All → Play next()
-    ENDED: - None → IDLE if no next
+    ENDED: Check repeat mode
+    ENDED: Repeat One = Replay
+    ENDED: Repeat All = Play next
+    ENDED: None = IDLE if no next
     
     IDLE --> LOADING: User clicks song<br/>play(song)
     LOADING --> LOADED: Audio URL obtained<br/>Load successful

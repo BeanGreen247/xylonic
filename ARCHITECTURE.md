@@ -1164,12 +1164,12 @@ stateDiagram-v2
     PLAYING: PLAYING
     PLAYING: isPlaying = true
     PLAYING: Progress updates (timeupdate)
-    PLAYING: Can: pause, seek, next, prev
+    PLAYING: Actions - pause, seek, next, prev
     
     PAUSED: PAUSED
     PAUSED: isPlaying = false
     PAUSED: Progress frozen
-    PAUSED: Can: resume, seek, change song
+    PAUSED: Actions - resume, seek, change song
     
     ENDED: ENDED
     ENDED: Check repeat mode

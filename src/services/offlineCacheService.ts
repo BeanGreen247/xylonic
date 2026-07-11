@@ -25,9 +25,7 @@ import {
   getFormatFromExtension
 } from '../utils/cacheHelpers';
 import { logger } from '../utils/logger';
-
-// Use the exposed Electron API from preload
-const electron = (window as any).electron;
+import { getBridge } from '../platform/bridge';
 
 class OfflineCacheService {
   private cacheIndex: CacheIndex | null = null;
@@ -42,6 +40,10 @@ class OfflineCacheService {
   private serverUrl: string = '';
   private cacheDir: string = '';
 
+  private static readonly SAVE_DEBOUNCE_MS = 500;
+  private indexFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  private registryFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
   /**
    * Initialize cache service for a user
    */
@@ -54,11 +56,11 @@ class OfflineCacheService {
       logger.log('[OfflineCache] Server URL:', serverUrl);
       
       // Get cache directory
-      if (electron && electron.getCacheDir) {
-        this.cacheDir = await electron.getCacheDir();
+      if (getBridge().isCacheAvailable) {
+        this.cacheDir = await getBridge().getCacheDir();
         logger.log('[OfflineCache] Cache directory:', this.cacheDir);
       } else {
-        logger.warn('[OfflineCache] Not running in Electron, cache disabled');
+        logger.warn('[OfflineCache] Cache not available on this platform');
         return;
       }
 
@@ -76,7 +78,10 @@ class OfflineCacheService {
       
       // Load configuration
       this.loadConfig();
-      
+
+      // Heal any cover art aliases that were lost due to download race conditions
+      await this.fixOrphanCoverArtMappings();
+
       logger.log('[OfflineCache] Initialized successfully - v2.0');
       logger.log('[OfflineCache] User cache:', Object.keys(this.cacheIndex?.songs || {}).length, 'songs');
       logger.log('[OfflineCache] Shared registry:', Object.keys(this.audioRegistry?.audioFiles || {}).length, 'audio files,', Object.keys(this.audioRegistry?.coverArtFiles || {}).length, 'cover art files');
@@ -92,7 +97,7 @@ class OfflineCacheService {
   private async checkAndMigrateV1Cache(username: string, serverUrl: string): Promise<void> {
     try {
       // Try to read old v1 cache index (stored in root cache directory)
-      const oldIndexData = await electron.readCacheIndex();
+      const oldIndexData = await getBridge().readCacheIndex();
       
       if (!oldIndexData) {
         logger.log('[OfflineCache] No v1 cache found, skipping migration');
@@ -223,14 +228,14 @@ class OfflineCacheService {
       }
 
       // Save new v2 structures
-      await electron.writeAudioRegistry(JSON.stringify(newAudioRegistry, null, 2));
-      await electron.writeUserCacheIndex(userId, JSON.stringify(newCacheIndex, null, 2));
-      await electron.writeUserMetadata(userId, JSON.stringify(newUserMetadata, null, 2));
+      await getBridge().writeAudioRegistry(JSON.stringify(newAudioRegistry, null, 2));
+      await getBridge().writeUserCacheIndex(userId, JSON.stringify(newCacheIndex, null, 2));
+      await getBridge().writeUserMetadata(userId, JSON.stringify(newUserMetadata, null, 2));
 
       // Mark old cache as migrated
       oldIndex.migratedToV2 = true;
       oldIndex.migratedAt = Date.now();
-      await electron.writeCacheIndex(JSON.stringify(oldIndex, null, 2));
+      await getBridge().writeCacheIndex(JSON.stringify(oldIndex, null, 2));
 
       logger.log(`[OfflineCache] Migration complete: ${migratedCount} songs migrated, ${failedCount} failed`);
       logger.log('[OfflineCache] Note: Audio files still in old location. Manual file migration needed for full v2 support.');
@@ -242,11 +247,52 @@ class OfflineCacheService {
   }
 
   /**
+   * Heal coverArtIdMap entries that were lost due to a download race condition
+   * where concurrent songs from the same album tried to alias before the primary
+   * art fetch completed.  Groups cache-index songs by albumId and, for each album
+   * that has at least one mapped coverArtId, creates missing aliases for the rest.
+   */
+  private async fixOrphanCoverArtMappings(): Promise<void> {
+    if (!this.audioRegistry || !this.cacheIndex) return;
+
+    const songs = Object.values(this.cacheIndex.songs);
+    const byAlbum = new Map<string, typeof songs>();
+    for (const song of songs) {
+      if (!song.albumId || !song.coverArtId) continue;
+      const arr = byAlbum.get(song.albumId) ?? [];
+      arr.push(song);
+      byAlbum.set(song.albumId, arr);
+    }
+
+    let fixed = 0;
+    for (const albumSongs of byAlbum.values()) {
+      const anchor = albumSongs.find(s => this.audioRegistry!.coverArtIdMap[s.coverArtId]);
+      if (!anchor) continue;
+      const hash = this.audioRegistry.coverArtIdMap[anchor.coverArtId];
+      const file = this.audioRegistry.coverArtFiles[hash];
+      if (!file) continue;
+      if (!file.aliases) file.aliases = [];
+
+      for (const song of albumSongs) {
+        if (this.audioRegistry.coverArtIdMap[song.coverArtId]) continue;
+        this.audioRegistry.coverArtIdMap[song.coverArtId] = hash;
+        if (!file.aliases.includes(song.coverArtId)) file.aliases.push(song.coverArtId);
+        fixed++;
+      }
+    }
+
+    if (fixed > 0) {
+      logger.log(`[OfflineCache] Healed ${fixed} orphan cover art mappings`);
+      this.queueRegistrySave();
+    }
+  }
+
+  /**
    * Load or create audio file registry
    */
   private async loadOrCreateRegistry(): Promise<void> {
     try {
-      const registryData = await electron.readAudioRegistry();
+      const registryData = await getBridge().readAudioRegistry();
       
       if (registryData) {
         this.audioRegistry = JSON.parse(registryData);
@@ -303,7 +349,7 @@ class OfflineCacheService {
     this.audioRegistry.lastUpdated = Date.now();
     
     try {
-      await electron.writeAudioRegistry(JSON.stringify(this.audioRegistry, null, 2));
+      await getBridge().writeAudioRegistry(JSON.stringify(this.audioRegistry, null, 2));
       logger.log('[OfflineCache] Registry saved');
     } catch (error) {
       logger.error('[OfflineCache] Failed to save registry:', error);
@@ -315,7 +361,7 @@ class OfflineCacheService {
    */
   private async loadOrCreateUserIndex(username: string, serverUrl: string): Promise<void> {
     try {
-      const indexData = await electron.readUserCacheIndex(sanitizeUserIdForFilesystem(this.userId));
+      const indexData = await getBridge().readUserCacheIndex(sanitizeUserIdForFilesystem(this.userId));
       
       if (indexData) {
         this.cacheIndex = JSON.parse(indexData);
@@ -356,6 +402,37 @@ class OfflineCacheService {
     }
   }
 
+  private queueIndexSave(): void {
+    if (this.indexFlushTimer) clearTimeout(this.indexFlushTimer);
+    this.indexFlushTimer = setTimeout(() => {
+      this.indexFlushTimer = null;
+      this.saveIndex().catch(e => logger.error('[OfflineCache] Deferred index save failed:', e));
+    }, OfflineCacheService.SAVE_DEBOUNCE_MS);
+  }
+
+  private queueRegistrySave(): void {
+    if (this.registryFlushTimer) clearTimeout(this.registryFlushTimer);
+    this.registryFlushTimer = setTimeout(() => {
+      this.registryFlushTimer = null;
+      this.saveRegistry().catch(e => logger.error('[OfflineCache] Deferred registry save failed:', e));
+    }, OfflineCacheService.SAVE_DEBOUNCE_MS);
+  }
+
+  async flushAll(): Promise<void> {
+    const promises: Promise<void>[] = [];
+    if (this.indexFlushTimer !== null) {
+      clearTimeout(this.indexFlushTimer);
+      this.indexFlushTimer = null;
+      promises.push(this.saveIndex());
+    }
+    if (this.registryFlushTimer !== null) {
+      clearTimeout(this.registryFlushTimer);
+      this.registryFlushTimer = null;
+      promises.push(this.saveRegistry());
+    }
+    if (promises.length > 0) await Promise.all(promises);
+  }
+
   /**
    * Save user's cache index
    */
@@ -365,7 +442,7 @@ class OfflineCacheService {
     this.cacheIndex.lastUpdated = Date.now();
     
     try {
-      await electron.writeUserCacheIndex(sanitizeUserIdForFilesystem(this.userId), JSON.stringify(this.cacheIndex, null, 2));
+      await getBridge().writeUserCacheIndex(sanitizeUserIdForFilesystem(this.userId), JSON.stringify(this.cacheIndex, null, 2));
       logger.log('[OfflineCache] User index saved');
     } catch (error) {
       logger.error('[OfflineCache] Failed to save user index:', error);
@@ -377,7 +454,7 @@ class OfflineCacheService {
    */
   private async loadOrCreateUserMetadata(): Promise<void> {
     try {
-      const metadataData = await electron.readUserMetadata(sanitizeUserIdForFilesystem(this.userId));
+      const metadataData = await getBridge().readUserMetadata(sanitizeUserIdForFilesystem(this.userId));
       
       if (metadataData) {
         this.userMetadata = JSON.parse(metadataData);
@@ -406,7 +483,7 @@ class OfflineCacheService {
     if (!this.userMetadata) return;
     
     try {
-      await electron.writeUserMetadata(sanitizeUserIdForFilesystem(this.userId), JSON.stringify(this.userMetadata, null, 2));
+      await getBridge().writeUserMetadata(sanitizeUserIdForFilesystem(this.userId), JSON.stringify(this.userMetadata, null, 2));
       logger.log('[OfflineCache] User metadata saved');
     } catch (error) {
       logger.error('[OfflineCache] Failed to save user metadata:', error);
@@ -418,12 +495,12 @@ class OfflineCacheService {
    */
   async hasCacheForUser(username: string, serverUrl: string): Promise<boolean> {
     try {
-      if (!electron || !electron.readUserCacheIndex) {
+      if (!getBridge().isCacheAvailable) {
         return false;
       }
 
       const userId = generateUserId(username, serverUrl);
-      const indexData = await electron.readUserCacheIndex(userId);
+      const indexData = await getBridge().readUserCacheIndex(userId);
       
       if (!indexData) {
         return false;
@@ -455,6 +532,16 @@ class OfflineCacheService {
   }
 
   /**
+   * Get the audio file format (e.g. "mp3", "flac") for a cached song.
+   * Returns undefined if the song is not cached or the registry entry is missing.
+   */
+  getAudioFileFormat(songId: string): string | undefined {
+    const meta = this.cacheIndex?.songs[songId];
+    if (!meta) return undefined;
+    return this.audioRegistry?.audioFiles[meta.audioHash]?.format;
+  }
+
+  /**
    * Get file path for cached song
    */
   async getCachedFilePath(songId: string): Promise<string | null> {
@@ -463,7 +550,7 @@ class OfflineCacheService {
 
     // Update last accessed time
     metadata.lastAccessed = Date.now();
-    await this.saveIndex();
+    this.queueIndexSave();
 
     // Get audio file from registry
     const audioFile = this.audioRegistry.audioFiles[metadata.audioHash];
@@ -471,7 +558,81 @@ class OfflineCacheService {
 
     // Get full path to audio file
     const filename = audioFile.filePath.split('/').pop();
-    return await electron.getAudioFilePath(metadata.audioHash, filename || 'audio.mp3');
+    return await getBridge().getAudioFilePath(metadata.audioHash, filename || 'audio.mp3');
+  }
+
+  /**
+   * Compute the audio hash for a given song ID (used to pass the expected path to native downloader).
+   */
+  getAudioHash(songId: string): string {
+    return generateAudioHash(this.serverUrl, songId);
+  }
+
+  /**
+   * Register a song that was already downloaded natively (file already on disk).
+   * Updates the audio registry and user cache index without writing audio bytes.
+   */
+  async registerNativeDownload(
+    song: DownloadableSong,
+    quality: DownloadQuality,
+    audioHash: string,
+    fileExtension: string,
+    fileSize: number,
+    artistId?: string,
+    artistCoverArtId?: string
+  ): Promise<void> {
+    if (!this.cacheIndex || !this.audioRegistry) return;
+
+    let audioFile = this.audioRegistry.audioFiles[audioHash];
+
+    if (!audioFile) {
+      audioFile = {
+        hash: audioHash,
+        filePath: `audio/${audioHash}/audio${fileExtension}`,
+        fileSize,
+        quality,
+        format: getFormatFromExtension(fileExtension),
+        createdAt: Date.now(),
+        refCount: 0,
+        users: []
+      };
+      this.audioRegistry.audioFiles[audioHash] = audioFile;
+      this.audioRegistry.totalSize += fileSize;
+    }
+
+    const sanitizedUserId = sanitizeUserIdForFilesystem(this.userId);
+    if (!audioFile.users.includes(sanitizedUserId)) {
+      audioFile.refCount++;
+      audioFile.users.push(sanitizedUserId);
+    }
+
+    const metadata: CachedSongMetadata = {
+      songId: song.id,
+      title: song.title,
+      artist: song.artist || 'Unknown Artist',
+      album: song.album || 'Unknown Album',
+      albumId: song.albumId || '',
+      artistId,
+      artistCoverArtId,
+      duration: song.duration,
+      quality,
+      audioHash,
+      fileSize,
+      cachedAt: Date.now(),
+      lastAccessed: Date.now(),
+      coverArtId: song.coverArt
+    };
+
+    const existingEntry = this.cacheIndex.songs[song.id];
+    if (existingEntry) {
+      this.cacheIndex.totalSize = Math.max(0, this.cacheIndex.totalSize - existingEntry.fileSize);
+    }
+    this.cacheIndex.songs[song.id] = metadata;
+    this.cacheIndex.totalSize += fileSize;
+
+    this.queueIndexSave();
+    this.queueRegistrySave();
+    logger.log('[OfflineCache] Registered native download:', song.title, `(${formatBytes(fileSize)})`);
   }
 
   /**
@@ -496,7 +657,7 @@ class OfflineCacheService {
     if (!audioFile) {
       // Save audio file to shared storage
       const buffer = Array.from(new Uint8Array(audioBuffer));
-      const result = await electron.saveAudioFile(buffer, audioHash, fileExtension);
+      const result = await getBridge().saveAudioFile(buffer, audioHash, fileExtension);
       
       // Create new audio file reference
       audioFile = {
@@ -539,43 +700,39 @@ class OfflineCacheService {
       coverArtId: song.coverArt
     };
 
+    const existingEntry = this.cacheIndex.songs[song.id];
+    if (existingEntry) {
+      this.cacheIndex.totalSize = Math.max(0, this.cacheIndex.totalSize - existingEntry.fileSize);
+    }
     this.cacheIndex.songs[song.id] = metadata;
-    this.cacheIndex.totalSize += fileSize; // Attributed size for this user
-    
-    await Promise.all([
-      this.saveIndex(),
-      this.saveRegistry()
-    ]);
-    
+    this.cacheIndex.totalSize += fileSize;
+
+    this.queueIndexSave();
+    this.queueRegistrySave();
+
     logger.log('[OfflineCache] Added song to cache:', song.title, `(${formatBytes(fileSize)})`);
   }
 
-  /**
-   * Remove song from cache
-   */
-  async removeFromCache(songId: string): Promise<void> {
+  private async removeFromCacheCore(songId: string): Promise<void> {
     if (!this.cacheIndex || !this.audioRegistry) return;
 
     const metadata = this.cacheIndex.songs[songId];
     if (!metadata) return;
 
-    // Decrement ref count in registry (using sanitized ID)
     const audioFile = this.audioRegistry.audioFiles[metadata.audioHash];
     if (audioFile) {
       const sanitizedUserId = sanitizeUserIdForFilesystem(this.userId);
       audioFile.refCount--;
       audioFile.users = audioFile.users.filter(u => u !== sanitizedUserId);
 
-      // Delete audio file if no more references
       if (audioFile.refCount <= 0) {
-        await electron.deleteAudioDir(metadata.audioHash);
+        await getBridge().deleteAudioDir(metadata.audioHash);
         delete this.audioRegistry.audioFiles[metadata.audioHash];
         this.audioRegistry.totalSize -= audioFile.fileSize;
         logger.log('[OfflineCache] Deleted shared audio file:', metadata.audioHash);
       }
     }
 
-    // Handle cover art ref counting
     if (metadata.coverArtHash) {
       const coverArtFile = this.audioRegistry.coverArtFiles[metadata.coverArtHash];
       if (coverArtFile) {
@@ -590,15 +747,16 @@ class OfflineCacheService {
       }
     }
 
-    // Remove from user's index
     this.cacheIndex.totalSize -= metadata.fileSize;
     delete this.cacheIndex.songs[songId];
+  }
 
-    await Promise.all([
-      this.saveIndex(),
-      this.saveRegistry()
-    ]);
-
+  /**
+   * Remove song from cache
+   */
+  async removeFromCache(songId: string): Promise<void> {
+    await this.removeFromCacheCore(songId);
+    await Promise.all([this.saveIndex(), this.saveRegistry()]);
     logger.log('[OfflineCache] Removed song from cache:', songId);
   }
 
@@ -699,14 +857,21 @@ class OfflineCacheService {
   /**
    * Clear all cache for this user
    */
-  async clearAllCache(): Promise<void> {
+  async clearAllCache(onProgress?: () => void): Promise<void> {
     if (!this.cacheIndex) return;
 
     const songIds = Object.keys(this.cacheIndex.songs);
-    
-    for (const songId of songIds) {
-      await this.removeFromCache(songId);
+
+    for (let i = 0; i < songIds.length; i++) {
+      await this.removeFromCacheCore(songIds[i]);
+      if (onProgress && (i + 1) % 5 === 0) onProgress();
     }
+    onProgress?.();
+
+    // Cancel any pending timer-based saves and write both files exactly once
+    if (this.indexFlushTimer) { clearTimeout(this.indexFlushTimer); this.indexFlushTimer = null; }
+    if (this.registryFlushTimer) { clearTimeout(this.registryFlushTimer); this.registryFlushTimer = null; }
+    await Promise.all([this.saveIndex(), this.saveRegistry()]);
 
     logger.log('[OfflineCache] Cleared all cache for user');
   }
@@ -769,7 +934,7 @@ class OfflineCacheService {
       if (coverArtFile && !coverArtFile.users.includes(sanitizedUserId)) {
         coverArtFile.refCount++;
         coverArtFile.users.push(sanitizedUserId);
-        await this.saveRegistry();
+        this.queueRegistrySave();
         logger.log('[OfflineCache] Cover art already exists, added user reference:', coverArtId);
       }
       return coverArtHash;
@@ -784,7 +949,7 @@ class OfflineCacheService {
     if (!coverArtFile) {
       // Save cover art to shared storage
       const buffer = Array.from(imageData);
-      const result = await electron.saveCoverArtFile(buffer, coverArtHash, extension);
+      const result = await getBridge().saveCoverArtFile(buffer, coverArtHash, extension);
 
       // Create new cover art reference
       coverArtFile = {
@@ -822,7 +987,7 @@ class OfflineCacheService {
       coverArtFile.users.push(sanitizedUserId);
     }
     
-    await this.saveRegistry();
+    this.queueRegistrySave();
     return coverArtHash;
   }
 
@@ -851,6 +1016,40 @@ class OfflineCacheService {
     }
 
     return coverArtFile ? coverArtFile.filePath : null;
+  }
+
+  /**
+   * Look for album.jpg / cover.jpg placed alongside a cached audio file.
+   * Returns a base64 data URL if found, otherwise null.
+   */
+  async findFolderArtForAlbum(albumId: string): Promise<string | null> {
+    if (!getBridge().isCacheAvailable) return null;
+    if (!this.cacheIndex) return null;
+
+    const songs = Object.values(this.cacheIndex.songs || {}) as CachedSongMetadata[];
+    const song = songs.find(s => s.albumId === albumId);
+    if (!song || !song.audioHash) return null;
+
+    try {
+      return await getBridge().findSiblingArt(song.audioHash);
+    } catch {
+      return null;
+    }
+  }
+
+  async extractEmbeddedArtForAlbum(albumId: string): Promise<string | null> {
+    if (!getBridge().isCacheAvailable) return null;
+    if (!this.cacheIndex) return null;
+
+    const songs = Object.values(this.cacheIndex.songs || {}) as CachedSongMetadata[];
+    const song = songs.find(s => s.albumId === albumId);
+    if (!song || !song.audioHash) return null;
+
+    try {
+      return await getBridge().extractEmbeddedArt(song.audioHash);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -916,7 +1115,7 @@ class OfflineCacheService {
       coverArtFile.users.push(sanitizedUserId);
     }
     
-    await this.saveRegistry();
+    this.queueRegistrySave();
     logger.log('[OfflineCache] Created alias:', aliasCoverArtId, '→', primaryCoverArtId);
   }
 
@@ -930,14 +1129,16 @@ class OfflineCacheService {
   /**
    * Add liked song
    */
-  async addLikedSong(songId: string): Promise<void> {
+  async addLikedSong(songId: string, starredAt?: number): Promise<void> {
     if (!this.userMetadata) return;
 
+    if (!this.userMetadata.likedSongsTimestamps) this.userMetadata.likedSongsTimestamps = {};
     if (!this.userMetadata.likedSongs.includes(songId)) {
       this.userMetadata.likedSongs.push(songId);
-      await this.saveUserMetadata();
-      logger.log('[OfflineCache] Added liked song:', songId);
     }
+    this.userMetadata.likedSongsTimestamps[songId] = starredAt ?? Date.now();
+    await this.saveUserMetadata();
+    logger.log('[OfflineCache] Added liked song:', songId);
   }
 
   /**
@@ -949,16 +1150,21 @@ class OfflineCacheService {
     const index = this.userMetadata.likedSongs.indexOf(songId);
     if (index !== -1) {
       this.userMetadata.likedSongs.splice(index, 1);
+      if (this.userMetadata.likedSongsTimestamps) {
+        delete this.userMetadata.likedSongsTimestamps[songId];
+      }
       await this.saveUserMetadata();
       logger.log('[OfflineCache] Removed liked song:', songId);
     }
   }
 
   /**
-   * Get all liked songs
+   * Get all liked songs sorted newest-starred first
    */
   getLikedSongs(): string[] {
-    return this.userMetadata?.likedSongs || [];
+    const ids = this.userMetadata?.likedSongs || [];
+    const ts = this.userMetadata?.likedSongsTimestamps || {};
+    return [...ids].sort((a, b) => (ts[b] ?? 0) - (ts[a] ?? 0));
   }
 
   /**
@@ -976,90 +1182,72 @@ class OfflineCacheService {
   }
 
   /**
-   * Rebuild and verify cache integrity
-   * Scans all cached files, verifies they exist, and rebuilds indexes
+   * Verify permanent cache integrity with real filesystem existence checks.
+   * Removes orphaned index entries where the audio file is missing on disk.
+   * Safe on all platforms: getAudioFilePath does a real pathExists check via
+   * Filesystem.stat (Capacitor) or main-process stat (Electron).
    */
-  async rebuildAndVerifyCache(): Promise<{ success: boolean; message: string; details: any }> {
-    try {
-      logger.log('[OfflineCache] Starting cache rebuild and verification...');
-      
-      if (!this.cacheIndex || !this.audioRegistry) {
-        throw new Error('Cache not initialized');
-      }
+  async verifyPermanentCache(
+    onProgress?: (verified: number, total: number) => void
+  ): Promise<{ verified: number; removed: number; total: number; durationMs: number }> {
+    const startMs = Date.now();
 
-      let verifiedSongs = 0;
-      let missingFiles = 0;
-      let repairedEntries = 0;
-      const missingFilesList: string[] = [];
-
-      // Verify each cached song
-      for (const [songId, song] of Object.entries(this.cacheIndex.songs)) {
-        const audioHash = song.audioHash;
-        
-        if (!audioHash) {
-          logger.warn('[OfflineCache] Song missing audio hash:', songId);
-          continue;
-        }
-
-        // Check if audio file exists in registry
-        const audioFile = this.audioRegistry.audioFiles[audioHash];
-        if (!audioFile) {
-          logger.warn('[OfflineCache] Audio file not in registry:', audioHash);
-          missingFiles++;
-          missingFilesList.push(`${song.artist} - ${song.title}`);
-          continue;
-        }
-
-        // Try to get the file path
-        try {
-          const filePath = await this.getCachedFilePath(songId);
-          if (!filePath) {
-            logger.warn('[OfflineCache] Could not get file path for:', songId);
-            missingFiles++;
-            missingFilesList.push(`${song.artist} - ${song.title}`);
-          } else {
-            verifiedSongs++;
-          }
-        } catch (error) {
-          logger.error('[OfflineCache] Error verifying song:', songId, error);
-          missingFiles++;
-          missingFilesList.push(`${song.artist} - ${song.title}`);
-        }
-      }
-
-      // Rebuild cache index stats
-      if (this.cacheIndex) {
-        const totalSize = Object.values(this.cacheIndex.songs).reduce((sum, song) => sum + (song.fileSize || 0), 0);
-        this.cacheIndex.totalSize = totalSize;
-        this.cacheIndex.lastUpdated = Date.now();
-        repairedEntries++;
-      }
-
-      // Save updated indexes
-      await this.saveIndex();
-      await this.saveRegistry();
-
-      const result = {
-        success: true,
-        message: `Cache verification complete. ${verifiedSongs} songs verified, ${missingFiles} issues found, ${repairedEntries} entries repaired.`,
-        details: {
-          verifiedSongs,
-          missingFiles,
-          repairedEntries,
-          missingFilesList: missingFilesList.slice(0, 10) // First 10 only
-        }
-      };
-
-      logger.log('[OfflineCache] Rebuild complete:', result);
-      return result;
-    } catch (error) {
-      logger.error('[OfflineCache] Rebuild failed:', error);
-      return {
-        success: false,
-        message: `Cache rebuild failed: ${(error as Error).message}`,
-        details: { error: (error as Error).message }
-      };
+    if (!this.cacheIndex || !this.audioRegistry) {
+      logger.warn('[OfflineCache] verifyPermanentCache called before init — skipping');
+      return { verified: 0, removed: 0, total: 0, durationMs: 0 };
     }
+
+    const songIds = Object.keys(this.cacheIndex.songs);
+    const total = songIds.length;
+    let verified = 0;
+    let removed = 0;
+
+    logger.log('[OfflineCache] Starting verification of', total, 'songs');
+
+    for (let i = 0; i < songIds.length; i++) {
+      const songId = songIds[i];
+      const song = this.cacheIndex.songs[songId];
+
+      if (!song) continue;
+
+      const audioFile = this.audioRegistry.audioFiles[song.audioHash];
+      let fileOk = false;
+
+      if (audioFile) {
+        const filename = audioFile.filePath.split('/').pop() || 'audio.mp3';
+        try {
+          const path = await getBridge().getAudioFilePath(song.audioHash, filename);
+          fileOk = path !== null;
+        } catch {
+          fileOk = false;
+        }
+      }
+
+      if (fileOk) {
+        verified++;
+      } else {
+        logger.warn('[OfflineCache] Orphaned entry removed:', song.artist, '-', song.title);
+        await this.removeFromCacheCore(songId);
+        removed++;
+      }
+
+      // Throttle progress updates — every 25 songs is enough to feel live
+      if (onProgress && (i + 1) % 25 === 0) {
+        onProgress(verified, total);
+      }
+    }
+
+    // Emit a final progress tick so the UI always reaches 100%
+    onProgress?.(verified, total);
+
+    if (removed > 0) {
+      await Promise.all([this.saveIndex(), this.saveRegistry()]);
+      logger.log('[OfflineCache] Verification complete:', verified, 'ok,', removed, 'orphans removed');
+    } else {
+      logger.log('[OfflineCache] Verification complete:', verified, 'songs ok, no orphans');
+    }
+
+    return { verified, removed, total, durationMs: Date.now() - startMs };
   }
 
   /**

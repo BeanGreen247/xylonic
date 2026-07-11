@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('electron', {
   // Offline cache operations
   getCacheDir: () => ipcRenderer.invoke('get-cache-dir'),
   getCacheLocation: () => ipcRenderer.invoke('get-cache-location'),
+  getDiskSpace: (targetPath) => ipcRenderer.invoke('get-disk-space', targetPath),
   setCacheLocation: (newPath) => ipcRenderer.invoke('set-cache-location', newPath),
   pickCacheLocation: () => ipcRenderer.invoke('pick-cache-location'),
   readCacheIndex: () => ipcRenderer.invoke('read-cache-index'),
@@ -36,7 +37,7 @@ contextBridge.exposeInMainWorld('electron', {
   clearCacheDir: () => ipcRenderer.invoke('clear-cache-dir'),
   downloadSongToCache: (buffer, relativePath) => ipcRenderer.invoke('download-song-to-cache', { buffer, relativePath }),
   getCacheStats: () => ipcRenderer.invoke('get-cache-stats'),
-  // Multi-user cache operations (v2.0)
+  // Multi-user cache operations (v2.1)
   getUserCacheDir: (userId) => ipcRenderer.invoke('get-user-cache-dir', userId),
   getAudioDir: () => ipcRenderer.invoke('get-audio-dir'),
   readUserCacheIndex: (userId) => ipcRenderer.invoke('read-user-cache-index', userId),
@@ -50,10 +51,61 @@ contextBridge.exposeInMainWorld('electron', {
   deleteAudioDir: (hash) => ipcRenderer.invoke('delete-audio-dir', hash),
   getAudioFilePath: (hash, filename) => ipcRenderer.invoke('get-audio-file-path', hash, filename),
   migrateFileToHashStorage: (oldPath, hash, filename) => ipcRenderer.invoke('migrate-file-to-hash-storage', { oldPath, hash, filename }),
+  findSiblingArt: (audioHash) => ipcRenderer.invoke('find-sibling-art', audioHash),
+  extractEmbeddedArt: (audioHash) => ipcRenderer.invoke('extract-embedded-art', audioHash),
   // Secure credential storage
   safeStorageAvailable: () => ipcRenderer.invoke('safe-storage-available'),
   encryptCredential: (plaintext) => ipcRenderer.invoke('safe-storage-encrypt', plaintext),
   decryptCredential: (encrypted) => ipcRenderer.invoke('safe-storage-decrypt', encrypted),
+  // Cover art resolution for navigator.mediaSession (browser process needs file:// not blob://)
+  getCachedCoverArtUrl: (coverArtId) => ipcRenderer.invoke('get-cached-cover-art-url', coverArtId),
+  findSiblingArtUrl: (audioHash) => ipcRenderer.invoke('find-sibling-art-url', audioHash),
+  saveArtToTemp: (buffer, mimeType) => ipcRenderer.invoke('save-art-to-temp', { buffer, mimeType }),
+  // System stats (CPU, RAM)
+  getSystemStats: () => ipcRenderer.invoke('get-system-stats'),
+  // Process priority / core affinity per mode
+  setPowerSaverPriority: (enabled) => ipcRenderer.invoke(enabled ? 'set-power-saver-priority' : 'restore-process-priority'),
+  setPerformancePriority: () => ipcRenderer.invoke('set-performance-priority'),
+  // Remote discovery
+  remoteGetDevices: () => ipcRenderer.invoke('remote-get-devices'),
+  remoteGetDeviceId: () => ipcRenderer.invoke('remote-get-device-id'),
+  remoteGetDeviceName: () => ipcRenderer.invoke('remote-get-device-name'),
+  remoteGetControlEnabled: () => ipcRenderer.invoke('remote-get-control-enabled'),
+  remoteSetControlEnabled: (enabled) => ipcRenderer.invoke('remote-set-control-enabled', enabled),
+  remoteSetControllerTarget: (id) => ipcRenderer.invoke('remote-set-controller-target', id),
+  remoteSetAccountId: (id) => ipcRenderer.invoke('remote-set-account-id', id),
+  onRemoteDeviceFound: (callback) => {
+    ipcRenderer.on('remote-device-found', (_event, device) => callback(device));
+    return () => ipcRenderer.removeAllListeners('remote-device-found');
+  },
+  onRemoteDeviceLost: (callback) => {
+    ipcRenderer.on('remote-device-lost', (_event, info) => callback(info));
+    return () => ipcRenderer.removeAllListeners('remote-device-lost');
+  },
+  onRemoteDevicePairingChanged: (callback) => {
+    ipcRenderer.on('remote-device-pairing-changed', (_event, info) => callback(info));
+    return () => ipcRenderer.removeAllListeners('remote-device-pairing-changed');
+  },
+  onRemoteCommand: (callback) => {
+    ipcRenderer.on('remote-command', (_event, cmd) => callback(cmd));
+    return () => ipcRenderer.removeAllListeners('remote-command');
+  },
+  onRemotePairingEstablished: (callback) => {
+    ipcRenderer.on('remote-pairing-established', (_event, info) => callback(info));
+    return () => ipcRenderer.removeAllListeners('remote-pairing-established');
+  },
+  onRemotePairingCleared: (callback) => {
+    ipcRenderer.on('remote-pairing-cleared', (_event, info) => callback(info));
+    return () => ipcRenderer.removeAllListeners('remote-pairing-cleared');
+  },
+  remoteSendCommand: (opts) => ipcRenderer.invoke('remote-send-command', opts),
+  onRemotePlayerStateUpdate: (callback) => {
+    ipcRenderer.on('remote-player-state-update', (_event, state) => callback(state));
+    return () => ipcRenderer.removeAllListeners('remote-player-state-update');
+  },
+  getOsPlatform: () => ipcRenderer.invoke('get-os-platform'),
+  detectLinuxFirewall: () => ipcRenderer.invoke('detect-linux-firewall'),
+  setDownloadActive: (active) => ipcRenderer.invoke('set-download-active', active),
   // Logging
   writeLog: ({ message, level }) => ipcRenderer.invoke('write-log', { message, level }),
   getLogPath: () => ipcRenderer.invoke('get-log-path'),

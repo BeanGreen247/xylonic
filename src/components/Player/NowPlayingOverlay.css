@@ -131,11 +131,12 @@
 
 /* ── Album Art — square card with ambient background ── */
 .npo-art-wrap {
-    flex-shrink: 0;
+    flex: 1 1 auto;   /* grows to absorb remaining vertical space */
+    min-height: 280px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 0 20px 16px;
+    padding: 0 0 8px; /* horizontal padding moved to .npo-art-card only */
     position: relative;
     overflow: hidden; /* clips swipe animation */
     background: transparent;
@@ -148,7 +149,7 @@
        aspect-ratio ensures height === width at all times.                 */
     width: 100%;
     aspect-ratio: 1 / 1;
-    max-height: 50vh;
+    max-height: 60vh;
     border-radius: 6px;
     overflow: hidden;
     position: relative;
@@ -196,7 +197,7 @@
     width: 33.333%;
     flex-shrink: 0;
     cursor: pointer;
-    padding: 0 20px 16px;
+    padding: 0 8px 8px;
     box-sizing: border-box;
     display: flex;
     justify-content: center; /* centers npo-art-inner horizontally within the card */
@@ -479,18 +480,33 @@
 
 /* ── Compact: anything below a large tablet (≤900px) ─────── */
 @media (max-height: 900px) {
-    /* Use explicit px so the aspect-ratio + max-height interaction
-       doesn't produce a full-width square on older Android WebViews. */
-    .npo-art-wrap  { flex: 0 0 332px; overflow: hidden; padding: 0; }
-    .npo-art-card  { padding: 0 20px 12px; }
-    .npo-art-inner { width: 320px !important; height: 320px !important; max-height: 320px !important; }
+    /* Dynamic: art fills available height, capped by viewport width.
+       Floor (320px) prevents regression on shorter screens in this range. */
+    .npo-art-wrap  {
+        flex: 0 0 max(332px, min(calc(100vh - 390px), calc(100vw - 8px)));
+        overflow: hidden;
+        padding: 0;
+    }
+    .npo-art-card  { padding: 0 8px 8px; }
+    .npo-art-inner {
+        width:  max(320px, min(calc(100vh - 406px), calc(100vw - 16px))) !important;
+        height: max(320px, min(calc(100vh - 406px), calc(100vw - 16px))) !important;
+        max-height: none !important;
+    }
 }
 
 /* ── Extra-compact: small phones (≤680px tall) ────────────── */
 @media (max-height: 680px) {
-    .npo-art-wrap  { flex: 0 0 188px; padding: 0; }
-    .npo-art-card  { padding: 0 20px 8px; }
-    .npo-art-inner { width: 180px !important; height: 180px !important; max-height: 180px !important; }
+    .npo-art-wrap  {
+        flex: 0 0 max(188px, min(calc(100vh - 327px), calc(100vw - 8px)));
+        padding: 0;
+    }
+    .npo-art-card  { padding: 0 8px 8px; }
+    .npo-art-inner {
+        width:  max(180px, min(calc(100vh - 335px), calc(100vw - 16px))) !important;
+        height: max(180px, min(calc(100vh - 335px), calc(100vw - 16px))) !important;
+        max-height: none !important;
+    }
 
     .npo-info-row    { padding-top: 4px; padding-bottom: 2px; }
     .npo-song-title  { font-size: 17px; }
@@ -512,10 +528,16 @@
     .npo-handle { padding: 4px 0 2px; }
     .npo-header { padding: 0 8px 4px; }
 
-    /* flex: 0 0 Xpx pins the wrap's height in the flex column — content size is irrelevant */
-    .npo-art-wrap  { flex: 0 0 204px; padding: 0; }
-    .npo-art-card  { padding: 4px 20px; }
-    .npo-art-inner { width: 196px !important; height: 196px !important; max-height: 196px !important; }
+    .npo-art-wrap  {
+        flex: 0 0 max(204px, min(calc(100vh - 283px), calc(100vw - 8px)));
+        padding: 0;
+    }
+    .npo-art-card  { padding: 4px 8px; }
+    .npo-art-inner {
+        width:  max(196px, min(calc(100vh - 291px), calc(100vw - 16px))) !important;
+        height: max(196px, min(calc(100vh - 291px), calc(100vw - 16px))) !important;
+        max-height: none !important;
+    }
 
     .npo-info-row    { padding: 2px 16px; gap: 8px; }
     .npo-song-title  { font-size: 16px; }

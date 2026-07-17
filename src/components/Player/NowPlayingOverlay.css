@@ -1,0 +1,540 @@
+/* ════════════════════════════════════════════════
+   Now Playing Overlay — full-screen player view
+   ════════════════════════════════════════════════ */
+
+.now-playing-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.now-playing-overlay.open {
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* All direct children sit above the background layers */
+.now-playing-overlay > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Ambient background — blurred art wash ───── */
+.npo-bg {
+    position: absolute;
+    inset: -40px;           /* oversize so blur doesn't show hard edges */
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    filter: blur(50px) brightness(0.22) saturate(1.8);
+    transform: scale(1.05); /* hide any edge artifacts from the filter */
+}
+
+.npo-bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Dark scrim on top of the blurred background — ensures text readability */
+.npo-bg-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.30) 0%,
+        rgba(0, 0, 0, 0.10) 30%,
+        rgba(0, 0, 0, 0.10) 60%,
+        rgba(0, 0, 0, 0.55) 100%
+    );
+}
+
+/* ── Drag handle ─────────────────────────────── */
+.npo-handle {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 4px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.npo-handle-bar {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.35);
+    transition: background 0.15s, width 0.15s;
+}
+
+.npo-handle:hover .npo-handle-bar {
+    background: rgba(255, 255, 255, 0.6);
+    width: 48px;
+}
+
+/* ── Header — transparent, icon-only ─────────── */
+.npo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px 8px;
+    flex-shrink: 0;
+}
+
+/* Back chevron — plain icon, no pill */
+.npo-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 18px;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.npo-close:hover  { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.npo-close:active { transform: scale(0.9); }
+
+.npo-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+/* Invisible balance spacer — same size as the close button */
+.npo-header-spacer {
+    width: 44px;
+    height: 44px;
+    visibility: hidden;
+    flex-shrink: 0;
+}
+
+/* ── Album Art — square card with ambient background ── */
+.npo-art-wrap {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 20px 16px;
+    position: relative;
+    overflow: hidden; /* clips swipe animation */
+    background: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.npo-art-inner {
+    /* Square: width drives the size; max-height caps it on short screens.
+       aspect-ratio ensures height === width at all times.                 */
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 50vh;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    background: transparent;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+    /* No box-shadow — the ambient blurred background provides depth */
+}
+
+/* .npo-art-inner.swiping was removed — transitions are now controlled on the carousel track */
+
+.npo-art-img,
+.npo-art-fallback {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Suppress the shimmer placeholder colours inside the NPO art box */
+.npo-art-inner .album-art-loading {
+    background: rgba(255, 255, 255, 0.04);
+    animation: none;
+}
+
+.npo-art-fallback {
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 64px;
+}
+
+/* ── Three-card swipe carousel ───────────── */
+.npo-carousel-track {
+    display: flex;
+    width: 300%;
+    flex-shrink: 0; /* must not shrink — 300% must stay 3× the wrap width */
+    /* resting position: center card visible */
+    transform: translateX(-33.333%);
+    will-change: transform;
+}
+
+.npo-art-card {
+    width: 33.333%;
+    flex-shrink: 0;
+    cursor: pointer;
+    padding: 0 20px 16px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center; /* centers npo-art-inner horizontally within the card */
+    align-items: flex-start; /* prevents flex stretch from breaking aspect-ratio */
+}
+
+/* Neighbor cards scale down so the current card has visual prominence */
+.npo-art-card--neighbor .npo-art-inner {
+    transform: scale(0.88);
+    opacity: 0.5;
+}
+
+/* Swipe direction hints */
+.npo-swipe-hint {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 26px;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+    z-index: 10;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+
+.npo-swipe-hint.left  { left: 28px; }
+.npo-swipe-hint.right { right: 28px; }
+.npo-swipe-hint.show  { opacity: 0.9; }
+
+/* ── Song info + like ────────────────────────── */
+.npo-info-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 22px 4px;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.npo-info { flex: 1; min-width: 0; }
+
+.npo-song-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+}
+
+.npo-song-artist {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.npo-like-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    font-size: 22px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, transform 0.1s;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.npo-like-btn.active { color: var(--primary-color); }
+.npo-like-btn:hover:not(:disabled) { color: var(--primary-color); transform: scale(1.15); }
+.npo-like-btn:disabled { opacity: 0.35; cursor: default; }
+
+.npo-playlist-icon-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    font-size: 18px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, transform 0.1s;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+.npo-playlist-icon-btn:hover:not(:disabled) { color: var(--primary-color); transform: scale(1.15); }
+.npo-playlist-icon-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* ── Progress bar ────────────────────────────── */
+.npo-progress {
+    padding: 8px 22px 0;
+    flex-shrink: 0;
+}
+
+.npo-progress .progress-bar {
+    height: 10px !important;
+    border-radius: var(--radius-full) !important;
+    cursor: pointer !important;
+}
+
+.npo-progress .progress-bar-fill { border-radius: var(--radius-full) !important; }
+
+.npo-progress .progress-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 10px;
+}
+
+/* ── Playback controls ───────────────────────── */
+.npo-controls {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 16px 24px;
+}
+
+.npo-ctrl {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: color 0.1s, transform 0.1s;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.npo-ctrl:hover:not(:disabled) { transform: scale(1.1); }
+.npo-ctrl:active:not(:disabled) { transform: scale(0.93); }
+.npo-ctrl:disabled { opacity: 0.35; cursor: default; }
+
+.npo-ctrl.secondary { font-size: 20px; color: rgba(255, 255, 255, 0.5); }
+.npo-ctrl.secondary.active { color: var(--primary-color); }
+
+.npo-ctrl.primary {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    color: #111;
+    font-size: 26px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.npo-ctrl.primary:hover:not(:disabled) { transform: scale(1.06); box-shadow: 0 6px 28px rgba(0,0,0,0.6); }
+.npo-ctrl.primary:active:not(:disabled) { transform: scale(0.95); }
+
+.npo-repeat-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+/* ── Selectors row: quality | speed ─────────── */
+.npo-selectors-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    padding: 4px 22px 0;
+    flex-shrink: 0;
+}
+
+.npo-selectors-row .streaming-quality-selector,
+.npo-selectors-row .speed-selector-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-sm, 6px);
+    padding: 8px 10px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 12px;
+    font-weight: 600;
+    gap: 5px;
+}
+
+.npo-selectors-row .streaming-quality-selector:hover,
+.npo-selectors-row .speed-selector-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.npo-selectors-row .quality-current-label {
+    font-size: 12px;
+    min-width: unset;
+}
+
+/* ── Quality toast ───────────────────────────── */
+.npo-quality-toast {
+    font-size: 11px;
+    color: var(--primary-color);
+    font-weight: 500;
+    text-align: center;
+    padding: 0 20px 4px;
+    flex-shrink: 0;
+}
+
+/* ── Audio stats — always visible, compact ───── */
+.npo-stats {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 10px 22px 16px;
+    flex-shrink: 0;
+    gap: 4px;
+}
+
+.npo-stat {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+
+.npo-stat-label {
+    font-size: 8px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.npo-stat-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+/* ── Spinner + remote-pending throb ──────────── */
+@keyframes npo-spin  { to { transform: rotate(360deg); } }
+@keyframes npo-throb {
+    0%, 100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--accent-color, #e8a820) 60%, transparent); }
+    50%       { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-color, #e8a820) 0%,  transparent); }
+}
+
+.npo-spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(0, 0, 0, 0.3);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: npo-spin 0.7s linear infinite;
+}
+
+.npo-ctrl.primary.remote-pending {
+    animation: npo-throb 0.9s ease-in-out infinite;
+}
+
+/* ── Compact: anything below a large tablet (≤900px) ─────── */
+@media (max-height: 900px) {
+    /* Use explicit px so the aspect-ratio + max-height interaction
+       doesn't produce a full-width square on older Android WebViews. */
+    .npo-art-wrap  { flex: 0 0 332px; overflow: hidden; padding: 0; }
+    .npo-art-card  { padding: 0 20px 12px; }
+    .npo-art-inner { width: 320px !important; height: 320px !important; max-height: 320px !important; }
+}
+
+/* ── Extra-compact: small phones (≤680px tall) ────────────── */
+@media (max-height: 680px) {
+    .npo-art-wrap  { flex: 0 0 188px; padding: 0; }
+    .npo-art-card  { padding: 0 20px 8px; }
+    .npo-art-inner { width: 180px !important; height: 180px !important; max-height: 180px !important; }
+
+    .npo-info-row    { padding-top: 4px; padding-bottom: 2px; }
+    .npo-song-title  { font-size: 17px; }
+    .npo-song-artist { font-size: 13px; }
+
+    .npo-controls     { padding-top: 8px; padding-bottom: 10px; }
+    .npo-ctrl         { width: 48px; height: 48px; font-size: 19px; }
+    .npo-ctrl.primary { width: 62px; height: 62px; font-size: 22px; }
+
+    .npo-selectors-row { padding: 3px 20px 0; gap: 7px; }
+    .npo-selectors-row .streaming-quality-selector,
+    .npo-selectors-row .speed-selector-btn { padding: 7px 9px; }
+
+    .npo-stats { padding-top: 6px; padding-bottom: 10px; }
+}
+
+/* ── Micro-compact: ≤560px CSS height (480×800 @240dpi ≈ 320×485px CSS) ── */
+@media (max-height: 560px) {
+    .npo-handle { padding: 4px 0 2px; }
+    .npo-header { padding: 0 8px 4px; }
+
+    /* flex: 0 0 Xpx pins the wrap's height in the flex column — content size is irrelevant */
+    .npo-art-wrap  { flex: 0 0 204px; padding: 0; }
+    .npo-art-card  { padding: 4px 20px; }
+    .npo-art-inner { width: 196px !important; height: 196px !important; max-height: 196px !important; }
+
+    .npo-info-row    { padding: 2px 16px; gap: 8px; }
+    .npo-song-title  { font-size: 16px; }
+    .npo-song-artist { font-size: 12px; margin-top: 1px; }
+
+    .npo-progress { padding: 4px 16px 0; }
+    .npo-progress .progress-time { margin-top: 8px; font-size: 11px; }
+
+    .npo-controls     { padding: 4px 12px 6px; }
+    .npo-ctrl         { width: 50px; height: 50px; font-size: 20px; }
+    .npo-ctrl.primary { width: 62px; height: 62px; font-size: 23px; }
+
+    .npo-selectors-row { padding: 4px 16px 0; gap: 8px; }
+    .npo-selectors-row .streaming-quality-selector,
+    .npo-selectors-row .speed-selector-btn { padding: 7px 10px; font-size: 12px; }
+
+    .npo-stats      { padding: 4px 16px 8px; }
+    .npo-stat-label { font-size: 7px; }
+    .npo-stat-value { font-size: 10px; }
+
+    .npo-quality-toast { padding: 0 16px 2px; font-size: 11px; }
+}

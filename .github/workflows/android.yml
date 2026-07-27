@@ -1,0 +1,107 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: false
+        default: 'debug'
+        type: choice
+        options: [debug, release, both]
+
+jobs:
+  build:
+    name: Build Android (${{ github.event.inputs.build_type || 'debug' }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Write build info
+        run: node scripts/write-build-info.js ${{ github.event.inputs.build_type || 'debug' }}
+
+      - name: Build React bundle
+        run: npm run build
+        env:
+          VITE_BUILD_TYPE: ${{ github.event.inputs.build_type || 'debug' }}
+
+      - name: Capacitor sync
+        run: npx cap sync android
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x android/gradlew
+
+      - name: Gradle clean
+        run: cd android && ./gradlew clean --no-daemon
+
+      - name: Build debug APK
+        if: ${{ github.event.inputs.build_type != 'release' }}
+        run: cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Build release APK (unsigned)
+        if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'both' }}
+        run: cd android && ./gradlew assembleRelease --no-daemon
+
+      - name: Upload debug APK
+        if: ${{ github.event.inputs.build_type != 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-Android-debug-${{ github.sha }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+      - name: Upload release APK
+        if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'both' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-Android-release-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 14
+
+      - name: APK size info
+        run: |
+          echo "## Android Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build type:** ${{ github.event.inputs.build_type || 'debug' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+            echo "- **Debug APK:** $SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            SIZE=$(du -sh android/app/build/outputs/apk/release/app-release.apk | cut -f1)
+            echo "- **Release APK:** $SIZE (unsigned — sign before distribution)" >> $GITHUB_STEP_SUMMARY
+          elif [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            SIZE=$(du -sh android/app/build/outputs/apk/release/app-release-unsigned.apk | cut -f1)
+            echo "- **Release APK:** $SIZE (unsigned)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifact and install with ADB:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "adb install -r app-debug.apk" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

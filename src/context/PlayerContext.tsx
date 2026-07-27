@@ -139,7 +139,62 @@ interface PlayerProviderProps {
 
 export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const bridge = getBridge();
-    const { offlineModeEnabled } = useOfflineMode();
+    const { offlineModeEnabled, cacheInitialized } = useOfflineMode();
+    const offlineModeEnabledRef = useRef(offlineModeEnabled);
+    useEffect(() => {
+        offlineModeEnabledRef.current = offlineModeEnabled;
+        if (!offlineModeEnabled) return; // only act on switch-to-offline
+
+        const song = currentSongRef.current;
+        if (!song || !offlineCacheService.isCached(song.id)) return;
+
+        const audio = audioRef.current;
+        if (!audio) return;
+        const savedTime  = audio.currentTime;
+        const wasPlaying = !audio.paused;
+
+        offlineCacheService.getCachedFilePath(song.id)
+            .then(cachedPath => {
+                if (!cachedPath) return;
+                const a = audioRef.current;
+                if (!a) return;
+                const url = /^https?:\/\/|^capacitor:\/\//.test(cachedPath)
+                    ? cachedPath
+                    : `file:///${cachedPath.replace(/\\/g, '/')}`;
+                a.src = url;
+                a.load();
+                a.currentTime = savedTime;
+                if (wasPlaying) a.play().catch(() => {});
+            })
+            .catch(() => {});
+    }, [offlineModeEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Startup: when the offline cache finishes initializing, prime audio.src
+    // with the local file so the play button works on a fresh app launch.
+    // Uses currentSongRef (not state) to avoid a TDZ — currentSong's useState
+    // is declared later in the function body; the ref is already synced by the
+    // time cacheInitialized flips true.
+    useEffect(() => {
+        if (!cacheInitialized || !offlineModeEnabled) return;
+        const audio = audioRef.current;
+        if (!audio || audio.src) return; // already primed
+        const song = currentSongRef.current;
+        if (!song || !offlineCacheService.isCached(song.id)) return;
+
+        offlineCacheService.getCachedFilePath(song.id)
+            .then(cachedPath => {
+                if (!cachedPath) return;
+                const a = audioRef.current;
+                if (!a || a.src) return;
+                const url = /^https?:\/\/|^capacitor:\/\//.test(cachedPath)
+                    ? cachedPath
+                    : `file:///${cachedPath.replace(/\\/g, '/')}`;
+                a.src = url;
+                a.load();
+            })
+            .catch(() => {});
+    }, [cacheInitialized, offlineModeEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const [playlist, setPlaylist] = useState<Song[]>(loadQueue);
     const [currentIndex, setCurrentIndex] = useState(() => {
         const pl = loadQueue();
@@ -178,6 +233,8 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const shuffleQueueRef = useRef<number[]>([]);
     const shuffleQueueIndexRef = useRef(0);
     const lastIpcPositionRef = useRef(0);
+    const lastMediaPositionRef = useRef(0);
+    const lastMediaIsPlayingRef = useRef<boolean | null>(null);
 
     // Load saved streaming quality and playback speed on mount
     useEffect(() => {
@@ -397,7 +454,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         }
 
         // In offline mode, never stream — if the song is not locally available, bail.
-        if (offlineModeEnabled && sourceUrl === song.url) {
+        if (offlineModeEnabledRef.current && sourceUrl === song.url) {
             logger.warn('[Player] Offline mode: song not cached, skipping network attempt:', song.title);
             setIsLoading(false);
             return;
@@ -705,25 +762,27 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
     // Update liked status when song changes
     useEffect(() => {
+        let cancelled = false;
         const checkLikedStatus = async () => {
             if (currentSong) {
                 console.log('[Player] Song changed, checking liked status for:', currentSong.id, currentSong.title);
                 try {
                     const liked = await isSongLiked(currentSong.id);
                     console.log(`[Player] Song "${currentSong.title}" (${currentSong.id}) liked status:`, liked);
-                    setIsLiked(liked);
+                    if (!cancelled) setIsLiked(liked);
                 } catch (error) {
                     console.error('[Player] Failed to check liked status:', error);
-                    setIsLiked(false);
+                    if (!cancelled) setIsLiked(false);
                 }
             } else {
                 console.log('[Player] No current song, setting liked to false');
                 setIsLiked(false);
             }
         };
-        
+
         checkLikedStatus();
-    }, [currentSong, currentSong?.id]);
+        return () => { cancelled = true; };
+    }, [currentSong, currentSong?.id, cacheInitialized]);
 
     const setBitrate = useCallback((newBitrate: number | null) => {
         setBitrateState(newBitrate);
@@ -848,7 +907,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                 }
 
                 // ── Level 3 (Electron) / only path (Capacitor): fetch → data URL ──
-                if (!artSrc) {
+                if (!artSrc && !offlineCacheService.getConfig().enabled) {
                     const { username, password, serverUrl } = getFromStorage();
                     if (username && password && serverUrl) {
                         const remoteUrl = getCoverArtUrl(serverUrl, username, password, currentSong.coverArt!, 512);
@@ -937,7 +996,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                     } catch { /* fall through to server URL */ }
                 }
                 // Level 3: Subsonic server URL
-                if (!artworkUrl && username && password && serverUrl) {
+                if (!artworkUrl && username && password && serverUrl && !offlineCacheService.getConfig().enabled) {
                     artworkUrl = getCoverArtUrl(serverUrl, username, password, currentSong.coverArt, 512);
                 }
             }
@@ -946,9 +1005,16 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         })();
     }, [currentSong]);
 
-    // Push play/pause state + position to the native notification
+    // Push play/pause state + position to the native notification.
+    // Position updates are throttled to 1 fps to avoid flooding the native bridge
+    // (each call triggers a Capacitor debug log). Play/pause changes always fire immediately.
     useEffect(() => {
         if (!bridge.isCapacitor) return;
+        const now = Date.now();
+        const playStateChanged = isPlaying !== lastMediaIsPlayingRef.current;
+        if (!playStateChanged && now - lastMediaPositionRef.current < 1000) return;
+        lastMediaPositionRef.current = now;
+        lastMediaIsPlayingRef.current = isPlaying;
         bridge.updateMediaPlaybackState(isPlaying, Math.floor(currentTime * 1000), Math.floor(duration * 1000));
     }, [isPlaying, currentTime, duration]);
 
@@ -1262,6 +1328,10 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                 if (p) url = /^https?:\/\/|^capacitor:\/\//.test(p)
                     ? p
                     : `file:///${p.replace(/\\/g, '/')}`;
+            } else if (offlineCacheService.getConfig().enabled) {
+                const el = preloadRef.current;
+                if (el) { el.src = ''; }
+                return;
             }
             if (!cancelled) {
                 const current = preloadRef.current;
@@ -1290,6 +1360,8 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                         if (offlineCacheService.isCached(id)) {
                             const p = await offlineCacheService.getCachedFilePath(id);
                             if (p) src = /^https?:\/\/|^capacitor:\/\//.test(p) ? p : `file:///${p.replace(/\\/g, '/')}`;
+                        } else if (offlineCacheService.getConfig().enabled) {
+                            return;
                         }
                         const el = preloadRef.current;
                         if (el && !el.src) { el.src = src; el.load(); }
@@ -1303,7 +1375,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
     // Prefetch cover art for neighbors + lookahead window (up to 5 songs ahead)
     useEffect(() => {
-        if (offlineModeEnabled) return;
+        if (offlineModeEnabledRef.current) return;
         const { username, password, serverUrl } = getFromStorage();
         if (!username || !password || !serverUrl) return;
 
@@ -1340,7 +1412,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                 const rel = offlineCacheService.getCachedCoverArtPath(nextSong.coverArt!);
                 if (rel) artworkUrl = await getBridge().readCachedImage(rel);
             }
-            if (!artworkUrl && username && password && serverUrl) {
+            if (!artworkUrl && username && password && serverUrl && !offlineCacheService.getConfig().enabled) {
                 artworkUrl = getCoverArtUrl(serverUrl, username, password, nextSong.coverArt!, 512);
             }
             if (!cancelled && artworkUrl) bridge.preloadNextArtwork(artworkUrl);

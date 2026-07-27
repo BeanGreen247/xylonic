@@ -1,5 +1,50 @@
 /* Additional styles for PlaybackControls - main styles in index.css */
 
+.remote-mode-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 16px;
+    background: rgba(var(--primary-color-rgb, 29, 185, 84), 0.12);
+    border-bottom: 1px solid rgba(var(--primary-color-rgb, 29, 185, 84), 0.2);
+    font-size: 12px;
+    color: var(--primary-color);
+}
+
+.remote-mode-bar i {
+    font-size: 11px;
+}
+
+.remote-mode-bar--controlled {
+    color: #e6a817;
+    background: rgba(230, 168, 23, 0.1);
+    border-bottom-color: rgba(230, 168, 23, 0.2);
+}
+
+@keyframes play-btn-spin {
+    to { transform: rotate(360deg); }
+}
+@keyframes play-btn-throb {
+    0%, 100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--accent-color, #e8a820) 60%, transparent); }
+    50%       { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent-color, #e8a820) 0%,  transparent); }
+}
+
+.play-pause-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--bg-dark);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: play-btn-spin 0.7s linear infinite;
+    vertical-align: middle;
+}
+
+.play-pause-btn.remote-pending {
+    animation: play-btn-throb 0.9s ease-in-out infinite;
+}
+
 .player-bar {
     /* Styles defined in index.css */
 }
@@ -16,6 +61,11 @@
     /* Styles defined in index.css */
 }
 
+@media (min-width: 681px) {
+    .current-song-info.clickable { cursor: pointer; }
+    .current-song-info.clickable:hover .current-song-title { color: var(--primary-color); }
+}
+
 /* Ensure AlbumArt component fits properly in player controls */
 .current-song-cover .album-art,
 .current-song-cover .album-art-fallback {
@@ -27,4 +77,173 @@
 
 .player-right-controls {
     /* Styles defined in index.css */
+}
+
+/* ─── Intermediate layout (681px – 1100px) ──────
+   All controls kept but tighter — panel buttons
+   hidden (still accessible via keyboard / right panel)
+   ─────────────────────────────────────────────── */
+@media (max-width: 1100px) and (min-width: 681px) {
+    /* Let columns size to content instead of a fixed 200px */
+    .player-controls-container {
+        grid-template-columns: auto auto auto !important;
+        gap: 8px !important;
+        padding: 0 10px !important;
+    }
+
+    /* Compact song info */
+    .current-song-info {
+        min-width: 0;
+        max-width: 200px;
+    }
+
+    .current-song-cover,
+    .current-song-cover-placeholder {
+        width: 44px !important;
+        height: 44px !important;
+    }
+
+    /* Tighter center controls */
+    .playback-controls {
+        gap: 2px !important;
+    }
+
+    .playback-controls button {
+        padding: 6px 7px !important;
+    }
+
+    /* Right side: hide panel toggles to free up space */
+    .queue-panel-btn {
+        display: none !important;
+    }
+
+    /* Tighter volume + quality */
+    .volume-control {
+        min-width: 80px !important;
+    }
+
+    .streaming-quality-selector {
+        padding: 5px 8px !important;
+        gap: 4px !important;
+    }
+}
+
+/* ─── Narrow tablet (sidebar present, player bar cramped) ──
+   Hide album art at widths where the 200px sidebar leaves
+   too little room — keep title/artist text visible.
+   ──────────────────────────────────────────────────────── */
+@media (max-width: 900px) and (min-width: 681px) {
+    .current-song-cover,
+    .current-song-cover-placeholder {
+        display: none !important;
+    }
+}
+
+/* ─── Mobile compact player (≤ 680px) ─────────── */
+@media (max-width: 680px) {
+    /* Tap-to-open overlay only on mobile */
+    .player-bar.has-song { cursor: pointer; }
+
+    /* Sit above the bottom nav */
+    .player-bar {
+        bottom: 56px !important;
+        padding: 0 !important;
+    }
+
+    /* Thin progress strip — no time labels */
+    .progress-bar-container {
+        margin-bottom: 0 !important;
+        padding: 0 !important;
+    }
+
+    .progress-bar {
+        height: 2px !important;
+        border-radius: 0 !important;
+        cursor: default;
+    }
+
+    .progress-bar-fill {
+        border-radius: 0 !important;
+    }
+
+    .progress-time {
+        display: none !important;
+    }
+
+    /* Switch from 3-col grid to flex — song info left, controls right */
+    .player-controls-container {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        height: 58px;
+        padding: 0 12px !important;
+        gap: 0;
+        max-width: none !important;
+        margin: 0 !important;
+    }
+
+    /* Song info: sized to content, capped so controls stay visible on the right */
+    .current-song-info {
+        flex: 0 1 auto !important;
+        min-width: 0;
+        overflow: hidden;
+        max-width: calc(100% - 148px); /* room for 3 buttons × ~44px + gap */
+    }
+
+    /* Smaller album art */
+    .current-song-cover,
+    .current-song-cover-placeholder {
+        width: 40px !important;
+        height: 40px !important;
+        flex-shrink: 0;
+    }
+
+    .current-song-title {
+        font-size: 13px !important;
+    }
+
+    .current-song-artist {
+        font-size: 11px !important;
+    }
+
+    /* Controls pinned to the right */
+    .playback-controls {
+        gap: 4px !important;
+        flex: 0 0 auto;
+    }
+
+    .playback-controls .shuffle-btn,
+    .playback-controls .repeat-btn,
+    .playback-controls .like-btn {
+        display: none !important;
+    }
+
+    .playback-controls button {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 18px !important;
+    }
+
+    .playback-controls .play-pause-btn {
+        width: 52px !important;
+        height: 52px !important;
+        margin: 0 4px !important;
+    }
+
+    .playback-controls .play-pause-btn i {
+        font-size: 20px !important;
+    }
+
+    /* Hide right-side controls (quality, volume, panel buttons) */
+    .player-right-controls {
+        display: none !important;
+    }
+
+    /* Quality notification — reposition for mobile */
+    .quality-notification {
+        right: 8px !important;
+        left: 8px !important;
+        top: auto !important;
+        bottom: calc(100% + 4px) !important;
+    }
 }

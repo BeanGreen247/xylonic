@@ -1,17 +1,17 @@
-# Xylonic Cache v2.0 - Implementation Summary
+# Xylonic Cache v2.1 - Implementation Summary
 
-## Date: February 13, 2026
-## Status: Complete - Ready for Testing
+## Date: February 13, 2026 (v2.0) | Updated: June 28, 2026 (v2.1)
+## Status: Complete
 
 ---
 
 ## Overview
 
-Successfully implemented and tested the following Priority tasks for Xylonic's offline cache v2.0 system:
+Successfully implemented and tested the following Priority tasks for Xylonic's offline cache v2.1 system:
 
 ### Priority 1: Testing & Verification
 - **Zero compilation errors** confirmed
-- Cache v2.0 architecture fully functional
+- Cache v2.1 architecture fully functional
 - Multi-user support with hash-based storage operational
 - Reference counting system working
 
@@ -235,7 +235,7 @@ The current implementation migrates all metadata structures but notes that actua
 
 1. **Start the app:**
    ```powershell
-   npm run dev
+   npm run electron:serve
    ```
 
 2. **Login to Subsonic server**
@@ -263,7 +263,7 @@ The current implementation migrates all metadata structures but notes that actua
 
 ### Detailed Testing
 
-See **`CACHE_V2_TEST_GUIDE.md`** for comprehensive testing scenarios including:
+See **`CACHE_V21_TEST_GUIDE.md`** for comprehensive testing scenarios including:
 - Multi-user testing
 - Reference counting verification
 - Error handling tests
@@ -297,13 +297,13 @@ See **`CACHE_V2_TEST_GUIDE.md`** for comprehensive testing scenarios including:
 
 ### Created Files (2)
 
-1. **`CACHE_V2_TEST_GUIDE.md`**
+1. **`CACHE_V21_TEST_GUIDE.md`**
    - Comprehensive testing guide (400+ lines)
    - 7 test scenarios
    - Troubleshooting section
    - Developer debugging tips
 
-2. **`CACHE_V2_IMPLEMENTATION.md`** (this file)
+2. **`CACHE_V21_IMPLEMENTATION.md`** (this file)
    - Implementation summary
    - Technical details
    - Usage instructions
@@ -359,8 +359,8 @@ See **`CACHE_V2_TEST_GUIDE.md`** for comprehensive testing scenarios including:
 
 5. **Performance:**
    - Lazy loading for large cached album lists
-   - Background cache integrity checks
-   - Automatic cleanup of orphaned files
+   - ~~Background cache integrity checks~~ ✅ **Done** — `verifyPermanentCache()` + "Verify Cache" button (July 2026)
+   - ~~Automatic cleanup of orphaned files~~ ✅ **Done** — orphaned entries removed during verification and by `reconcileOrphans()` (July 2026)
 
 ---
 
@@ -538,26 +538,119 @@ All three priority tasks have been successfully implemented:
 3. **Priority 3 Complete:** v1→v2 migration system implemented
 
 **Next Steps:**
-1. Run comprehensive testing following `CACHE_V2_TEST_GUIDE.md`
+1. Run comprehensive testing following `CACHE_V21_TEST_GUIDE.md`
 2. Test with real Subsonic server and v1 cache data
 3. Gather user feedback
 4. Implement file migration UI if needed
 5. Performance optimization based on real-world usage
 
-**The cache v2.0 system is production-ready for beta testing!**
+**The cache v2.1 system is production-ready.**
+
+---
+
+## In-Memory Metadata Cache (July 2026)
+
+### `src/services/metadataCache.ts` — new module
+
+Module-level in-memory TTL cache for Subsonic API responses. No IDB, no dependencies. 30-minute default TTL.
+
+| Cache key pattern | Contents | Set by |
+|---|---|---|
+| `artists_<serverUrl>` | Full artist list + song count | `ArtistList.tsx` |
+| `artist_<artistId>` | Artist albums array + `coverArt` ID | `AlbumList.tsx`, `SongList.tsx` (shared key) |
+| `album_<albumId>` | Album songs array from `getAlbum` | `SongList.tsx` |
+| `albumsPage_<serverUrl>_<page>` | Paginated all-albums page from `getAllAlbumsPaginated` | `AllAlbumsGrid.tsx` |
+
+The `artist_<artistId>` key is intentionally shared between `AlbumList` (which fetches the artist's albums) and `SongList` (which fetches the same artist to get the `coverArt` ID for the artist photo). The second component gets a cache hit instead of making a duplicate `getArtist` call.
+
+### getSongCount elimination
+
+`ArtistList.tsx` and `MainApp.tsx` previously called `getAlbumList2` on every load solely to sum `album.songCount` values (an extra API round-trip for every library load). Both files now check `searchCacheService.getSearchIndex()?.songs.length` first and only fall back to the API call when the search index is not yet loaded.
+
+### Cache invalidation on auth change
+
+`metadataCache.invalidate()` (no arguments — clears all keys) is called as the first line of both `AuthContext.login()` and `AuthContext.logout()`. This prevents cached artist/album/song data from a previous user or server from appearing for the new session.
 
 ---
 
 ## Contact & Support
 
 For issues or questions:
-- Check `CACHE_V2_TEST_GUIDE.md` for troubleshooting
+- Check `CACHE_V21_TEST_GUIDE.md` for troubleshooting
 - Review console logs for errors
 - Check GitHub issues (if applicable)
 - Review implementation details in this document
 
 ---
 
+---
+
+## Android Native Download Integration (June 2026)
+
+Two new methods were added to `offlineCacheService.ts` to support the native Java downloader on Android:
+
+### `getAudioHash(songId: string): string`
+
+Returns the `md5(serverUrl + songId)` hash that `DownloadService` uses as the directory name for the audio file. Called by `downloadSongNative()` in `downloadManagerService.ts` before handing the hash to `NativeDownloaderPlugin.startDownload()`.
+
+```typescript
+getAudioHash(songId: string): string {
+    return generateAudioHash(this.serverUrl, songId);
+}
+```
+
+### `registerNativeDownload(song, quality, audioHash, fileExtension, fileSize, artistId?, artistCoverArtId?): Promise<void>`
+
+Registers a download that was already written to disk by the native Java thread. Unlike the JS download path, this method **does not write audio bytes** — it only updates the in-memory `audioRegistry` and `cacheIndex` and persists them. This avoids reading the file back through JavaScript just to track it.
+
+```typescript
+async registerNativeDownload(song, quality, audioHash, fileExtension, fileSize, ...): Promise<void> {
+    // Upsert audioRegistry entry (hash → filePath, fileSize, quality, refCount, users)
+    // Add song to cacheIndex (songId → metadata)
+    await Promise.all([this.saveIndex(), this.saveRegistry()]);
+}
+```
+
+The file path written by Java is `permanent_cache/audio/{hash}/audio{ext}`, which matches the `Capacitor.Directory.Data` base used by the JS cache layer, so both paths resolve to the same physical file.
+
+---
+
+## Cache Integrity Verification (July 2026)
+
+### `verifyPermanentCache(onProgress?): Promise<{ verified, removed, total, durationMs }>`
+
+Real filesystem existence check on every song in the user's `CacheIndex`. Removes orphaned index entries and decrements ref counts for missing audio files.
+
+**Key design decisions:**
+- `songIds` snapshot collected before the loop (`Object.keys(cacheIndex.songs)`) — safe against mutation from `removeFromCacheCore` during iteration
+- `getBridge().getAudioFilePath(hash, filename)` performs the actual FS check: `Filesystem.stat()` on Android, IPC to main process on Electron — both are real existence checks, not just index lookups
+- `removeFromCacheCore(songId)` handles ref-count decrement and index cleanup; calling it on a missing file is a safe no-op (the audio directory deletion path is guarded)
+- `onProgress` fires every 25 songs to avoid flooding the UI event loop
+- Save called once at the end (`saveIndex()` + `saveRegistry()`), only when `removed > 0`, not per orphan
+
+### DownloadManager Integration
+
+`downloadManagerService.ts` wraps `verifyPermanentCache` in `runCacheVerification()`:
+- `private isVerifying: boolean` guard prevents concurrent runs
+- Emits `cache-verify-started` → streams `cache-verify-progress` → emits `cache-verify-complete`
+- `triggerCacheVerification()` (public) — called by the "Verify Cache" button in the UI
+- Auto-triggers at the end of `processQueue()` when the queue drains with at least one completed download
+
+### UI (DownloadManagerWindow.tsx)
+
+"Cache Integrity" section in Manage Cache:
+- "Verify Cache" button — disabled while running or cache is empty
+- Live `X / Y songs` counter while running (spinner icon)
+- Result banner on completion: N songs verified, M orphaned entries removed, elapsed time
+- Calls `updateCacheStats()` after verification completes (stats may have changed if orphans were removed)
+
+### Orphan Recovery on Startup (Android)
+
+`reconcileOrphans()` in `downloadManagerService.ts` is called on every app launch (before `tryResumeQueue()`). It reads `permanent_cache/completion_log.ndjson` (written by the native `DownloadService` foreground service after every successful download) and cross-references the JS-side `pendingBatch` map persisted in localStorage. Any audio files present on disk but missing from the cache index are registered via `registerNativeDownload()`. This recovers songs that were downloaded but whose `songDownloaded` Capacitor event was lost to a renderer OOM kill.
+
+---
+
 **Implementation Date:** February 13, 2026  
-**Version:** 2.0.0  
-**Status:** Ready for Beta Testing
+**Last Updated:** July 6, 2026  
+**Version:** 2.1.0  
+**Status:** Production

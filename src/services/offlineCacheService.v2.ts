@@ -24,9 +24,9 @@ import {
   getFormatFromExtension
 } from '../utils/cacheHelpers';
 import { logger } from '../utils/logger';
+import { getBridge } from '../platform/bridge';
 
-// Use the exposed Electron API from preload
-const electron = (window as any).electron;
+const electron = getBridge();
 
 class OfflineCacheService {
   private cacheIndex: CacheIndex | null = null;
@@ -52,11 +52,11 @@ class OfflineCacheService {
       logger.log('[OfflineCache] Initializing v2.0 cache for user:', this.userId);
       
       // Get cache directory
-      if (electron && electron.getCacheDir) {
+      if (electron.isCacheAvailable) {
         this.cacheDir = await electron.getCacheDir();
         logger.log('[OfflineCache] Cache directory:', this.cacheDir);
       } else {
-        logger.warn('[OfflineCache] Not running in Electron, cache disabled');
+        logger.warn('[OfflineCache] Cache not available on this platform');
         return;
       }
 
@@ -84,7 +84,7 @@ class OfflineCacheService {
    */
   async hasCacheForUser(username: string, serverUrl: string): Promise<boolean> {
     try {
-      if (!electron || !electron.readUserCacheIndex) {
+      if (!electron.isCacheAvailable) {
         return false;
       }
 
@@ -668,6 +668,25 @@ class OfflineCacheService {
     
     const coverArtFile = this.audioRegistry.coverArtFiles[coverArtHash];
     return coverArtFile ? coverArtFile.filePath : null;
+  }
+
+  /**
+   * Look for album.jpg / cover.jpg placed alongside a cached audio file.
+   * Returns a base64 data URL if found, otherwise null.
+   */
+  async findFolderArtForAlbum(albumId: string): Promise<string | null> {
+    if (!electron.isCacheAvailable) return null;
+    if (!this.cacheIndex) return null;
+
+    const songs = Object.values(this.cacheIndex.songs || {}) as CachedSongMetadata[];
+    const song = songs.find(s => s.albumId === albumId);
+    if (!song || !song.audioHash) return null;
+
+    try {
+      return await electron.findSiblingArt(song.audioHash);
+    } catch {
+      return null;
+    }
   }
 
   /**

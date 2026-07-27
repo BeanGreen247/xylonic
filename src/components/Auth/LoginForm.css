@@ -1,5 +1,22 @@
 /* LoginForm styles - main styles are in index.css */
 
+/* Logo area above the login form title */
+.login-logo-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.login-logo-area h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary-color);
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
 /* Two-column layout */
 .login-form-columns {
     display: grid;
@@ -108,4 +125,146 @@
     color: var(--text-muted);
 }
 
-/* Additional component-specific styles can go here if needed */
+/* Connection picker trigger — looks like a text input but opens the modal */
+.conn-picker-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    text-align: left;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-image: none; /* suppress the SVG arrow from .connection-select */
+    padding-right: 14px;    /* restore normal padding */
+}
+
+.conn-picker-trigger:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.conn-picker-trigger:focus:not(:disabled) {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.12);
+    background-color: var(--bg-medium);
+}
+
+.conn-picker-trigger.disabled,
+.conn-picker-trigger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Icon container inside connection picker items */
+.conn-picker-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(var(--primary-color-rgb), 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: var(--primary-color);
+}
+
+.quality-picker-item.active .conn-picker-icon {
+    background: rgba(var(--primary-color-rgb), 0.22);
+}
+
+/* Connection row with edit/delete action buttons */
+.conn-item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.conn-item-action {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.conn-item-action:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.conn-item-delete:hover {
+    background: rgba(255, 59, 48, 0.15);
+    color: #ff3b30;
+}
+
+/* Password field with show/hide toggle */
+.password-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrap input {
+    flex: 1;
+    padding-right: 44px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 15px;
+    padding: 4px 6px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.password-toggle:hover {
+    color: var(--text-primary);
+}
+
+/* ─── Compact logo on short viewports (keyboard visible, small phones) ───── */
+@media (max-height: 600px) {
+    .login-logo-area {
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .login-logo-area h1 {
+        font-size: 18px;
+    }
+    .login-logo-area svg {
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+/* ─── Compact logo on very narrow screens (≤ 360px wide) ─────────────────── */
+@media (max-width: 360px) {
+    .login-logo-area {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .login-logo-area h1 {
+        font-size: 20px;
+    }
+    .login-logo-area svg {
+        width: 48px !important;
+        height: 48px !important;
+    }
+}

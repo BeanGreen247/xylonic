@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import AlbumArt from '../common/AlbumArt';
 import { getCoverArtUrl } from '../../services/subsonicApi';
+import { getBridge } from '../../platform/bridge';
 import './MiniPlayer.css';
+
+const bridge = getBridge();
 
 interface Song {
     id: string;
@@ -16,6 +19,7 @@ interface Song {
 interface PlayerState {
     currentSong: Song | null;
     isPlaying: boolean;
+    isLoading: boolean;
     currentTime: number;
     duration: number;
     volume: number;
@@ -34,6 +38,7 @@ const MiniPlayer: React.FC = () => {
     const [playerState, setPlayerState] = useState<PlayerState>({
         currentSong: null,
         isPlaying: false,
+        isLoading: false,
         currentTime: 0,
         duration: 0,
         volume: 1,
@@ -46,24 +51,14 @@ const MiniPlayer: React.FC = () => {
     useEffect(() => {
         console.log('[MiniPlayer] Mounting, requesting initial state...');
         
-        // Request initial state on mount
-        if (window.electron?.requestPlayerState) {
-            window.electron.requestPlayerState().then((state: PlayerState | null) => {
-                console.log('[MiniPlayer] Received initial state:', state);
-                if (state) {
-                    setPlayerState(state);
-                }
-            }).catch(err => console.error('[MiniPlayer] Failed to request state:', err));
-        }
+        bridge.requestPlayerState().then((state: PlayerState | null) => {
+            if (state) setPlayerState(state);
+        }).catch(() => {});
 
-        // Listen for ongoing updates
-        if (window.electron?.onPlayerStateChanged) {
-            const unsubscribe = window.electron.onPlayerStateChanged((state: PlayerState) => {
-                console.log('[MiniPlayer] Received state update:', state);
-                setPlayerState(state);
-            });
-            return unsubscribe;
-        }
+        const unsubscribe = bridge.onPlayerStateChanged((state: PlayerState) => {
+            setPlayerState(state);
+        });
+        return unsubscribe;
     }, []);
 
     // Reset when song changes
@@ -78,27 +73,14 @@ const MiniPlayer: React.FC = () => {
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    const handleReturnToMain = async () => {
-        if (window.electron?.toggleMiniPlayer) {
-            await window.electron.toggleMiniPlayer();
-        }
-    };
+    const handleReturnToMain = () => { bridge.toggleMiniPlayer(); };
 
-    // Send control commands to main window
-    const handlePlayPause = () => {
-        window.electron?.sendPlayerControl('togglePlayPause');
-    };
-
-    const handleNext = () => {
-        window.electron?.sendPlayerControl('playNext');
-    };
-
-    const handlePrevious = () => {
-        window.electron?.sendPlayerControl('playPrevious');
-    };
+    const handlePlayPause = () => { bridge.sendPlayerControl('togglePlayPause'); };
+    const handleNext      = () => { bridge.sendPlayerControl('playNext'); };
+    const handlePrevious  = () => { bridge.sendPlayerControl('playPrevious'); };
 
     const progress = playerState.duration > 0 ? (playerState.currentTime / playerState.duration) * 100 : 0;
-    const { currentSong, isPlaying, currentTime, duration } = playerState;
+    const { currentSong, isPlaying, isLoading, currentTime, duration } = playerState;
 
     // Memoize cover art URL to prevent flickering during playback
     // Only recalculate when the song's coverArt ID changes
@@ -146,9 +128,13 @@ const MiniPlayer: React.FC = () => {
                             className="mini-player-btn mini-player-play"
                             onClick={handlePlayPause}
                             disabled={!currentSong}
-                            title={isPlaying ? 'Pause' : 'Play'}
+                            title={isLoading ? 'Loading…' : isPlaying ? 'Pause' : 'Play'}
                         >
-                            <i className={`fas fa-${isPlaying ? 'pause' : 'play'}`}></i>
+                            {isLoading ? (
+                                <span className="mini-player-spinner" />
+                            ) : (
+                                <i className={`fas fa-${isPlaying ? 'pause' : 'play'}`}></i>
+                            )}
                         </button>
                         <button
                             className="mini-player-btn"

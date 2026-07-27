@@ -1,45 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
-import KeyboardHelp from '../common/KeyboardHelp';
+import { useRemoteMode } from '../../context/RemoteModeContext';
+import { useOfflineMode } from '../../context/OfflineModeContext';
 import SearchBar from '../common/SearchBar';
-import HamburgerMenu from '../common/HamburgerMenu';
+import { getBridge } from '../../platform/bridge';
+import { isPerformanceModeEnabled } from '../../services/performanceModeService';
+import { isPowerSaverEnabled } from '../../services/powerSaverService';
+import XylonicLogo from '../common/XylonicLogo';
+import { isAppStoreBuild } from '../../config/buildVariant';
 import './Header.css';
 
-type HeaderProps = {
-  onLogout?: () => void;
-};
+const bridge = getBridge();
 
-const Header: React.FC<HeaderProps> = ({ onLogout }) => {
-  const { username } = useAuth();
+const Header: React.FC = () => {
   const { currentSong } = usePlayer();
-  const [serverUrl, setServerUrl] = useState(localStorage.getItem('serverUrl') || '');
-  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const { isRemoteModeAvailable, isRemoteMode, availableDevices } = useRemoteMode();
+  const { offlineModeEnabled, toggleOfflineMode } = useOfflineMode();
   const [showMiniPlayerNotification, setShowMiniPlayerNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  const [perfMode,   setPerfMode]   = useState(isPerformanceModeEnabled);
+  const [powerSaver, setPowerSaver] = useState(isPowerSaverEnabled);
 
-  // React to localStorage changes (for example when mini player closes/opens)
   useEffect(() => {
-    const updateServerUrl = () => {
-      const url = localStorage.getItem('serverUrl') || '';
-      setServerUrl(url);
+    const handler = () => {
+      setPerfMode(isPerformanceModeEnabled());
+      setPowerSaver(isPowerSaverEnabled());
     };
-    
-    // Update on storage events
-    window.addEventListener('storage', updateServerUrl);
-    
-    // Also set up an interval to check periodically as storage events don't always fire
-    const interval = setInterval(updateServerUrl, 1000);
-    
-    return () => {
-      window.removeEventListener('storage', updateServerUrl);
-      clearInterval(interval);
-    };
+    window.addEventListener('appModeChanged', handler);
+    return () => window.removeEventListener('appModeChanged', handler);
   }, []);
-
-  const handleHelp = () => {
-    setShowKeyboardHelp(true);
-  };
 
   const handleMiniPlayer = async () => {
     // Check if a song is playing
@@ -55,9 +44,7 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
       return;
     }
     
-    if (window.electron?.toggleMiniPlayer) {
-      await window.electron.toggleMiniPlayer();
-    }
+    await bridge.toggleMiniPlayer();
   };
 
   const handleGitHubClick = () => {
@@ -90,8 +77,6 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
     }
   };
 
-  const handleLogoutClick = () => onLogout?.();
-
   return (
     <header className="header">
       {/* Mini Player Notification */}
@@ -99,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
         <div className="quality-notification">
           <i className="fas fa-info-circle"></i>
           <span>{notificationMessage}</span>
-          <button 
+          <button
             className="notification-close"
             onClick={() => setShowMiniPlayerNotification(false)}
             title="Dismiss"
@@ -111,59 +96,80 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
 
       <div className="header-left">
         <h1 className="app-title">
-          <i className="fas fa-music"></i>
+          <XylonicLogo size={28} />
           Xylonic
         </h1>
         <button className="github-link" onClick={handleGitHubClick} title="View on GitHub">
           <i className="fab fa-github"></i>
         </button>
-        <button className="support-link" onClick={handleSupportClick} title="Support the Project">
-          <i className="fas fa-heart"></i>
-        </button>
+        {!isAppStoreBuild && (
+          <button className="support-link" onClick={handleSupportClick} title="Support the Project">
+            <i className="fas fa-heart"></i>
+          </button>
+        )}
       </div>
 
       <div className="header-center">
-        <div className="server-info">
-          <div className="user-info-stack">
-            <div className="username">
-              <i className="fas fa-user"></i>
-              <span>{username}</span>
-            </div>
-            <div className="server-url">
-              <i className="fas fa-server"></i>
-              <span>{serverUrl}</span>
-            </div>
-          </div>
-        </div>
+        <SearchBar />
+        {isRemoteModeAvailable && (
+          <button
+            className={`mini-player-button${isRemoteMode ? ' remote-btn--active' : ''}`}
+            aria-label="Remote"
+            title={isRemoteMode ? 'Remote: connected — click to manage' : 'Connect to another Xylonic device on your network'}
+            onClick={() => window.dispatchEvent(new Event('xylonic-open-remote-picker'))}
+          >
+            <i className="fas fa-satellite-dish btn-icon" />
+            <span className="btn-label">
+              {isRemoteMode
+                ? 'Connected'
+                : availableDevices.length > 0
+                  ? `Remote (${availableDevices.length})`
+                  : 'Remote'}
+            </span>
+          </button>
+        )}
+        {!bridge.isCapacitor && (
+          <button
+            onClick={handleMiniPlayer}
+            className="mini-player-button"
+            aria-label="Mini Player"
+            title={currentSong ? "Mini Player (Ctrl+M)" : "No song loaded - play a song to use Mini Player"}
+            disabled={!currentSong}
+          >
+            <i className="fas fa-compress-alt btn-icon" />
+            <span className="btn-label">Mini</span>
+          </button>
+        )}
       </div>
 
       <div className="header-right">
-        <SearchBar />
-        
-        {/* Hamburger Menu with Theme, Offline Mode, and Downloads */}
-        <HamburgerMenu />
-        
-        <button 
-          onClick={handleMiniPlayer} 
-          className="mini-player-button" 
-          aria-label="Mini Player" 
-          title={currentSong ? "Mini Player (Ctrl+M)" : "No song loaded - play a song to use Mini Player"}
-          disabled={!currentSong}
+        <button
+          className={`offline-toggle-btn${offlineModeEnabled ? ' active' : ''}`}
+          onClick={toggleOfflineMode}
+          title={offlineModeEnabled ? 'Offline Mode active — tap to go online' : 'Go offline (play cached library without network)'}
+          aria-label={offlineModeEnabled ? 'Disable offline mode' : 'Enable offline mode'}
+          aria-pressed={offlineModeEnabled}
         >
-          <i className="fas fa-compress-alt btn-icon" />
-          <span className="btn-label">Mini</span>
+          <i className={`fas fa-${offlineModeEnabled ? 'plane' : 'globe'}`} />
+          {offlineModeEnabled && <span className="offline-toggle-label">Offline</span>}
         </button>
-        <button onClick={handleHelp} className="help-button" aria-label="Help" title="Help">
-          <i className="fas fa-question-circle btn-icon" />
-          <span className="btn-label">Help</span>
-        </button>
-        <button onClick={handleLogoutClick} className="logout-button" aria-label="Logout" title="Logout">
-          <i className="fas fa-sign-out-alt btn-icon" />
-          <span className="btn-label">Logout</span>
-        </button>
+        {perfMode && !powerSaver && (
+          <span
+            className="header-mode-badge header-mode-badge--perf"
+            title="Gaming Mode active — frame rate capped at 30 fps"
+          >
+            <i className="fas fa-tachometer-alt" />
+          </span>
+        )}
+        {powerSaver && (
+          <span
+            className="header-mode-badge header-mode-badge--eco"
+            title="Power Saver Mode active — frame rate capped at 5 fps"
+          >
+            <i className="fas fa-leaf" />
+          </span>
+        )}
       </div>
-
-      <KeyboardHelp isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
     </header>
   );
 };

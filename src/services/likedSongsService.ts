@@ -27,6 +27,38 @@ const CACHE_DURATION = 60000; // 1 minute cache
 // Track pending changes made while offline
 let pendingChanges: PendingChange[] = [];
 
+// Background poll
+const POLL_INTERVAL_MS = 30_000;
+let _pollTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Start a 30-second background poll that keeps starredSongIds fresh across
+ * devices. Safe to call repeatedly — only one timer runs at a time.
+ */
+export function startPeriodicSync(intervalMs = POLL_INTERVAL_MS): void {
+  if (_pollTimer !== null) return;
+  _pollTimer = setInterval(async () => {
+    if (isOfflineMode()) return;
+    await fetchStarredSongs();
+  }, intervalMs);
+}
+
+/** Stop the background poll (offline mode, logout). */
+export function stopPeriodicSync(): void {
+  if (_pollTimer === null) return;
+  clearInterval(_pollTimer);
+  _pollTimer = null;
+}
+
+/**
+ * Trigger a one-shot sync immediately (e.g. on app foreground).
+ * No-ops if offline mode is active.
+ */
+export async function syncNow(): Promise<void> {
+  if (isOfflineMode()) return;
+  await fetchStarredSongs();
+}
+
 /**
  * Check if offline mode is enabled
  */
@@ -82,26 +114,32 @@ const fetchStarredSongs = async (): Promise<void> => {
   try {
     const response = await getStarred(credentials.serverUrl, credentials.username, credentials.password);
     const starred = response.data['subsonic-response']?.starred2;
-    
+
+    const previousIds = new Set(starredSongIds);
     starredSongIds.clear();
-    
+
+    const starredTimestamps = new Map<string, number>();
     if (starred?.song) {
       starred.song.forEach((song: any) => {
         starredSongIds.add(song.id);
+        starredTimestamps.set(song.id, song.starred ? new Date(song.starred).getTime() : Date.now());
       });
     }
-    
+
+    // Check if the set actually changed before dispatching
+    const changed =
+      previousIds.size !== starredSongIds.size ||
+      [...starredSongIds].some(id => !previousIds.has(id));
+
     // Sync with offline cache (only if initialized)
     try {
       const cachedLikedSongs = offlineCacheService.getLikedSongs();
-      
-      // Sync server state to cache
+
+      // Sync server state to cache — always upsert timestamp so existing songs get dated too
       for (const songId of starredSongIds) {
-        if (!cachedLikedSongs.includes(songId)) {
-          await offlineCacheService.addLikedSong(songId);
-        }
+        await offlineCacheService.addLikedSong(songId, starredTimestamps.get(songId));
       }
-      
+
       // Remove songs from cache that are no longer starred on server
       for (const songId of cachedLikedSongs) {
         if (!starredSongIds.has(songId)) {
@@ -112,9 +150,12 @@ const fetchStarredSongs = async (): Promise<void> => {
       // Cache not initialized yet, skip sync
       console.log('[LikedSongs] Cache not initialized, skipping sync');
     }
-    
+
     lastFetchTime = Date.now();
     console.log('[LikedSongs] Fetched starred songs from server. Total:', starredSongIds.size);
+    if (changed) {
+      window.dispatchEvent(new CustomEvent('likedSongsUpdated'));
+    }
   } catch (error) {
     console.error('[LikedSongs] Failed to fetch starred songs:', error);
     // If fetch failed, try to load from cache
@@ -191,7 +232,7 @@ export const likeSong = async (song: { id: string; title: string; artist: string
   // Always update local cache first
   starredSongIds.add(song.id);
   try {
-    await offlineCacheService.addLikedSong(song.id);
+    await offlineCacheService.addLikedSong(song.id, Date.now());
   } catch (cacheError) {
     console.log('[LikedSongs] Cache not initialized');
   }

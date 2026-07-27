@@ -177,5 +177,5 @@ If the size difference matches expectations, quality control is working!
 
 ---
 
-**Last Updated**: February 13, 2026  
-**Version**: 26.2.8-dev
+**Last Updated**: June 28, 2026  
+**Version**: 26.7.6

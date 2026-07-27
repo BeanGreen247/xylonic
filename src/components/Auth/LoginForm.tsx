@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { testConnection } from '../../services/subsonicApi';
-import { getConnectionHistory, ConnectionProfile } from '../../services/connectionHistoryService';
-import { getDecryptedPassword, isSecureStorageAvailable } from '../../services/secureCredentialService';
+import { getConnectionHistory, removeConnection, ConnectionProfile } from '../../services/connectionHistoryService';
+import { getDecryptedPassword, deleteCredentials, isSecureStorageAvailable } from '../../services/secureCredentialService';
 import { offlineCacheService } from '../../services/offlineCacheService';
+import XylonicLogo from '../common/XylonicLogo';
 import './LoginForm.css';
 
 const LoginForm: React.FC = () => {
@@ -18,6 +20,8 @@ const LoginForm: React.FC = () => {
     const [selectedConnection, setSelectedConnection] = useState<string>('');
     const [offlineMode, setOfflineMode] = useState(false);
     const [secureStorageAvailable, setSecureStorageAvailable] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     // Check secure storage availability on mount
     useEffect(() => {
@@ -34,10 +38,17 @@ const LoginForm: React.FC = () => {
         setConnectionHistory(history);
     }, []);
 
-    // Handle connection selection from dropdown
-    const handleConnectionSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const connectionId = e.target.value;
+    useEffect(() => {
+        if (!pickerOpen) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPickerOpen(false); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [pickerOpen]);
+
+    // Handle connection selection from modal picker
+    const handleConnectionSelect = async (connectionId: string) => {
         setSelectedConnection(connectionId);
+        setPickerOpen(false);
         
         if (connectionId) {
             const connection = connectionHistory.find(c => c.id === connectionId);
@@ -89,6 +100,37 @@ const LoginForm: React.FC = () => {
             }
         } else {
             // "New Connection" selected
+            setServerUrl('');
+            setUsername('');
+            setPassword('');
+            setTestResult(null);
+        }
+    };
+
+    const handleEditConnection = async (conn: ConnectionProfile) => {
+        setPickerOpen(false);
+        setSelectedConnection(conn.id);
+        setServerUrl(conn.serverUrl);
+        setUsername(conn.username);
+        setTestResult(null);
+        if (secureStorageAvailable) {
+            const pwd = await getDecryptedPassword(conn.serverUrl, conn.username);
+            setPassword(pwd ?? '');
+        } else {
+            setPassword('');
+        }
+    };
+
+    const handleDeleteConnection = async (id: string) => {
+        const conn = connectionHistory.find(c => c.id === id);
+        if (!conn) return;
+        if (!window.confirm(`Remove saved connection "${conn.displayName}"?`)) return;
+        removeConnection(id);
+        if (secureStorageAvailable) await deleteCredentials(conn.serverUrl, conn.username);
+        const updated = getConnectionHistory();
+        setConnectionHistory(updated);
+        if (selectedConnection === id) {
+            setSelectedConnection('');
             setServerUrl('');
             setUsername('');
             setPassword('');
@@ -194,10 +236,10 @@ const LoginForm: React.FC = () => {
     return (
         <div className="login-container">
             <div className="login-box">
-                <h1>
-                    <i className="fas fa-music"></i>
-                    Xylonic
-                </h1>
+                <div className="login-logo-area">
+                    <XylonicLogo size={72} />
+                    <h1>Xylonic</h1>
+                </div>
 
                 <div className="login-form-columns">
                     <div className="login-column-left">
@@ -206,20 +248,109 @@ const LoginForm: React.FC = () => {
                                 <i className="fas fa-history"></i>
                                 Previous Connections
                             </label>
-                            <select
-                                value={selectedConnection}
-                                onChange={handleConnectionSelect}
-                                className="connection-select"
+
+                            {/* Trigger — same visual as the text inputs */}
+                            <button
+                                type="button"
+                                className={`connection-select conn-picker-trigger${connectionHistory.length === 0 ? ' disabled' : ''}`}
+                                onClick={() => connectionHistory.length > 0 && setPickerOpen(true)}
                                 disabled={connectionHistory.length === 0}
+                                aria-haspopup="listbox"
+                                aria-expanded={pickerOpen}
                             >
-                                <option value="">New Connection</option>
-                                {connectionHistory.map(connection => (
-                                    <option key={connection.id} value={connection.id}>
-                                        {connection.displayName}
-                                    </option>
-                                ))}
-                            </select>
+                                <i className="fas fa-plug" style={{ color: 'var(--primary-color)', marginRight: 6 }}></i>
+                                <span style={{ flex: 1, textAlign: 'left' }}>
+                                    {selectedConnection
+                                        ? (connectionHistory.find(c => c.id === selectedConnection)?.displayName ?? 'Unknown')
+                                        : 'New Connection'}
+                                </span>
+                                <i className="fas fa-chevron-down" style={{ fontSize: 11, opacity: 0.6 }}></i>
+                            </button>
+
                             <small>Select a saved connection or create a new one</small>
+
+                            {/* Modal picker — portal into body */}
+                            {pickerOpen && ReactDOM.createPortal(
+                                <>
+                                    <div className="quality-picker-backdrop" onClick={() => setPickerOpen(false)} />
+                                    <div className="quality-picker-modal" role="listbox" aria-label="Select connection">
+                                        <div className="quality-picker-header">
+                                            <span className="quality-picker-title">
+                                                <i className="fas fa-history" />
+                                                Previous Connections
+                                            </span>
+                                            <button className="quality-picker-close" onClick={() => setPickerOpen(false)} aria-label="Close">
+                                                <i className="fas fa-times" />
+                                            </button>
+                                        </div>
+                                        <p className="quality-picker-hint">
+                                            Select a saved connection or start a new one.
+                                        </p>
+
+                                        <div className="quality-picker-list">
+                                            {/* New Connection option */}
+                                            <button
+                                                className={`quality-picker-item${!selectedConnection ? ' active' : ''}`}
+                                                role="option"
+                                                aria-selected={!selectedConnection}
+                                                onClick={() => handleConnectionSelect('')}
+                                            >
+                                                <div className="conn-picker-icon">
+                                                    <i className="fas fa-plus-circle" />
+                                                </div>
+                                                <div className="quality-picker-info">
+                                                    <span className="quality-picker-name">New Connection</span>
+                                                    <span className="quality-picker-desc">Enter server details manually</span>
+                                                </div>
+                                                {!selectedConnection && <i className="fas fa-check quality-picker-check" />}
+                                            </button>
+
+                                            {connectionHistory.map(conn => {
+                                                const active = selectedConnection === conn.id;
+                                                return (
+                                                    <div
+                                                        key={conn.id}
+                                                        className={`quality-picker-item conn-item-row${active ? ' active' : ''}`}
+                                                        role="option"
+                                                        aria-selected={active}
+                                                        tabIndex={0}
+                                                        onClick={() => handleConnectionSelect(conn.id)}
+                                                        onKeyDown={e => e.key === 'Enter' && handleConnectionSelect(conn.id)}
+                                                    >
+                                                        <div className="conn-picker-icon">
+                                                            <i className="fas fa-server" />
+                                                        </div>
+                                                        <div className="quality-picker-info">
+                                                            <span className="quality-picker-name">{conn.displayName}</span>
+                                                            <span className="quality-picker-desc">
+                                                                {conn.username} · {conn.serverUrl}
+                                                            </span>
+                                                        </div>
+                                                        {active && <i className="fas fa-check quality-picker-check" />}
+                                                        <button
+                                                            className="conn-item-action"
+                                                            aria-label="Edit credentials"
+                                                            title="Edit credentials"
+                                                            onClick={e => { e.stopPropagation(); handleEditConnection(conn); }}
+                                                        >
+                                                            <i className="fas fa-pen" />
+                                                        </button>
+                                                        <button
+                                                            className="conn-item-action conn-item-delete"
+                                                            aria-label="Remove connection"
+                                                            title="Remove saved connection"
+                                                            onClick={e => { e.stopPropagation(); handleDeleteConnection(conn.id); }}
+                                                        >
+                                                            <i className="fas fa-trash" />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </>,
+                                document.body
+                            )}
                         </div>
 
                         <div className="form-group offline-mode-toggle">
@@ -295,6 +426,8 @@ const LoginForm: React.FC = () => {
                                 value={serverUrl}
                                 onChange={(e) => setServerUrl(e.target.value)}
                                 placeholder="http://192.168.1.100:4040"
+                                autoCapitalize="none"
+                                autoCorrect="off"
                             />
                             <small>Include http:// or https:// and port number</small>
                         </div>
@@ -309,6 +442,8 @@ const LoginForm: React.FC = () => {
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Your username"
+                                autoCapitalize="none"
+                                autoCorrect="off"
                             />
                         </div>
 
@@ -317,12 +452,24 @@ const LoginForm: React.FC = () => {
                                 <i className="fas fa-lock"></i>
                                 Password
                             </label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Your password"
-                            />
+                            <div className="password-input-wrap">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Your password"
+                                    autoCapitalize="none"
+                                />
+                                <button
+                                    type="button"
+                                    className="password-toggle"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    tabIndex={-1}
+                                >
+                                    <i className={`fas fa-eye${showPassword ? '-slash' : ''}`} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

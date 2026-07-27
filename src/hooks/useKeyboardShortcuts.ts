@@ -1,21 +1,25 @@
 import { useEffect } from 'react';
-import { usePlayer } from '../context/PlayerContext';
+import { usePlayer, usePlayerTime } from '../context/PlayerContext';
+import { useUI } from '../context/UIContext';
+import { imageCacheService } from '../services/imageCacheService';
+import { searchCacheService } from '../services/searchCacheService';
 import { logger } from '../utils/logger';
+import { getBridge } from '../platform/bridge';
 
 export const useKeyboardShortcuts = () => {
-  const { 
-    togglePlayPause, 
-    playNext, 
-    playPrevious, 
-    seek, 
-    setVolume, 
+  const {
+    togglePlayPause,
+    playNext,
+    playPrevious,
+    seek,
+    setVolume,
     volume,
-    currentTime,
-    duration,
     toggleShuffle,
     toggleRepeat,
     currentSong
   } = usePlayer();
+  const { currentTime, duration } = usePlayerTime();
+  const { togglePanel } = useUI();
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -99,15 +103,34 @@ export const useKeyboardShortcuts = () => {
           toggleRepeat();
           break;
 
+        case 'KeyQ':
+          if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
+            logger.log('Keyboard: Q - Toggle Queue panel');
+            togglePanel('queue');
+          }
+          break;
+
+        case 'KeyH':
+          if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
+            logger.log('Keyboard: H - Toggle History panel');
+            togglePanel('history');
+          }
+          break;
+
+        case 'KeyP':
+          if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
+            logger.log('Keyboard: P - Toggle Playlists panel');
+            togglePanel('playlists');
+          }
+          break;
+
         case 'KeyM':
           if (e.ctrlKey) {
             // Ctrl+M: Toggle mini player (only if song loaded)
             if (currentSong) {
               logger.log('Keyboard: Ctrl+M - Toggle Mini Player');
               e.preventDefault();
-              if (window.electron?.toggleMiniPlayer) {
-                window.electron.toggleMiniPlayer();
-              }
+              getBridge().toggleMiniPlayer();
             } else {
               logger.log('Keyboard: Ctrl+M - Mini Player disabled (no song loaded)');
               e.preventDefault();
@@ -141,12 +164,10 @@ export const useKeyboardShortcuts = () => {
                   console.log('%cWIPING ALL CACHE (except permanent)', 'background: red; color: white; font-size: 14px; font-weight: bold; padding: 4px;');
                   
                   // Clear image cache
-                  const { imageCacheService } = await import('../services/imageCacheService');
                   await imageCacheService.clearCache();
                   console.log('%cImage cache cleared', 'color: green; font-weight: bold');
                   
                   // Clear search cache
-                  const { searchCacheService } = await import('../services/searchCacheService');
                   await searchCacheService.clearCache();
                   console.log('%cSearch cache cleared', 'color: green; font-weight: bold');
                   
@@ -191,7 +212,8 @@ export const useKeyboardShortcuts = () => {
     duration,
     toggleShuffle,
     toggleRepeat,
-    currentSong
+    currentSong,
+    togglePanel,
   ]);
 };
 

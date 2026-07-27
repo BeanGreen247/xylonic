@@ -1,12 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { getArtist, getCoverArtUrl } from '../../services/subsonicApi';
-import { usePlayer } from '../../context/PlayerContext';
+import React, { useEffect, useMemo, useState } from 'react';
+import { getArtist, getAlbum, getCoverArtUrl } from '../../services/subsonicApi';
+import { metadataCache } from '../../services/metadataCache';
+import { usePlayback } from '../../hooks/usePlayback';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import { offlineCacheService } from '../../services/offlineCacheService';
+import { downloadManager } from '../../services/downloadManagerService';
 import { logger } from '../../utils/logger';
 import { Song } from '../../types';
-import { CachedSongMetadata } from '../../types/offline';
+import { CachedSongMetadata, DownloadQuality } from '../../types/offline';
+import { getDefaultDownloadQuality } from '../../utils/settingsManager';
 import AlbumArt from '../common/AlbumArt';
+import Pagination from '../common/Pagination';
+import { imageCacheService } from '../../services/imageCacheService';
+import { useImageCache } from '../../context/ImageCacheContext';
+import DownloadQualityPicker from './DownloadQualityPicker';
+import DownloadManagerWindow from './DownloadManagerWindow';
 import './AlbumList.css';
 
 interface Album {
@@ -34,13 +42,19 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const albumsPerPage = 50; // Show 50 albums per page
-  const { playPlaylist, toggleShuffle, shuffle } = usePlayer();
+  const { playPlaylist, toggleShuffle, shuffle } = usePlayback();
   const { offlineModeEnabled, toggleOfflineMode } = useOfflineMode();
+  const { isInitialized: imageCacheReady } = useImageCache();
+  const [bulkDownloadQuality, setBulkDownloadQuality] = useState<DownloadQuality>(getDefaultDownloadQuality);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+  const [showDownloadManager, setShowDownloadManager] = useState(false);
+  const [artistCoverArtId, setArtistCoverArtId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     loadAlbums();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistId, offlineModeEnabled]);
+
 
   // Filter albums based on offline mode
   useEffect(() => {
@@ -93,7 +107,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
         
         // Helper function to extract main artist name (before separators like •, -, feat., etc.)
         const getMainArtist = (artistName: string): string => {
-          const separators = [' • ', ' - ', ' feat.', ' feat ', ' ft.', ' ft ', ' with ', ' & '];
+          const separators = [', ', ' • ', ' - ', ' feat.', ' feat ', ' ft.', ' ft ', ' with ', ' & '];
           let mainArtist = artistName;
           for (const sep of separators) {
             const index = artistName.indexOf(sep);
@@ -136,20 +150,32 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
         return;
       }
 
+      const artistCacheKey = `artist_${artistId}`;
+      const cachedArtist = metadataCache.get<{ albums: Album[]; coverArt?: string }>(artistCacheKey);
+      if (cachedArtist) {
+        setAlbums(cachedArtist.albums);
+        if (cachedArtist.coverArt) setArtistCoverArtId(cachedArtist.coverArt);
+        setLoading(false);
+        return;
+      }
+
       console.log('Fetching albums for artist:', artistId);
-      
+
       const response = await getArtist(serverUrl, username, password, artistId);
       const subsonicResponse = response.data['subsonic-response'];
-      
+
       if (subsonicResponse?.status === 'failed') {
         setError(subsonicResponse.error?.message || 'Failed to fetch albums');
         setLoading(false);
         return;
       }
-      
+
       const albumsList: Album[] = subsonicResponse?.artist?.album || [];
+      const coverArt: string | undefined = subsonicResponse?.artist?.coverArt;
+      metadataCache.set(artistCacheKey, { albums: albumsList, coverArt });
       setAlbums(albumsList);
-      
+      if (coverArt) setArtistCoverArtId(coverArt);
+
       console.log(`Loaded ${albumsList.length} albums`);
     } catch (error) {
       console.error('Failed to load albums', error);
@@ -164,6 +190,33 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
       onAlbumClick(album.id, album.name);
     }
   };
+
+  // ── Hooks that must be declared unconditionally (Rules of Hooks) ──────────
+  // Pagination — computed before early returns so useEffect below can reference
+  // paginatedAlbums on every render (even while loading, filteredAlbums is []).
+  const totalPages = Math.ceil(filteredAlbums.length / albumsPerPage);
+  const startIndex = (currentPage - 1) * albumsPerPage;
+  const endIndex = Math.min(startIndex + albumsPerPage, filteredAlbums.length);
+  const paginatedAlbums = filteredAlbums.slice(startIndex, endIndex);
+
+  // O(songs) once, not on every render
+  const cachedSongsForArtist = useMemo(() => {
+    const cacheIndex = offlineCacheService.getCacheIndex();
+    if (!cacheIndex) return 0;
+    return (Object.values(cacheIndex.songs || {}) as CachedSongMetadata[]).filter(s => {
+      const mainArtist = s.artist.split(' • ')[0].split(' - ')[0];
+      return mainArtist.includes(artistName) || artistName.includes(mainArtist);
+    }).length;
+  }, [artistName, filteredAlbums]);
+
+  // Batch-warm IDB images into memory before rendering the current page
+  useEffect(() => {
+    if (!imageCacheReady) return;
+    const ids = paginatedAlbums.map(a => a.coverArt).filter(Boolean) as string[];
+    if (ids.length > 0) imageCacheService.prewarmBatch(ids);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginatedAlbums, imageCacheReady]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -181,8 +234,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
         <h3>Error Loading Albums</h3>
         <p>{error}</p>
         {offlineModeEnabled && error.includes('No cached songs') ? (
-          <button 
-            onClick={toggleOfflineMode} 
+          <button
+            onClick={toggleOfflineMode}
             className="test-button"
             style={{ marginTop: '20px' }}
           >
@@ -203,38 +256,61 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   const username = localStorage.getItem('username') || '';
   const password = localStorage.getItem('password') || '';
   const totalSongs = filteredAlbums.reduce((sum, album) => sum + (album.songCount || 0), 0);
-  
-  // Calculate total cached songs for this artist
-  const cacheIndex = offlineCacheService.getCacheIndex();
-  const cachedSongsForArtist = cacheIndex ? (Object.values(cacheIndex.songs || {}) as CachedSongMetadata[])
-    .filter(s => {
-      const mainArtist = s.artist.split(' • ')[0].split(' - ')[0];
-      return mainArtist.includes(artistName) || artistName.includes(mainArtist);
-    }).length : 0;
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredAlbums.length / albumsPerPage);
-  const startIndex = (currentPage - 1) * albumsPerPage;
-  const endIndex = Math.min(startIndex + albumsPerPage, filteredAlbums.length);
-  const paginatedAlbums = filteredAlbums.slice(startIndex, endIndex);
+  const downloadBtnState: 'download-all' | 'download-missing' | 'hidden' =
+    (cachedSongsForArtist > 0 && cachedSongsForArtist >= totalSongs) ? 'hidden' :
+    cachedSongsForArtist > 0 ? 'download-missing' :
+    'download-all';
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handlePageClick = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleConfirmDownloadAll = async () => {
+    setIsBulkDownloading(true);
+    try {
+      const serverUrl = localStorage.getItem('serverUrl') || '';
+      const username = localStorage.getItem('username') || '';
+      const password = localStorage.getItem('password') || '';
+      for (const album of filteredAlbums) {
+        const albumResponse = await getAlbum(serverUrl, username, password, album.id);
+        const albumData = albumResponse.data['subsonic-response']?.album;
+        const songs = (albumData?.song || [])
+          .filter((song: any) => !offlineCacheService.isCached(song.id))
+          .map((song: any) => ({
+            id: song.id,
+            title: song.title,
+            artist: song.artist || artistName,
+            album: song.album || album.name,
+            duration: song.duration,
+            coverArt: song.coverArt,
+            albumId: album.id,
+          }));
+        if (songs.length > 0) {
+          downloadManager.addAlbumToQueue({ albumId: album.id, albumName: album.name, artistName, artistId, artistCoverArtId, songs, quality: bulkDownloadQuality });
+        }
+      }
+      setShowDownloadManager(true);
+    } catch (err) {
+      logger.error('Download artist failed:', err);
+    } finally {
+      setIsBulkDownloading(false);
+    }
   };
 
   return (
@@ -254,19 +330,30 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
             <span>{filteredAlbums.length} {offlineModeEnabled ? 'cached ' : ''}albums</span>
           </div>
           {filteredAlbums.length > albumsPerPage && (
-            <div className="library-stats" style={{ color: 'var(--text-secondary)' }}>
+            <div className="library-stats stat-secondary">
               <span>Showing {startIndex + 1}-{endIndex} of {filteredAlbums.length}</span>
             </div>
           )}
-          <div className="library-stats">
+          <div className="library-stats stat-secondary">
             <i className="fas fa-music"></i>
             <span>{totalSongs} songs</span>
           </div>
           {cachedSongsForArtist > 0 && (
-            <div className="library-stats" style={{ color: 'var(--primary-color)' }}>
+            <div className="library-stats stat-secondary" style={{ color: 'var(--primary-color)' }}>
               <i className="fas fa-download"></i>
               <span>{cachedSongsForArtist} cached</span>
             </div>
+          )}
+          {!offlineModeEnabled && downloadBtnState !== 'hidden' && (
+            <DownloadQualityPicker
+              value={bulkDownloadQuality}
+              onChange={setBulkDownloadQuality}
+              onConfirm={handleConfirmDownloadAll}
+              confirmLabel={isBulkDownloading ? 'Queuing…' : downloadBtnState === 'download-missing' ? 'Download Missing' : 'Download Artist'}
+              triggerClassName="shuffle-all-button"
+              triggerContent={<><i className={isBulkDownloading ? 'fas fa-spinner fa-spin' : 'fas fa-download'} />{isBulkDownloading ? 'Queuing…' : downloadBtnState === 'download-missing' ? 'Download Missing' : 'Download Artist'}</>}
+              disabled={isBulkDownloading}
+            />
           )}
         </div>
       </div>
@@ -295,7 +382,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
                 onClick={() => handleAlbumClick(album)}
               >
                 <div className="album-cover" style={{ position: 'relative' }}>
-                  <AlbumArt coverArtId={album.coverArt} alt={album.name} size={300} />
+                  <AlbumArt coverArtId={album.coverArt} albumId={album.id} alt={album.name} size={300} artist={album.artist} album={album.name} />
                   {isAlbumFullyCached && (
                     <div 
                       style={{
@@ -345,62 +432,10 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
           })}
         </div>
 
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="pagination-controls">
-            <button 
-              className="pagination-button"
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-              title="Previous page"
-            >
-              <i className="fas fa-chevron-left"></i>
-              Previous
-            </button>
-
-            <div className="pagination-pages">
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                // Show first 3, current page with neighbors, and last 3
-                let pageNum: number;
-                if (totalPages <= 7) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 4) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 3) {
-                  pageNum = totalPages - 6 + i;
-                } else {
-                  if (i === 0) pageNum = 1;
-                  else if (i === 1) pageNum = currentPage - 1;
-                  else if (i === 2) pageNum = currentPage;
-                  else if (i === 3) pageNum = currentPage + 1;
-                  else pageNum = totalPages;
-                }
-
-                return (
-                  <button
-                    key={pageNum}
-                    className={`pagination-page ${currentPage === pageNum ? 'active' : ''}`}
-                    onClick={() => handlePageClick(pageNum)}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button 
-              className="pagination-button"
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              title="Next page"
-            >
-              Next
-              <i className="fas fa-chevron-right"></i>
-            </button>
-          </div>
-        )}
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageClick} />
       </>
       )}
+      <DownloadManagerWindow isOpen={showDownloadManager} onClose={() => setShowDownloadManager(false)} />
     </div>
   );
 };

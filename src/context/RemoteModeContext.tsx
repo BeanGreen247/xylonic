@@ -149,6 +149,10 @@ export const RemoteModeProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const connectToDevice = useCallback(async (device: RemoteDevice): Promise<boolean> => {
     setPairingError(null);
+    if (!myAccountId) {
+      setPairingError('Sign into a Navidrome account before using Remote Mode.');
+      return false;
+    }
     const result = await remoteDiscoveryService.sendCommand(device, 'pair', {
       controllerName: remoteDiscoveryService.getDeviceName(),
     });
@@ -163,6 +167,7 @@ export const RemoteModeProvider: React.FC<{ children: ReactNode }> = ({ children
       result.reason === 'already_paired'          ? 'That device is already controlled by another Xylonic.' :
       result.reason === 'remote_control_disabled' ? 'That device has disabled remote control.' :
       result.reason === 'account_mismatch'        ? 'That device is signed into a different Navidrome account.' :
+      result.reason === 'no_account'              ? 'That device has no Navidrome account connected.' :
       result.reason === 'network_error'           ? 'Could not reach that device.' :
       'Could not pair with that device.';
     setPairingError(msg);

@@ -1,0 +1,215 @@
+# Session Summary
+
+## Current Focus (July 17, 2026)
+NowPlayingOverlay redesign (fullscreen overlay with ambient art, carousel, audio stats) + repeat persistence + mode-aware image cache sizing + dynamic album art layout.
+
+## What Changed This Session (July 17, 2026)
+
+### NowPlayingOverlay — new full-screen component
+`src/components/Player/NowPlayingOverlay.tsx` and `NowPlayingOverlay.css` (new files).
+
+| Feature | Detail |
+|---|---|
+| Ambient background | Blurred (50px), darkened (0.22 brightness), saturated (1.8×) art wash; dark scrim gradient for text legibility |
+| Drag handle | Top bar; tap or swipe down closes with spring-back animation |
+| Three-card carousel | Previous / current / next art; swipe left/right to skip; directional arrows as hints; spring-back below 50 px threshold; swipe-down direction lock prevents carousel triggering close |
+| Info row | Song title + artist, fade-in on song change; heart like button; circular playlist icon button (replaces old full-width row) |
+| Controls | Shuffle, previous, play/pause (72 px primary), next, repeat with "1" badge in repeat-one mode |
+| Quality / speed | Streaming quality selector + playback speed selector pill buttons |
+| Quality toast | 3.5 s auto-dismiss toast on quality change |
+| Audio stats row | Format, Bitrate, Sample Rate, Bit Depth, File Size always visible; song object → Subsonic `getSong` fallback; offline: bitrate from download quality |
+| Remote mode | All controls route through `RemoteModeContext`; primary button pulses (throb animation) while remote-pending; 1.5 s safety timeout + 400 ms minimum delay |
+| Keyboard | Escape key closes overlay |
+
+### Dynamic album art sizing
+- `.npo-art-wrap { flex: 1 1 auto; }` — grows to absorb remaining vertical slack in default (large-screen) layout
+- Double horizontal padding eliminated: card uses `padding: 0 8px 8px` (was 20 px on both wrap and card)
+- All three responsive breakpoints (`≤900px`, `≤680px`, `≤560px`) use `min()/max()` expressions driven by `100vh` and `100vw`
+- On a 412 × 869 px CSS phone: art grows from 332 px → 396 px wide (+19%)
+
+### Repeat mode persistence
+`getRepeatKey()` / `saveRepeat()` / `loadRepeat()` helpers in `PlayerContext.tsx`; key `repeat_pref_<username>` in localStorage; state initialised with `useState(loadRepeat)` (was hardcoded `'off'`); cleared on logout alongside queue, index, and shuffle keys; saved in the existing debounced persistence effect.
+
+### imageCacheService.syncWithAppMode()
+New public method called at `initialize()` and on `appModeChanged` DOM event:
+- power-saver → `maxConcurrentFetches=1`, `maxMemoryCacheSize=100`
+- performance → `maxConcurrentFetches=2`, `maxMemoryCacheSize=200`
+- normal → `maxConcurrentFetches=4`, `maxMemoryCacheSize=400`
+
+### Mode-aware cover art lookahead (PlayerContext)
+`maxAhead` = 4 (normal) / 2 (performance) / 0 (power-saver); native notification artwork preload skipped entirely in power-saver mode.
+
+### CSS performance / power-saver rules (index.css)
+- Performance mode rule 12: `text-shadow: none !important` on all `*`
+- Performance mode rule 13: `-webkit-font-smoothing: none; font-smooth: never` on `body`
+- Power-saver: same text-shadow + font-smoothing rules; plus `image-rendering: pixelated` on `img` and `.album-art`; `body.power-saver-mode .npo-bg { filter: none !important }` to skip the 50px blur on the overlay background
+
+### Still TODO (next session)
+- APK build + install with all Jul 17 changes
+- `#9` — CompressionStream search index (planned but not implemented)
+
+---
+
+## Previous Focus (July 11, 2026)
+Performance improvement series (8 items) + in-memory metadata TTL cache + full documentation update.
+
+## What Changed This Session (July 11, 2026)
+
+### Performance improvements
+
+All 8 performance improvements confirmed implemented and building clean (`npm run build` → 27.59 s, zero errors).
+
+| Feature | Key file(s) | Impact |
+|---|---|---|
+| Virtual scrolling hybrid | `SongList.tsx` | ≤60 songs: natural; >60: react-window v2 `List`+`AutoSizer`; ~15 DOM nodes always |
+| IPC position throttle | `PlayerContext.tsx` | Metadata instant; position 2 fps gate; 3600→120 IPC calls/min |
+| Gapless preload safety-net | `PlayerContext.tsx` | `timeupdate` listener starts buffering 15 s before end |
+| Web Worker search | `searchWorker.ts`, `searchCacheService.ts`, `SearchContext.tsx` | Off-main-thread filter; async Promise API; fallback on failure |
+| Fisher-Yates shuffle queue | `PlayerContext.tsx` | Pre-shuffled index; 1 play per song per cycle; rebuilt on shuffle toggle |
+| True LRU image cache | `imageCacheService.ts` | Promote-on-read + promote-on-write; real LRU eviction (was FIFO) |
+| IDB batch writes | `imageCacheService.ts` | `cacheImagesBatch` / `IDB_WRITE_BATCH=50`; fewer IDB transactions |
+| In-memory metadata TTL cache | `metadataCache.ts`, `ArtistList.tsx`, `AlbumList.tsx`, `SongList.tsx`, `AllAlbumsGrid.tsx`, `AuthContext.tsx` | 30-min TTL; zero API calls on warm navigation; invalidated on login/logout |
+
+### getSongCount elimination
+`ArtistList.tsx` + `MainApp.tsx`: when search index is loaded, `searchCacheService.getSearchIndex()?.songs.length` provides the song count — no extra `getAlbumList2` API call.
+
+### Documentation update (all .md files updated, no code touched)
+- `README.md` — new Performance & Power bullets; Roadmap updated with all 10 implemented features
+- `ARCHITECTURE.md` — new sections 6–10 in Performance Optimizations; Key Architectural Innovations list extended to 11 items
+- `CACHE_V21_IMPLEMENTATION.md` — new In-Memory Metadata Cache section
+- `IMAGE_CACHE_IMPLEMENTATION.md` — new True LRU Eviction Fix section
+- `CHANGELOG.md` — new `[26.7.11]` entry at top
+- `docs/todos.md` — 11 items moved to Done; compression added to Backlog
+- `docs/session_summary.md` — this file
+- `docs/module_notes.md` — 3 new services added to Key Services
+
+### Still TODO (next session)
+- `#9` — CompressionStream search index: fully planned (see plan file), not yet implemented
+  - `searchCacheService.ts`: add `compress()`/`decompress()` private helpers using `CompressionStream('deflate')`
+  - Write path stores `{ userId, timestamp, version: '2.0', compressed: ArrayBuffer }`
+  - Read path handles both compressed v2.0 and legacy v1.0 records (migration via rebuild)
+  - Fallback: if `CompressionStream` unavailable, write uncompressed record (v1.0 path)
+- APK build + install with all Jul 11 changes
+
+---
+
+## Previous Focus (July 6, 2026)
+Cache integrity verification system + documentation update for all platforms.
+
+## What Changed This Session (July 6, 2026)
+
+### Cache integrity verification
+- **`src/types/offline.ts`** — added 3 event types: `cache-verify-started`, `cache-verify-progress`, `cache-verify-complete`; 2 optional fields on `DownloadEvent`: `verifyProgress`, `verifyResult`
+- **`src/services/offlineCacheService.ts`** — replaced stub `rebuildAndVerifyCache()` with real `verifyPermanentCache(onProgress?)`: iterates all `cacheIndex.songs`, calls `getBridge().getAudioFilePath()` (real FS check on all platforms), removes orphaned entries via `removeFromCacheCore()`, reports `{ verified, removed, total, durationMs }`
+- **`src/services/downloadManagerService.ts`** — added `isVerifying` guard, `runCacheVerification()` (private, emits all 3 event types), `triggerCacheVerification()` (public, called by button); auto-triggers in `processQueue()` when queue drains with ≥1 completed song
+- **`src/components/Library/DownloadManagerWindow.tsx`** — added `verifyState` state, event handlers for 3 new events, "Verify Cache" button with live `X / Y` counter and result banner in the Manage Cache section
+- **`src/components/Library/DownloadManagerWindow.css`** — added styles for `.cache-verify-section`, `.verify-result`, `.verify-removed`, `.verify-duration`
+- Build verified clean: `npm run build` in 24.91 s, zero errors
+
+---
+
+## Previous Focus (July 3–4, 2026)
+Android bug fixes — wakelock refresh, WebView OOM, Clear All Data, offline artist images, batch hijack.
+
+## What Changed This Session (July 3, 2026)
+
+### Download wakelock refresh (DownloadService.java)
+- Removed `!wakeLock.isHeld()` guard so `acquireWakeLock()` always resets the 2-hour timeout.
+- Watchdog Runnable calls `acquireWakeLock()` every 2 s independently of WebView/JS activity.
+- Fixes downloads stalling after 30 min when Android backgrounded the WebView.
+
+### WebView OOM fix (downloadManagerService.ts)
+- Added serial `registrationQueue: Promise<void>` chain for `registerNativeDownload` calls.
+- 1171 concurrent fire-and-forget registrations each serialized the full cache JSON → V8 heap OOM.
+- Now only one registration is in flight at a time; batch drains before declaring done.
+
+### Clear All App Data (SettingsView.tsx + NativeDownloaderPlugin.java)
+- "Danger Zone" section added to Settings with a "Clear All App Data" button.
+- JS side: clears download queue, audio cache, image IndexedDB, search IndexedDB, localStorage.
+- Native side: `clearAllNativeData()` plugin method deletes `permanent_cache`, WebView HTTP cache,
+  WebView cookies, WebStorage (localStorage SQLite), and SharedPreferences.
+- Covers all Xylonic-specific data including orphaned files from other users / old versions.
+
+### Cache stats layout (DownloadManagerWindow.css/tsx)
+- Changed from flex-wrap to `display: grid; grid-template-columns: 1fr 1fr` — stats no longer
+  jump around as digit counts change during cache clear operations.
+
+### Offline artist cover art fix (ArtistList.tsx, AlbumList.tsx, SongList.tsx)
+- **Root cause**: `artistCoverArtId` (the `ar-xxx` ID matching IDB preloaded artist photos) was
+  never stored in cache metadata. Downloads defaulted to duet/collaboration song cover art for
+  artists like MIKA and Jessie J, showing Ariana Grande's album cover for both.
+- **ArtistList.tsx offline display**: Two-pass rebuild — collects ALL songs per artist, then
+  prioritizes `artistCoverArtId` → solo-song `coverArtId` → lead-song `coverArtId` → any song.
+  Avoids picking a duet song's album cover as the artist image.
+- **ArtistList.tsx bulk download**: Builds `artistCoverArtById` map from loaded artist state so
+  the `ar-xxx` cover art ID is now passed to `addAlbumToQueue`.
+- **AlbumList.tsx**: Stores `artist.coverArt` from the `getArtist` response; passes it as
+  `artistCoverArtId` when downloading albums.
+- **SongList.tsx**: Calls `getArtist(album.artistId)` to get the `ar-xxx` cover art ID instead
+  of using the raw artist numeric ID. Future downloads from album view will store the correct ID.
+
+### Orphan recovery — renderer crash during extended screen-off (Jul 3)
+
+Root cause: Android OOM kills the WebView renderer process during long downloads with screen off.
+The foreground service (in the main app process) continues writing files to `permanent_cache/audio/`
+but `songDownloaded` events have nowhere to go — JS is dead. On next launch, those songs appear as
+failed even though their audio files exist on disk (confirmed: 1106 orphaned files from the July 1 crash).
+
+Three-part fix:
+
+- **`DownloadService.java`**: `appendCompletionLog()` appends `{hash,songId,extension,bytesReceived}`
+  to `permanent_cache/completion_log.ndjson` after every successful download, BEFORE notifying JS.
+  File survives renderer death because it's written by the foreground service (main process).
+
+- **`NativeDownloaderPlugin.java`**: `readCompletionLog()` returns the log as a JS array;
+  `clearCompletionLog()` deletes it after reconciliation.
+
+- **`downloadManagerService.ts`**: Before submitting a batch to native, `savePendingBatch()` persists
+  `{song, quality, artistId, artistCoverArtId}` keyed by `songId` to localStorage. On `startBatch`
+  success, `clearPendingBatch()` removes it. On renderer crash, the map stays.
+  `reconcileOrphans()` (public): reads completion log + pending map → registers any unindexed
+  songs via `offlineCacheService.registerNativeDownload()` → clears both stores.
+
+- **`MainApp.tsx`**: startup effect now calls `reconcileOrphans()` before `tryResumeQueue()`.
+
+### Download Manager "Done: 0" bug — batch hijack fix (Jul 3)
+
+Root cause: when the WebView renderer OOM-kills (separate sandboxed process from the foreground
+service), `DownloadService` continues writing files. On renderer restart, `downloadBatchNative`
+submits a new `startBatch` call. But `DownloadService.isFileDownloading == true` so the new
+batch was QUEUED behind the old one in `downloadExecutor`. The old batch fired `songDownloaded`
+events to the dead old plugin/WebView. New JS session saw Done: 0 indefinitely.
+
+Two-part fix:
+
+- **`DownloadService.java`**: Added `volatile broadcastPlugin` and `batchCall` fields.
+  `submitBatch` (batch mode only) updates these fields first; if `isFileDownloading` is already
+  true, returns immediately — the running thread now broadcasts to the new WebView and resolves
+  the new JS call when done. Single-song-compat path is unchanged.
+
+- **`downloadManagerService.ts`**: At the start of `downloadBatchNative`, songs already in cache
+  (recovered by `reconcileOrphans()`) are immediately marked completed and counted in
+  `sessionCompleted`. Only uncached songs are sent to native. This prevents re-downloading
+  and shows the correct Done count the moment the batch starts.
+
+### Download system fixup (Jul 4)
+
+Six correctness and performance bugs fixed:
+
+1. **Duplicate event guards** (`downloadManagerService.ts`): `songDownloaded` and `songFailed` handlers now check `item.status` at entry — repeat Capacitor events (possible on hijack) can no longer double-increment `sessionCompleted`/`sessionFailed`.
+
+2. **`totalSize` double-count** (`offlineCacheService.ts`): `registerNativeDownload` and `addToCache` now subtract the existing song's `fileSize` before overwriting — re-registration (reconcileOrphans, validateFailed rescues) no longer inflates cache size stats.
+
+3. **Debounced saves** (`offlineCacheService.ts`): `queueIndexSave()` and `queueRegistrySave()` replace direct `saveIndex()`/`saveRegistry()` calls in all batch-context paths (`registerNativeDownload`, `addToCache`, `cacheCoverArt`, `createCoverArtAlias`, `getCachedFilePath`). A 500 ms debounce collapses ~5000 IPC writes during a 2484-song batch to ~handful. `flushAll()` (new public method) forces immediate write when needed. Called in `downloadManagerService.ts` after `await this.registrationQueue` at batch end.
+
+4. **Queue dedup** (`downloadManagerService.ts`): `addAlbumToQueue` filters out songs that are already cached or already `pending`/`downloading` in the queue. `addSongToQueue` does the same two checks. Prevents `sessionTotal` inflation and re-downloads when "Download Missing" or Download Album is triggered while a batch runs.
+
+5. **Stale reference cleanup** (`DownloadService.java`): After `bc.resolve(res)` in the batch-completion `handler.post`, `batchCall = null` and `broadcastPlugin = null` to release GC references and prevent any accidental double-resolve.
+
+6. **`clearAllCache` single flush** (`offlineCacheService.ts`): Extracted `removeFromCacheCore()` (in-memory only, no saves) as a private method. `clearAllCache` calls it per song then writes both files exactly once at the end. `removeFromCache` (single-song UI delete) keeps its immediate-save behaviour.
+
+## Known Notes
+- Existing cached songs (2643) still have `artistCoverArtId = null`; they will benefit from the
+  improved solo-song cover art selection but will NOT show actual artist photos until re-downloaded.
+- Artist photos (from IDB preload) will work correctly after the next bulk download from the
+  ArtistList or AlbumList views, which now store the `ar-xxx` ID.

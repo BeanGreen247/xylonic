@@ -1,7 +1,7 @@
-# Xylonic Cache v2.0 - Testing Guide
+# Xylonic Cache v2.1 - Testing Guide
 
 ## Overview
-This guide helps you test the new multi-user cache system with hash-based storage and configurable cache location.
+This guide helps you test the multi-user cache system with hash-based storage and configurable cache location.
 
 ## Prerequisites
 - Subsonic server running and accessible
@@ -15,7 +15,7 @@ This guide helps you test the new multi-user cache system with hash-based storag
 ### Steps:
 1. **Start the application**
    ```powershell
-   npm run dev
+   npm run electron:serve
    ```
 
 2. **Login to your Subsonic server**
@@ -337,6 +337,56 @@ Get-Content "$env:APPDATA\xylonic\permanent_cache\users\*\cache_index.json" | Co
 
 ---
 
+## Test 8: Android Native Downloader (Android builds only)
+
+### Steps:
+1. **Build and install the Android APK**
+   ```bash
+   npm run android:sync
+   npm run android:build:debug
+   ```
+
+2. **Start a download**
+   - Open Xylonic on the device
+   - Navigate to an album and tap "Download"
+   - Observe the foreground notification appears
+
+3. **Background the app immediately**
+   - Press the home button or switch to another app while download is active
+   - The notification should continue updating with speed/progress
+
+4. **Verify native storage path**
+   - After the download completes, use `adb shell` to check:
+     ```bash
+     adb shell ls /data/data/xylonic.beangreen247xyz.musicplayer/files/permanent_cache/audio/
+     ```
+   - You should see a directory named `{md5-hash}/` containing `audio.mp3` (or `.flac`, `.ogg`, etc.)
+
+5. **Verify cache registration**
+   - Play the song offline (disable Wi-Fi)
+   - It should play from cache with no network error
+   - Open Download Manager → Manage Cache → the song should appear with the correct size
+
+6. **Test recents-swipe survival**
+   - Start a download
+   - Open the recents screen and swipe Xylonic away
+   - The foreground notification should remain visible and the download should finish
+
+7. **Verify battery optimization dialog**
+   - Fresh install: on first launch, within ~3 seconds a system dialog should appear asking to allow unrestricted background activity
+   - Accept it; the dialog should not reappear on subsequent launches
+
+### Expected Results:
+- Download progress visible in notification while app is backgrounded
+- Audio file present at `files/permanent_cache/audio/{hash}/audio.{ext}`
+- `cache_index.json` updated with song entry
+- `registry.json` updated with hash entry
+- Offline playback works without a network connection
+- Service survives recents swipe and download completes
+- Battery optimization dialog appears once on fresh install
+
+---
+
 ## Performance Testing
 
 ### Test Large Downloads:
@@ -368,6 +418,68 @@ Get-Content "$env:APPDATA\xylonic\permanent_cache\users\*\cache_index.json" | Co
 **UI Responsive** and intuitive
 
 **Data Persistence** across restarts
+
+---
+
+## Test 9: Cache Integrity Verification
+
+### Test 9a: Manual Verify via Button
+
+1. **Download at least one album** so the cache is not empty.
+
+2. **Open Download Manager** → click **Manage Cache**.
+
+3. **Click "Verify Cache"** button in the "Cache Integrity" section.
+
+4. **Observe:**
+   - Button label changes to "Verifying… X / Y" with a spinner
+   - Counter increments roughly every 25 songs
+   - When done, a result banner appears: "N songs verified" (and orphan count if any were removed) with elapsed time in parentheses
+
+5. **Expected:**
+   - All cached songs with their audio files intact show as verified
+   - Cache stats do not change (no orphans in a fresh, clean cache)
+   - Button returns to "Verify Cache" and is enabled
+
+### Test 9b: Auto-Verification After Download
+
+1. **Download an album** from any view.
+
+2. **Wait for the download queue to complete** (all songs show as done, the queue drains).
+
+3. **If the Download Manager window is open**, watch the "Cache Integrity" section: within a few seconds of the queue completing, the verify counter should start and the result banner should appear.
+
+4. **Expected:**
+   - Verification starts automatically after the last download completes
+   - No user interaction required
+
+### Test 9c: Orphan Entry Removal
+
+1. **Download one song** and note the song title.
+
+2. **Manually delete the audio file** from the filesystem:
+   - Windows/Linux: navigate to `%APPDATA%\xylonic\permanent_cache\audio\{hash}\` and delete the audio file
+   - Android: `adb shell rm /data/data/xylonic.beangreen247xyz.musicplayer/files/permanent_cache/audio/{hash}/audio.mp3`
+
+3. **Open Download Manager** → Manage Cache → click **"Verify Cache"**.
+
+4. **Expected:**
+   - Result banner shows "N-1 songs verified, 1 orphaned entry removed"
+   - Cache stats (song count, total size) update to reflect the removed entry
+   - The deleted song no longer appears in the Manage Cache album list
+
+### Test 9d: Android Native Path
+
+1. **Build and install the Android APK.**
+
+2. **Download an album** and verify it completes via the native foreground notification.
+
+3. **Open Manage Cache** → tap "Verify Cache".
+
+4. **Expected:**
+   - Verification runs using `Filesystem.stat()` (real FS check) under the hood
+   - All songs present on disk are marked verified
+   - No false orphans reported
 
 ---
 

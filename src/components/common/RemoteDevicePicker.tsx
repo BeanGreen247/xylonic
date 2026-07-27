@@ -57,6 +57,11 @@ const RemoteDevicePicker: React.FC<Props> = ({
             <i className="fas fa-wifi" />
             Remote Mode requires a WiFi connection (not mobile data).
           </div>
+        ) : !myAccountId ? (
+          <div className="rdp-status rdp-status--warn">
+            <i className="fas fa-user-slash" />
+            Sign into a Navidrome account to use Remote Mode.
+          </div>
         ) : devices.length === 0 ? (
           <div className="rdp-status">
             <i className="fas fa-circle-notch fa-spin" />
@@ -100,8 +105,8 @@ const RemoteDevicePicker: React.FC<Props> = ({
                   isBusy        ? 'rdp-item--busy'         : '',
                   isWrongAccount ? 'rdp-item--wrong-account' : '',
                 ].filter(Boolean).join(' ')}
-                onClick={!isActive && !isWrongAccount ? () => onSelect(dev) : undefined}
-                disabled={isActive || isWrongAccount}
+                onClick={!isActive && !isWrongAccount && !!myAccountId ? () => onSelect(dev) : undefined}
+                disabled={isActive || isWrongAccount || !myAccountId}
                 title={
                   isWrongAccount ? 'Signed into a different Navidrome account' :
                   isBusy        ? 'Another Xylonic may be using this device — tap to try anyway' :

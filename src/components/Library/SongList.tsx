@@ -1,14 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { getAlbum, getStreamUrl } from '../../services/subsonicApi';
+import React, { useEffect, useState, useCallback } from 'react';
+import { List, RowComponentProps } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
+import { getAlbum, getArtist, getStreamUrl } from '../../services/subsonicApi';
+import { metadataCache } from '../../services/metadataCache';
 import { usePlayer } from '../../context/PlayerContext';
+import { useRemoteMode } from '../../context/RemoteModeContext';
 import { downloadManager } from '../../services/downloadManagerService';
 import { offlineCacheService } from '../../services/offlineCacheService';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import { logger } from '../../utils/logger';
 import { DownloadQuality, CachedSongMetadata } from '../../types/offline';
+import { getDefaultDownloadQuality } from '../../utils/settingsManager';
 import AlbumArt from '../common/AlbumArt';
 import DownloadManagerWindow from './DownloadManagerWindow';
+import DownloadQualityPicker from './DownloadQualityPicker';
+import SongContextMenu, { ContextMenuSong } from '../common/SongContextMenu';
+import AddToPlaylistDialog from '../common/AddToPlaylistDialog';
 import './SongList.css';
+
+const SONG_ITEM_HEIGHT = 56;
 
 interface Song {
   id: string;
@@ -21,15 +31,47 @@ interface Song {
   year?: number;
 }
 
+interface VirtualRowData {
+  songs: Song[];
+  currentSongId?: string;
+  onPlay: (index: number) => void;
+  onContext: (e: React.MouseEvent, song: Song) => void;
+  formatDuration: (seconds?: number) => string;
+}
+
+// react-window v2: rowProps are spread directly into row component props alongside {index, style, ariaAttributes}
+const VirtualSongRow = React.memo((props: RowComponentProps<VirtualRowData>) => {
+  const { index, style, songs, currentSongId, onPlay, onContext, formatDuration } = props as typeof props & VirtualRowData;
+  const song = songs[index];
+  return (
+    <div
+      style={style}
+      className={`song-item ${currentSongId === song.id ? 'active' : ''}`}
+      onClick={() => onPlay(index)}
+      onContextMenu={e => onContext(e, song)}
+    >
+      <div className="song-info">
+        <div className="song-title">{song.title}</div>
+        <div className="song-artist">{song.artist}</div>
+      </div>
+      <div className="song-meta">
+        <span className="song-duration">{formatDuration(song.duration)}</span>
+      </div>
+    </div>
+  );
+});
+
 interface SongListProps {
   albumId: string;
   albumName: string;
   artistName: string;
   onBack: () => void;
   fromSearch?: boolean;
+  backLabel?: string;
+  onArtistClick?: (artistId: string, artistName: string) => void;
 }
 
-const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onBack, fromSearch = false }) => {
+const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onBack, fromSearch = false, backLabel, onArtistClick }) => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +79,14 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
   const [artistId, setArtistId] = useState<string | null>(null);
   const [artistCoverArtId, setArtistCoverArtId] = useState<string | null>(null);
   const [showDownloadManager, setShowDownloadManager] = useState(false);
-  const [downloadQuality, setDownloadQuality] = useState<DownloadQuality>('320');
-  const [showQualitySelector, setShowQualitySelector] = useState(false);
+  const [downloadQuality, setDownloadQuality] = useState<DownloadQuality>(getDefaultDownloadQuality);
   const [isAlbumCached, setIsAlbumCached] = useState(false);
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
-  const { playPlaylist, currentSong, isPlaying, toggleShuffle, shuffle } = usePlayer();
+  const { playPlaylist, currentSong, isPlaying, toggleShuffle, shuffle, addToQueue, insertNext, bitrate } = usePlayer();
+  const { isRemoteMode, sendRemoteCommand } = useRemoteMode();
   const { offlineModeEnabled, toggleOfflineMode } = useOfflineMode();
+  const [contextMenu, setContextMenu] = useState<{ song: ContextMenuSong; x: number; y: number } | null>(null);
+  const [playlistDialogSong, setPlaylistDialogSong] = useState<ContextMenuSong | null>(null);
 
   useEffect(() => {
     loadSongs();
@@ -140,43 +184,62 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
         return;
       }
 
-      console.log('Fetching songs for album:', albumId);
-      
-      const response = await getAlbum(serverUrl, username, password, albumId);
-      const subsonicResponse = response.data['subsonic-response'];
-      
-      if (subsonicResponse?.status === 'failed') {
-        setError(subsonicResponse.error?.message || 'Failed to fetch songs');
-        setLoading(false);
-        return;
+      const albumCacheKey = `album_${albumId}`;
+      // eslint-disable-next-line prefer-const
+      let album = metadataCache.get<any>(albumCacheKey);
+
+      if (!album) {
+        console.log('Fetching songs for album:', albumId);
+        const response = await getAlbum(serverUrl, username, password, albumId);
+        const subsonicResponse = response.data['subsonic-response'];
+
+        if (subsonicResponse?.status === 'failed') {
+          setError(subsonicResponse.error?.message || 'Failed to fetch songs');
+          setLoading(false);
+          return;
+        }
+
+        album = subsonicResponse?.album;
+        metadataCache.set(albumCacheKey, album);
       }
-      
-      const album = subsonicResponse?.album;
+
       const songsList: Song[] = album?.song || [];
-      
-      // Store artist information
+
+      // Store artist information — fetch the artist's cover art ID (ar-xxx)
+      // so it matches what the preload dialog cached in IDB for offline display.
       if (album?.artistId) {
         setArtistId(album.artistId);
-        // Use artist ID as the cover art ID for the artist
-        // Subsonic API supports using artist ID with getCoverArt endpoint
-        setArtistCoverArtId(album.artistId);
+        const artistCacheKey = `artist_${album.artistId}`;
+        const cachedArtist = metadataCache.get<{ albums: any[]; coverArt?: string }>(artistCacheKey);
+        if (cachedArtist) {
+          setArtistCoverArtId(cachedArtist.coverArt || album.artistId);
+        } else {
+          try {
+            const artistResp = await getArtist(serverUrl, username, password, album.artistId);
+            const artistData = artistResp.data['subsonic-response']?.artist;
+            setArtistCoverArtId(artistData?.coverArt || album.artistId);
+            if (artistData) {
+              metadataCache.set(artistCacheKey, { albums: artistData.album || [], coverArt: artistData.coverArt });
+            }
+          } catch {
+            setArtistCoverArtId(album.artistId);
+          }
+        }
       } else {
-        // If album doesn't have artistId, try to use artist name
-        // or fall back to using the album's cover art as artist cover art
         logger.warn('[SongList] Album has no artistId, falling back to album cover for artist');
         setArtistCoverArtId(album?.coverArt || null);
       }
-      
+
       // Sort by track number
       songsList.sort((a, b) => (a.track || 0) - (b.track || 0));
-      
+
       setSongs(songsList);
-      
+
       // Store album cover art ID (not URL) for cache-first loading
       if (album?.coverArt) {
         setAlbumCoverArtId(album.coverArt);
       }
-      
+
       console.log(`Loaded ${songsList.length} songs`);
     } catch (error) {
       console.error('Failed to load songs', error);
@@ -197,17 +260,46 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       title: song.title,
       artist: song.artist,
       album: song.album,
-      url: getStreamUrl(serverUrl, username, password, song.id),
+      url: offlineModeEnabled ? '' : getStreamUrl(serverUrl, username, password, song.id),
       duration: song.duration,
       coverArt: song.coverArt || albumCoverArtId || undefined,
+      bitRate: (song as any).bitRate,
+      suffix: (song as any).suffix,
+      size: (song as any).size,
+      samplingRate: (song as any).samplingRate,
+      channelCount: (song as any).channelCount,
+      bitDepth: (song as any).bitDepth,
+      year: (song as any).year,
+      track: (song as any).track,
+      discNumber: (song as any).discNumber,
     }));
 
-    // Play the filtered list starting from the clicked song
-    playPlaylist(songsWithUrls, index);
+    if (isRemoteMode) {
+      sendRemoteCommand('playPlaylist', { songs: songsWithUrls, startIndex: index });
+    } else {
+      playPlaylist(songsWithUrls, index);
+    }
   };
 
   const handlePlayAll = () => {
     handlePlaySong(0);
+  };
+
+  const buildSongUrl = (songId: string) => {
+    const serverUrl = localStorage.getItem('serverUrl') || '';
+    const username  = localStorage.getItem('username')  || '';
+    const password  = localStorage.getItem('password')  || '';
+    return getStreamUrl(serverUrl, username, password, songId, bitrate ?? undefined);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, song: Song) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      song: { id: song.id, title: song.title, artist: song.artist, album: song.album, albumId, url: buildSongUrl(song.id), duration: song.duration, coverArt: song.coverArt ?? albumCoverArtId ?? undefined },
+      x: e.clientX,
+      y: e.clientY,
+    });
   };
 
   const handleDownloadAlbum = () => {
@@ -219,10 +311,8 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       return;
     }
 
-    // Show quality selector
-    setShowQualitySelector(true);
   };
-      
+
   const handleConfirmDownload = () => {
     const songsToDownload = songs.map(song => ({
       id: song.id,
@@ -231,7 +321,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       album: song.album,
       duration: song.duration,
       coverArt: song.coverArt || albumCoverArtId || undefined,
-      albumId: albumId
+      albumId: albumId,
     }));
 
     downloadManager.addAlbumToQueue({
@@ -241,10 +331,9 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       artistId: artistId || undefined,
       artistCoverArtId: artistCoverArtId || undefined,
       songs: songsToDownload,
-      quality: downloadQuality
+      quality: downloadQuality,
     });
 
-    setShowQualitySelector(false);
     setShowDownloadManager(true);
   };
 
@@ -259,19 +348,26 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       title: song.title,
       artist: song.artist,
       album: song.album,
-      url: getStreamUrl(serverUrl, username, password, song.id),
+      url: offlineModeEnabled ? '' : getStreamUrl(serverUrl, username, password, song.id),
       duration: song.duration,
       coverArt: song.coverArt || albumCoverArtId || undefined,
+      bitRate: (song as any).bitRate,
+      suffix: (song as any).suffix,
+      size: (song as any).size,
+      samplingRate: (song as any).samplingRate,
+      channelCount: (song as any).channelCount,
+      bitDepth: (song as any).bitDepth,
     }));
 
-    // Enable shuffle if not already enabled
-    if (!shuffle) {
-      toggleShuffle();
-    }
-
-    // Start playing from a RANDOM song index for true shuffle experience
     const randomIndex = Math.floor(Math.random() * songsWithUrls.length);
-    playPlaylist(songsWithUrls, randomIndex);
+
+    if (isRemoteMode) {
+      sendRemoteCommand('toggleShuffle');
+      sendRemoteCommand('playPlaylist', { songs: songsWithUrls, startIndex: randomIndex });
+    } else {
+      if (!shuffle) toggleShuffle();
+      playPlaylist(songsWithUrls, randomIndex);
+    }
   };
 
   const formatDuration = (seconds?: number): string => {
@@ -328,154 +424,99 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
 
   return (
     <div>
-      {/* Back Button - Moved to top level */}
-      <button className="back-button" onClick={onBack} style={{ marginBottom: '24px' }}>
-        <i className="fas fa-arrow-left"></i>
-        {fromSearch ? 'Back to Search Results' : 'Back to Albums'}
-      </button>
+      {/* Album Hero */}
+      <div className="album-hero">
+        <button className="album-hero-back" onClick={onBack}>
+          <i className="fas fa-arrow-left" />
+          {fromSearch ? 'Back to Search Results' : (backLabel ?? 'Back to Albums')}
+        </button>
 
-      {/* Album Header */}
-      <div className="album-header">
-        <div className="album-header-content">
-          <div className="album-header-art-container">
+        <div className="album-hero-main">
+          <div className="album-hero-art-wrap">
             {albumCoverArtId ? (
-              <AlbumArt 
+              <AlbumArt
                 coverArtId={albumCoverArtId}
+                albumId={albumId}
                 alt={albumName}
-                size={300}
-                className="album-header-art"
+                size={240}
+                className="album-hero-art"
               />
             ) : (
-              <div className="album-art-fallback album-header-art">
-                <i className="fas fa-compact-disc"></i>
+              <div className="album-art-fallback album-hero-art">
+                <i className="fas fa-compact-disc" />
               </div>
             )}
           </div>
-          <div className="album-header-info">
-            <h2>
-              <i className="fas fa-compact-disc"></i>
-              {albumName}
-            </h2>
-            <p className="album-artist">{artistName}</p>
-            <p className="album-year">
-              {songs[0]?.year && `${songs[0].year} • `}
-              {filteredSongs.length} {offlineModeEnabled ? 'cached ' : ''}songs • {getTotalDuration()}
+
+          <div className="album-hero-info">
+            <span className="album-hero-label">Album</span>
+            <h1 className="album-hero-title">{albumName}</h1>
+            <div className="album-hero-meta">
+              {onArtistClick && artistId ? (
+                <button
+                  className="album-artist-link"
+                  onClick={() => onArtistClick(artistId, artistName)}
+                  title={`More by ${artistName}`}
+                >
+                  {artistName}
+                </button>
+              ) : (
+                <span>{artistName}</span>
+              )}
+              {songs[0]?.year && <><span className="album-hero-dot">•</span><span>{songs[0].year}</span></>}
+              <span className="album-hero-dot">•</span>
+              <span>{filteredSongs.length} {offlineModeEnabled ? 'cached ' : ''}song{filteredSongs.length !== 1 ? 's' : ''}</span>
+              <span className="album-hero-dot">•</span>
+              <span>{getTotalDuration()}</span>
               {!offlineModeEnabled && (() => {
-                const cachedCount = filteredSongs.filter(song => offlineCacheService.isCached(song.id)).length;
-                return cachedCount > 0 ? (
-                  <span style={{ color: 'var(--primary-color)', marginLeft: '8px' }}>
-                    • {cachedCount} cached
-                  </span>
-                ) : null;
+                const cachedCount = filteredSongs.filter(s => offlineCacheService.isCached(s.id)).length;
+                return cachedCount > 0
+                  ? <><span className="album-hero-dot">•</span><span style={{ color: 'var(--primary-color)' }}>{cachedCount} cached</span></>
+                  : null;
               })()}
-            </p>
+            </div>
           </div>
         </div>
-        
-        <div className="album-header-actions">
-          <button 
-            className="play-album-button"
+
+        <div className="album-action-bar">
+          <button
+            className="album-play-circle"
             onClick={handlePlayAll}
             disabled={filteredSongs.length === 0}
+            title="Play album"
           >
-            <i className="fas fa-play"></i>
-            Play Album
+            <i className="fas fa-play" />
           </button>
-          <button 
-            className="shuffle-album-button"
+          <button
+            className="album-action-icon"
             onClick={handleShuffleAlbum}
             disabled={filteredSongs.length === 0}
+            title="Shuffle"
           >
-            <i className="fas fa-random"></i>
-            Shuffle
+            <i className="fas fa-random" />
           </button>
-          <button 
-            className={`download-album-button ${isAlbumCached ? 'cached' : ''}`}
-            onClick={handleDownloadAlbum}
-            disabled={songs.length === 0}
-            title={isAlbumCached ? 'Album is cached - click to remove' : 'Download album for offline playback'}
-          >
-            <i className={`fas fa-${isAlbumCached ? 'check-circle' : 'download'}`}></i>
-            {isAlbumCached ? 'Cached' : 'Download'}
-          </button>
+          {isAlbumCached ? (
+            <button
+              className="album-action-icon album-action-icon--active"
+              onClick={handleDownloadAlbum}
+              disabled={songs.length === 0}
+              title="Cached — click to remove"
+            >
+              <i className="fas fa-check-circle" />
+            </button>
+          ) : (
+            <DownloadQualityPicker
+              value={downloadQuality}
+              onChange={setDownloadQuality}
+              onConfirm={handleConfirmDownload}
+              confirmLabel={`Download ${songs.length} Song${songs.length !== 1 ? 's' : ''}`}
+              triggerClassName="album-action-icon"
+              triggerContent={<i className="fas fa-download" />}
+            />
+          )}
         </div>
       </div>
 
-      {/* Quality Selector Modal */}
-      {showQualitySelector && (
-        <div className="quality-selector-modal" onClick={() => setShowQualitySelector(false)}>
-          <div className="quality-selector-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Select Download Quality</h3>
-            <p>Choose quality for {songs.length} songs</p>
-            <div className="quality-options">
-              <label className="quality-option">
-                <input 
-                  type="radio" 
-                  name="quality" 
-                  value="original"
-                  checked={downloadQuality === 'original'}
-                  onChange={(e) => setDownloadQuality(e.target.value as DownloadQuality)}
-                />
-                <span>Original (Raw)</span>
-                <small>Highest quality, larger files</small>
-              </label>
-              <label className="quality-option">
-                <input 
-                  type="radio" 
-                  name="quality" 
-                  value="320"
-                  checked={downloadQuality === '320'}
-                  onChange={(e) => setDownloadQuality(e.target.value as DownloadQuality)}
-                />
-                <span>320 kbps</span>
-                <small>Excellent quality</small>
-              </label>
-              <label className="quality-option">
-                <input 
-                  type="radio" 
-                  name="quality" 
-                  value="256"
-                  checked={downloadQuality === '256'}
-                  onChange={(e) => setDownloadQuality(e.target.value as DownloadQuality)}
-                />
-                <span>256 kbps</span>
-                <small>High quality</small>
-              </label>
-              <label className="quality-option">
-                <input 
-                  type="radio" 
-                  name="quality" 
-                  value="128"
-                  checked={downloadQuality === '128'}
-                  onChange={(e) => setDownloadQuality(e.target.value as DownloadQuality)}
-                />
-                <span>128 kbps</span>
-                <small>Good quality, smaller files</small>
-              </label>
-              <label className="quality-option">
-                <input 
-                  type="radio" 
-                  name="quality" 
-                  value="64"
-                  checked={downloadQuality === '64'}
-                  onChange={(e) => setDownloadQuality(e.target.value as DownloadQuality)}
-                />
-                <span>64 kbps</span>
-                <small>Lower quality, smallest files</small>
-              </label>
-            </div>
-            <div className="quality-selector-actions">
-              <button className="cancel-btn" onClick={() => setShowQualitySelector(false)}>
-                Cancel
-              </button>
-              <button className="confirm-btn" onClick={handleConfirmDownload}>
-                <i className="fas fa-download"></i>
-                Download {songs.length} Songs
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Download Manager Window */}
       <DownloadManagerWindow 
@@ -486,7 +527,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       {/* Songs List */}
       {offlineModeEnabled && filteredSongs.length === 0 && songs.length > 0 ? (
         <div className="no-songs" style={{ padding: '60px 20px', textAlign: 'center' }}>
-          <i className="fas fa-wifi-slash" style={{ fontSize: '64px', color: 'var(--text-secondary)', marginBottom: '20px' }}></i>
+          <i className="fas fa-ban" style={{ fontSize: '64px', color: 'var(--text-secondary)', marginBottom: '20px' }}></i>
           <h3 style={{ marginBottom: '12px' }}>No Cached Songs</h3>
           <p style={{ color: 'var(--text-secondary)' }}>
             This album isn't downloaded for offline playback.
@@ -500,37 +541,64 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
           <h3>No Songs Found</h3>
           <p>This album has no songs.</p>
         </div>
-      ) : (
+      ) : filteredSongs.length <= 60 ? (
         <div className="songs-list">
           {filteredSongs.map((song, index) => (
-            <div 
+            <div
               key={song.id}
               className={`song-item ${currentSong?.id === song.id ? 'active' : ''}`}
               onClick={() => handlePlaySong(index)}
+              onContextMenu={e => handleContextMenu(e, song)}
             >
-              <div className="song-track-number">
-                {currentSong?.id === song.id && isPlaying ? (
-                  <i className="fas fa-volume-up" style={{ color: 'var(--primary-color)' }}></i>
-                ) : (
-                  <span>{song.track || index + 1}</span>
-                )}
-              </div>
-              
-              <button className="play-button">
-                <i className={`fas fa-${currentSong?.id === song.id && isPlaying ? 'pause' : 'play'}`}></i>
-              </button>
-
               <div className="song-info">
                 <div className="song-title">{song.title}</div>
                 <div className="song-artist">{song.artist}</div>
               </div>
-
               <div className="song-meta">
                 <span className="song-duration">{formatDuration(song.duration)}</span>
               </div>
             </div>
           ))}
         </div>
+      ) : (
+        <div
+          className="songs-list"
+          style={{ height: Math.min(filteredSongs.length * SONG_ITEM_HEIGHT, 600), overflowY: 'hidden' }}
+        >
+          <AutoSizer renderProp={({ height, width }: { height: number | undefined; width: number | undefined }) => (
+            <List
+              rowCount={filteredSongs.length}
+              rowHeight={SONG_ITEM_HEIGHT}
+              rowComponent={VirtualSongRow}
+              rowProps={{ songs: filteredSongs, currentSongId: currentSong?.id, onPlay: handlePlaySong, onContext: handleContextMenu, formatDuration }}
+              style={{ height: height ?? 600, width: width ?? '100%' }}
+            />
+          )} />
+        </div>
+      )}
+      {contextMenu && (
+        <SongContextMenu
+          song={contextMenu.song}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onPlayNow={() => { handlePlaySong(filteredSongs.findIndex(s => s.id === contextMenu.song.id)); setContextMenu(null); }}
+          onPlayNext={() => { insertNext(contextMenu.song); setContextMenu(null); }}
+          onAddToQueue={() => { addToQueue(contextMenu.song); setContextMenu(null); }}
+          onAddToPlaylist={() => { setPlaylistDialogSong(contextMenu.song); setContextMenu(null); }}
+          onDownload={() => {
+            const s = contextMenu.song;
+            downloadManager.addSongToQueue(
+              { id: s.id, title: s.title, artist: s.artist, album: s.album, duration: s.duration, coverArt: s.coverArt, albumId: s.albumId },
+              s.albumId ?? albumId, s.album, s.artist, downloadQuality,
+            );
+            setShowDownloadManager(true);
+            setContextMenu(null);
+          }}
+        />
+      )}
+      {playlistDialogSong && (
+        <AddToPlaylistDialog song={playlistDialogSong} onClose={() => setPlaylistDialogSong(null)} />
       )}
     </div>
   );

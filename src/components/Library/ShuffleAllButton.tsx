@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { getAllSongs, getStreamUrl } from '../../services/subsonicApi';
-import { usePlayer } from '../../context/PlayerContext';
+import { usePlayback } from '../../hooks/usePlayback';
 
 const ShuffleAllButton: React.FC = () => {
-    const { playPlaylist } = usePlayer();
+    const { playPlaylist } = usePlayback();
     const [shuffling, setShuffling] = useState(false);
 
     const handleShuffleAll = async () => {
@@ -26,6 +26,12 @@ const ShuffleAllButton: React.FC = () => {
                 url: getStreamUrl(serverUrl, username, password, song.id),
                 duration: song.duration,
                 coverArt: song.coverArt,
+                bitRate: song.bitRate,
+                suffix: song.suffix,
+                size: song.size,
+                samplingRate: song.samplingRate,
+                channelCount: song.channelCount,
+                bitDepth: song.bitDepth,
             }));
 
             console.log('Starting shuffled playback...');

@@ -1,0 +1,248 @@
+.render-timer-hud {
+  position: fixed;
+  top: 68px;
+  right: 12px;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 10px;
+  width: 160px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Section labels */
+.rt-section-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 2px;
+}
+
+/* Mode badge */
+.rt-mode-badge {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* FPS row */
+.rt-fps-row {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-bottom: 1px;
+}
+
+.rt-fps-actual {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.rt-fps-sep {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.rt-fps-target {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.rt-fps-label {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.22);
+  letter-spacing: 0.08em;
+  margin-left: 2px;
+}
+
+/* Divider */
+.rt-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 6px 0;
+}
+
+/* CPU row */
+.rt-row { display: flex; align-items: center; }
+
+.rt-cpu-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.rt-cpu-pct {
+  font-size: 14px;
+  font-weight: 700;
+  transition: color 0.2s;
+  min-width: 36px;
+}
+
+.rt-cpu-sub {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* Core dots */
+.rt-core-dots {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.rt-core-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.2s;
+}
+
+.rt-core-dot-on        { background: rgba(255, 255, 255, 0.7); }
+.rt-core-dot-depriorised { opacity: 0.18; }
+
+/* Frame interval row (actual ms ↔ target ms) */
+.rt-interval-row {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 2px 0 3px;
+}
+
+.rt-interval-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-interval-target {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.rt-interval-unit {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.rt-interval-arrow {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+/* Throttle health badge */
+.rt-health-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+
+.rt-health-dot {
+  font-size: 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.rt-health-label {
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.rt-jitter {
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.28);
+  margin-left: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Per-process CPU bars (Electron only) */
+.rt-proc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.rt-proc-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rt-proc-label {
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 28px;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-proc-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.rt-proc-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease, background 0.3s;
+}
+
+.rt-proc-pct {
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 20px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* App RAM */
+.rt-ram-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.2;
+}
+
+.rt-ram-label {
+  font-size: 9px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Desktop: wider */
+@media (min-width: 769px) {
+  .render-timer-hud {
+    width: 200px;
+    padding: 10px 14px;
+  }
+
+  .rt-fps-actual  { font-size: 32px; }
+  .rt-fps-target  { font-size: 16px; }
+  .rt-fps-sep     { font-size: 16px; }
+  .rt-cpu-pct     { font-size: 16px; min-width: 44px; }
+  .rt-section-label { font-size: 9px; }
+  .rt-cpu-sub     { font-size: 10px; }
+  .rt-ram-value   { font-size: 17px; }
+  .rt-ram-label   { font-size: 10px; }
+}

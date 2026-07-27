@@ -1,0 +1,126 @@
+.ctx-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+}
+
+.ctx-menu {
+    position: fixed;
+    z-index: 2001;
+    min-width: 220px;
+    background: var(--bg-light);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+    padding: 4px 0;
+    overflow: hidden;
+    font-family: inherit;
+    animation: ctx-appear 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes ctx-appear {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.ctx-header {
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 2px;
+}
+
+.ctx-song-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.ctx-song-artist {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+    margin-top: 2px;
+}
+
+.ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 13px 16px;
+    min-height: 48px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+}
+
+.ctx-item:hover,
+.ctx-item:active {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--primary-color);
+}
+
+.ctx-item i {
+    width: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.ctx-item:hover i,
+.ctx-item:active i {
+    color: var(--primary-color);
+}
+
+.ctx-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 3px 0;
+}
+
+/* Touch / small screen: widen and increase targets */
+@media (max-width: 767px) {
+    .ctx-menu {
+        min-width: 260px;
+    }
+
+    .ctx-item {
+        padding: 16px 20px;
+        min-height: 56px;
+        font-size: 15px;
+    }
+
+    .ctx-item i {
+        font-size: 16px;
+        width: 20px;
+    }
+
+    .ctx-header {
+        padding: 12px 20px 10px;
+    }
+
+    .ctx-song-title {
+        font-size: 15px;
+        max-width: 240px;
+    }
+
+    .ctx-song-artist {
+        font-size: 13px;
+        max-width: 240px;
+    }
+}

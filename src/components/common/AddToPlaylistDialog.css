@@ -1,0 +1,296 @@
+/* ── Add to Playlist — glass sheet matching NPO palette ─── */
+
+.apt-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: apt-fade-in 0.15s ease;
+}
+
+@keyframes apt-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Glass sheet — mirrors the NPO blurred-art background feel */
+.apt-sheet {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(14, 14, 22, 0.94);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
+  padding: 0 0 env(safe-area-inset-bottom, 16px);
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  animation: apt-slide-up 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes apt-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ── Handle bar ── */
+.apt-sheet::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+/* ── Header ── */
+.apt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 8px;
+  flex-shrink: 0;
+}
+
+.apt-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.01em;
+}
+
+.apt-close {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.apt-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Song label ── */
+.apt-song-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 20px 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  flex-shrink: 0;
+}
+
+.apt-song-label i { color: var(--primary-color); font-size: 11px; }
+
+.apt-song-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Sync indicator ── */
+.apt-syncing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px 8px;
+  font-size: 12px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+/* ── Divider ── */
+.apt-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 0 20px 4px;
+  flex-shrink: 0;
+}
+
+/* ── Playlist list ── */
+.apt-list {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 4px 12px;
+}
+
+.apt-empty {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 14px;
+  padding: 28px 0;
+}
+
+/* Each playlist row — pill style matching the quality/speed selectors */
+.apt-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  margin-bottom: 4px;
+}
+
+.apt-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.apt-item:active { background: rgba(255, 255, 255, 0.12); }
+
+/* Row that already has the song — greyed */
+.apt-item--has {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.apt-item--has:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Checkbox — accent coloured */
+.apt-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-color);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.apt-item--has input[type="checkbox"] { cursor: default; }
+
+.apt-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.apt-item-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apt-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+  margin-top: 2px;
+}
+
+.apt-server-badge { color: var(--primary-color); font-size: 10px; }
+.apt-has-badge    { font-style: italic; }
+
+/* ── New playlist input — pill style ── */
+.apt-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 12px 4px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  flex-shrink: 0;
+  color: var(--primary-color);
+  transition: border-color 0.15s;
+}
+
+.apt-new:focus-within {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.apt-new i { font-size: 13px; flex-shrink: 0; }
+
+.apt-new-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.apt-new-input::placeholder { color: rgba(255, 255, 255, 0.30); }
+
+/* ── Confirm button — accent, same radius family ── */
+.apt-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 12px 14px;
+  padding: 13px 14px;
+  background: var(--primary-color);
+  color: rgba(0, 0, 0, 0.85);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.1s, transform 0.1s;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.apt-confirm:disabled { opacity: 0.35; cursor: default; }
+.apt-confirm:not(:disabled):hover  { opacity: 0.88; }
+.apt-confirm:not(:disabled):active { transform: scale(0.97); }
+
+/* ── Toast / result ── */
+.apt-toast {
+  margin: 10px 12px 14px;
+  padding: 13px 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--primary-color);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ── Spinner ── */
+@keyframes apt-spin { to { transform: rotate(360deg); } }
+
+.apt-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: apt-spin 0.7s linear infinite;
+}

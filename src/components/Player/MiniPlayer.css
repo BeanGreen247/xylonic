@@ -1,3 +1,17 @@
+.mini-player-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: mini-player-spin 0.7s linear infinite;
+}
+
+@keyframes mini-player-spin {
+    to { transform: rotate(360deg); }
+}
+
 .mini-player {
     width: 100%;
     height: 100vh;
@@ -83,7 +97,7 @@
     cursor: pointer;
     color: #ffffff;
     font-size: 12px;
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
     backdrop-filter: blur(5px);
 }
 
@@ -117,7 +131,7 @@
     cursor: pointer;
     color: rgba(255, 255, 255, 0.7);
     font-size: 11px;
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
     flex-shrink: 0;
     backdrop-filter: blur(5px);
 }

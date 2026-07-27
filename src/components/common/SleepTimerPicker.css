@@ -1,0 +1,54 @@
+/* Icon column in each picker item — matches quality-picker-bars visual width */
+.sleep-timer-item-icon {
+  width: 34px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.sleep-timer-item-icon--cancel {
+  color: #ff3b30;
+}
+
+/* Cancel item: red tint on hover */
+.sleep-timer-item--cancel:hover {
+  background: rgba(255, 59, 48, 0.08) !important;
+}
+
+/* Active-state hint line */
+.sleep-timer-hint--active {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary-color) !important;
+}
+
+.sleep-timer-hint--active i {
+  color: var(--primary-color);
+  font-size: 12px;
+}
+
+/* Default standalone trigger (when no triggerClassName override) */
+.sleep-timer-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.sleep-timer-trigger:hover {
+  background: rgba(var(--primary-color-rgb), 0.15);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}

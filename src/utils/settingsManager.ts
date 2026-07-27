@@ -1,5 +1,33 @@
 import { logger } from './logger';
 import { parseCfg, stringifyCfg } from './cfgParser';
+import { getFromStorage } from './storage';
+import type { DownloadQuality } from '../types/offline';
+
+const DEFAULT_DL_QUALITY_KEY = 'xylonic_default_dl_quality';
+const VALID_QUALITIES: DownloadQuality[] = ['original', '320', '256', '128', '64'];
+
+export function getDefaultDownloadQuality(): DownloadQuality {
+  const saved = localStorage.getItem(DEFAULT_DL_QUALITY_KEY);
+  if (saved && VALID_QUALITIES.includes(saved as DownloadQuality)) return saved as DownloadQuality;
+  return '320';
+}
+
+export function saveDefaultDownloadQuality(quality: DownloadQuality): void {
+  localStorage.setItem(DEFAULT_DL_QUALITY_KEY, quality);
+}
+
+export async function saveStreamingQuality(bitrate: number | null): Promise<void> {
+  try {
+    const { username } = getFromStorage();
+    if (!username) return;
+    const settings = await readSettings();
+    if (!settings[username]) settings[username] = { theme: 'cyan-wave', customThemes: {} };
+    settings[username].streamingQuality = bitrate;
+    await writeSettings(settings);
+  } catch (error) {
+    logger.error('Failed to save streaming quality:', error);
+  }
+}
 
 // Use Electron's remote or IPC if available, otherwise use browser localStorage as fallback
 const isElectron = () => {
@@ -10,6 +38,7 @@ interface UserSettings {
   theme: string;
   customThemes: Record<string, any>;
   streamingQuality?: number | null;
+  playbackSpeed?: number;
 }
 
 interface AllSettings {

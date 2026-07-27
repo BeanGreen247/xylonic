@@ -8,11 +8,12 @@ import { OfflineModeConfig } from '../types/offline';
 import { offlineCacheService } from '../services/offlineCacheService';
 import { useAuth } from './AuthContext';
 import { logger } from '../utils/logger';
-import { syncPendingChanges, getPendingChangesCount } from '../services/likedSongsService';
+import { syncPendingChanges, getPendingChangesCount, startPeriodicSync, stopPeriodicSync, syncNow } from '../services/likedSongsService';
 
 interface OfflineModeContextType {
   isOnline: boolean;
   offlineModeEnabled: boolean;
+  isCellular: boolean;
   config: OfflineModeConfig;
   toggleOfflineMode: () => void;
   updateConfig: (config: Partial<OfflineModeConfig>) => void;
@@ -25,12 +26,19 @@ const OfflineModeContext = createContext<OfflineModeContextType | undefined>(und
 export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { isAuthenticated, username, serverUrl } = useAuth();
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [isCellular, setIsCellular] = useState<boolean>(() => {
+    const conn = (navigator as any).connection;
+    return conn?.type === 'cellular';
+  });
+  const offlineTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cacheInitialized, setCacheInitialized] = useState<boolean>(false);
-  const [config, setConfig] = useState<OfflineModeConfig>({
-    enabled: false,
+  // Seed enabled from localStorage immediately so the offline guard in PlayerContext
+  // is active from the very first render — before initCache() resolves.
+  const [config, setConfig] = useState<OfflineModeConfig>(() => ({
+    enabled: localStorage.getItem('offlineMode') === 'true',
     preferCache: true,
     warnCacheSizeAt: 1000
-  });
+  }));
 
   /**
    * Initialize cache service when authenticated
@@ -76,9 +84,14 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
    */
   useEffect(() => {
     const handleOnline = async () => {
+      // Cancel any pending grace-period offline transition
+      if (offlineTimerRef.current) {
+        clearTimeout(offlineTimerRef.current);
+        offlineTimerRef.current = null;
+      }
       logger.log('[OfflineMode] Internet connection restored');
       setIsOnline(true);
-      
+
       // Sync pending liked songs changes when connection is restored
       if (getPendingChangesCount() > 0) {
         logger.log('[OfflineMode] Syncing pending liked songs changes...');
@@ -92,36 +105,77 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     const handleOffline = () => {
-      logger.log('[OfflineMode] Internet connection lost');
-      setIsOnline(false);
+      // Grace period: only mark offline after 6 s of sustained disconnection
+      if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current);
+      offlineTimerRef.current = setTimeout(() => {
+        offlineTimerRef.current = null;
+        logger.log('[OfflineMode] Internet connection lost (confirmed after grace period)');
+        setIsOnline(false);
+      }, 6000);
+    };
+
+    // Re-sync liked songs immediately when the app returns to foreground.
+    // On Android the WebView suspends JS when backgrounded, so setInterval
+    // ticks are delayed — this guarantees an up-to-date view on resume.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncNow().catch(() => {});
+      }
+    };
+
+    const conn = (navigator as any).connection;
+    const handleConnectionChange = () => {
+      setIsCellular(conn?.type === 'cellular');
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibility);
+    conn?.addEventListener('change', handleConnectionChange);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      conn?.removeEventListener('change', handleConnectionChange);
+      if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Check internet connectivity (ping test)
    */
   const checkConnectivity = async (): Promise<boolean> => {
-    try {
-      // Try to fetch a lightweight resource
-      const response = await fetch('https://www.google.com/favicon.ico', {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
-      });
-      
-      const online = true; // If no error, we're online
-      setIsOnline(online);
+    const attempt = async (): Promise<boolean> => {
+      try {
+        await fetch('https://www.google.com/favicon.ico', {
+          method: 'HEAD',
+          mode: 'no-cors',
+          cache: 'no-cache',
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    let online = await attempt();
+    if (!online) {
+      // Wait 3 s then retry once before declaring offline
+      await new Promise(r => setTimeout(r, 3000));
+      online = await attempt();
+    }
+
+    if (online) {
+      setIsOnline(true);
       logger.log('[OfflineMode] Connectivity check: online');
-      return online;
-    } catch (error) {
+      if (getPendingChangesCount() > 0) {
+        syncPendingChanges()
+          .then(r => logger.log(`[OfflineMode] Sync on reconnect: ${r.synced} synced, ${r.failed} failed`))
+          .catch(e => logger.error('[OfflineMode] Sync on reconnect failed:', e));
+      }
+      return true;
+    } else {
       setIsOnline(false);
       logger.log('[OfflineMode] Connectivity check: offline');
       return false;
@@ -139,10 +193,15 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
     setConfig(newConfig);
     offlineCacheService.saveConfig(newConfig);
+    // Keep both keys in sync so either code path in initCache restores the state correctly.
+    localStorage.setItem('offlineMode', String(newConfig.enabled));
     logger.log('[OfflineMode] Offline mode:', newConfig.enabled ? 'enabled' : 'disabled');
     
-    // If switching from offline to online, sync pending changes
-    if (wasOffline && !newConfig.enabled && isOnline) {
+    // If switching from offline to online, sync pending changes.
+    // Do not gate on isOnline — the user is explicitly going online so we
+    // attempt sync regardless of stale context state; failures are retried
+    // next time connectivity is confirmed.
+    if (wasOffline && !newConfig.enabled) {
       if (getPendingChangesCount() > 0) {
         logger.log('[OfflineMode] Syncing pending liked songs changes...');
         try {
@@ -164,6 +223,19 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
     offlineCacheService.saveConfig(newConfig);
     logger.log('[OfflineMode] Config updated:', updates);
   };
+
+  /**
+   * Periodic liked-songs sync: keep starredSongIds fresh across devices.
+   * Runs every 30 s when online and not in manual offline mode.
+   */
+  useEffect(() => {
+    if (isOnline && !config.enabled && isAuthenticated) {
+      startPeriodicSync();
+    } else {
+      stopPeriodicSync();
+    }
+    return () => stopPeriodicSync();
+  }, [isOnline, config.enabled, isAuthenticated]);
 
   /**
    * Handle auth changes (login with offline mode, logout)
@@ -208,6 +280,7 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
   const value: OfflineModeContextType = {
     isOnline,
     offlineModeEnabled: config.enabled,
+    isCellular,
     config,
     toggleOfflineMode,
     updateConfig,

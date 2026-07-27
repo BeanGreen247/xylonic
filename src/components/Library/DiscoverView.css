@@ -1,0 +1,245 @@
+/* Section chrome — the part Discover adds on top of the standard library grid */
+
+.discover-section {
+  margin-bottom: 48px;
+}
+
+.discover-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.discover-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.discover-section-title i {
+  color: var(--primary-color);
+  font-size: 18px;
+}
+
+.discover-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Play All button — Random Mix only */
+.discover-play-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: rgba(var(--primary-color-rgb), 0.15);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.35);
+  border-radius: var(--radius-full);
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.discover-play-btn:hover:not(:disabled) {
+  background: rgba(var(--primary-color-rgb), 0.28);
+  border-color: var(--primary-color);
+}
+
+.discover-play-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.discover-play-btn i {
+  font-size: 11px;
+}
+
+.discover-refresh-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.discover-refresh-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.discover-refresh-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Horizontal scroll row ───────────────────────────────────── */
+.discover-scroll-wrapper {
+  position: relative;
+}
+
+.discover-section-scroll {
+  display: flex;
+  gap: var(--spacing-lg);
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-light) transparent;
+}
+
+.discover-section-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.discover-section-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.discover-section-scroll::-webkit-scrollbar-thumb {
+  background: var(--bg-light);
+  border-radius: 3px;
+}
+
+/* Fix each card to the same minimum width the library grid uses.
+   content-visibility: visible overrides the base .album-card rule —
+   horizontal scroll carousels must not skip off-screen items or the
+   flex container measures them at the wrong intrinsic size. */
+.discover-section-scroll .album-card {
+  flex: 0 0 180px;
+  min-width: 0;
+  content-visibility: visible;
+}
+
+/* ── Scroll arrows (desktop only) ────────────────────────────── */
+.discover-scroll-arrow {
+  position: absolute;
+  top: calc(90px - 18px); /* center on the album art (180px / 2 = 90px) */
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 10, 10, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.discover-scroll-arrow.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.discover-scroll-arrow:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.discover-scroll-arrow i {
+  font-size: 13px;
+}
+
+.discover-scroll-arrow-left  { left:  6px; }
+.discover-scroll-arrow-right { right: 6px; }
+
+/* Hide arrows on touch/mobile — native swipe handles it */
+@media (hover: none), (max-width: 767px) {
+  .discover-scroll-arrow {
+    display: none;
+  }
+}
+
+/* Clickable artist name (used when onArtistClick is provided) */
+.discover-artist-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.discover-artist-link:hover {
+  color: var(--primary-color);
+}
+
+/* ── Skeleton cards ──────────────────────────────────────────── */
+.discover-skeleton-card {
+  pointer-events: none;
+}
+
+/* Re-use album-cover dimensions but fill with animated placeholder */
+.discover-cover-skeleton {
+  background: var(--bg-light);
+  animation: discover-pulse 1.5s ease-in-out infinite;
+  /* aspect-ratio & overflow come from .album-cover */
+}
+
+.discover-text-skeleton {
+  height: 11px;
+  background: var(--bg-light);
+  border-radius: 4px;
+  margin-bottom: 6px;
+  animation: discover-pulse 1.5s ease-in-out infinite;
+}
+
+.discover-text-skeleton-short {
+  width: 65%;
+}
+
+@keyframes discover-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.7;  }
+}
+
+/* ── Inline error / empty message ───────────────────────────── */
+.discover-section-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.discover-section-message i {
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+/* ── Offline placeholder ─────────────────────────────────────── */
+.discover-offline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  text-align: center;
+}
+
+.discover-offline i {
+  font-size: 52px;
+  color: var(--text-muted);
+}

@@ -33,7 +33,13 @@ export const useSongList = () => {
                     album: song.album,
                     url: getStreamUrl(serverUrl, username, password, song.id),
                     duration: song.duration,
-                    coverArt: song.coverArt ? getCoverArtUrl(serverUrl, username, password, song.coverArt, 300) : undefined
+                    coverArt: song.coverArt ? getCoverArtUrl(serverUrl, username, password, song.coverArt, 300) : undefined,
+                    bitRate: song.bitRate,
+                    suffix: song.suffix,
+                    size: song.size,
+                    samplingRate: song.samplingRate,
+                    channelCount: song.channelCount,
+                    bitDepth: song.bitDepth,
                 }));
 
                 setSongs(songs);

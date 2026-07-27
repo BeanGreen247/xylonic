@@ -1,0 +1,430 @@
+/* ════════════════════════════════════════════════════════════════
+   Desktop Now Playing — full-screen panel for wide viewports
+   Only rendered on screens > 680 px (mobile has NowPlayingOverlay)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Overlay shell ──────────────────────────────────────────── */
+.dnp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1250;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* fallback for older WebView */
+    overflow: clip;   /* blocks ALL scroll incl. programmatic (scrollIntoView can't touch it) */
+    background: var(--bg-dark);
+    animation: dnp-fade-in 0.2s ease;
+    cursor: grab;
+    will-change: transform;
+    touch-action: none; /* full JS control — drag-to-close owns all touch events */
+}
+
+.dnp-overlay.dnp-dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+/* Restore normal cursor inside interactive children */
+.dnp-overlay button,
+.dnp-overlay .dnp-queue-list,
+.dnp-overlay .dnp-queue-row,
+.dnp-overlay input {
+    cursor: auto;
+}
+
+.dnp-overlay button { cursor: pointer; }
+
+/* ── Drag handle ────────────────────────────────────────────── */
+.dnp-drag-handle {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 0;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.dnp-drag-handle-bar {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+}
+
+@keyframes dnp-fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Ambient blurred background ─────────────────────────────── */
+.dnp-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.dnp-bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(60px) saturate(1.4) brightness(0.45);
+    transform: scale(1.1);
+}
+
+.dnp-bg-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.55) 0%,
+        rgba(0,0,0,0.35) 50%,
+        rgba(0,0,0,0.75) 100%
+    );
+    pointer-events: none;
+}
+
+/* ── Everything above the background ───────────────────────── */
+.dnp-overlay > *:not(.dnp-bg):not(.dnp-bg-scrim) {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Top bar ────────────────────────────────────────────────── */
+.dnp-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px 12px;
+    flex-shrink: 0;
+}
+
+.dnp-topbar-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.dnp-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 50%;
+    transition: color 0.15s, background 0.15s;
+}
+
+.dnp-close:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.08);
+}
+
+/* ── Main body: left art | right queue ──────────────────────── */
+.dnp-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 32px;
+    padding: 0 32px 16px;
+}
+
+/* Left column */
+.dnp-left {
+    flex: 0 0 45%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-height: 0;
+}
+
+.dnp-art-wrap {
+    width: 100%;
+    max-width: min(380px, 40vh);
+    aspect-ratio: 1;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+}
+
+.dnp-art-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.dnp-art-fallback {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-lighter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    color: var(--text-muted);
+}
+
+.dnp-info {
+    text-align: center;
+    width: 100%;
+    max-width: min(380px, 40vh);
+}
+
+.dnp-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.dnp-artist {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.dnp-like-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 22px;
+    color: var(--text-muted);
+    transition: color 0.15s, transform 0.1s;
+    padding: 4px 8px;
+}
+
+.dnp-like-btn:hover { color: var(--text-primary); transform: scale(1.1); }
+.dnp-like-btn.active { color: #e05; }
+.dnp-like-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+/* Right column */
+.dnp-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-left: 1px solid rgba(255,255,255,0.07);
+    padding-left: 32px;
+    position: relative;
+}
+
+/* Fade out the bottom of the queue so partially-visible rows dissolve cleanly */
+.dnp-right::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 32px; /* aligns with padding-left so it doesn't cover the border */
+    right: 0;
+    height: 56px;
+    background: linear-gradient(to bottom, transparent, var(--bg-dark, #0a0a0a));
+    pointer-events: none;
+    z-index: 2;
+}
+
+.dnp-queue-header {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    padding: 8px 0 16px;
+    flex-shrink: 0;
+}
+
+.dnp-queue-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.dnp-queue-list::-webkit-scrollbar { width: 4px; }
+.dnp-queue-list::-webkit-scrollbar-track { background: transparent; }
+.dnp-queue-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+.dnp-queue-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 14px;
+    height: 120px;
+}
+
+.dnp-queue-empty i { font-size: 28px; }
+
+/* Queue rows */
+.dnp-queue-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+    flex-shrink: 0;
+}
+
+.dnp-queue-row:hover { background: rgba(255,255,255,0.06); }
+.dnp-queue-row.is-current { background: rgba(255,255,255,0.09); }
+
+.dnp-queue-art {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.dnp-queue-art .album-art-img,
+.dnp-queue-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.dnp-queue-playing-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.55);
+    color: var(--primary-color);
+    font-size: 14px;
+}
+
+.dnp-queue-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.dnp-queue-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dnp-queue-row.is-current .dnp-queue-title { color: var(--primary-color); }
+
+.dnp-queue-artist {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+.dnp-queue-duration {
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Bottom controls ─────────────────────────────────────────── */
+.dnp-controls {
+    flex-shrink: 0;
+    padding: 8px 40px 28px;
+}
+
+.dnp-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding-top: 16px;
+}
+
+.dnp-ctrl {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 50%;
+    transition: color 0.12s, background 0.12s;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.dnp-ctrl:hover { color: var(--text-primary); background: rgba(255,255,255,0.07); }
+.dnp-ctrl.secondary { font-size: 16px; }
+.dnp-ctrl.secondary.active { color: var(--primary-color); }
+
+.dnp-play-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 22px;
+    background: var(--primary-color);
+    color: #000;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    transition: background 0.12s, transform 0.1s;
+}
+
+.dnp-play-btn:hover { background: var(--accent-color, #f5b62a); transform: scale(1.05); }
+.dnp-play-btn:disabled { opacity: 0.35; transform: none; cursor: default; }
+
+.dnp-repeat-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+/* Spinner reuse */
+@keyframes dnp-spin { to { transform: rotate(360deg); } }
+
+.dnp-spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(0,0,0,0.3);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: dnp-spin 0.7s linear infinite;
+}
+
+/* ── Progress bar overrides inside dnp ──────────────────────── */
+.dnp-controls .progress-container {
+    padding: 0;
+}

@@ -45,6 +45,12 @@ export interface SearchResultSong {
   track?: number;
   year?: number;
   genre?: string;
+  bitRate?: number;
+  suffix?: string;
+  size?: number;
+  samplingRate?: number;
+  channelCount?: number;
+  discNumber?: number;
 }
 
 export interface SearchResult3 {

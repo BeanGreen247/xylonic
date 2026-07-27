@@ -10,6 +10,8 @@ node_modules/
 build/
 dist/
 out/
+xylonic-release
+xylonic-release*
 
 # Misc
 .DS_Store
@@ -36,10 +38,14 @@ lerna-debug.log*
 # OS
 Thumbs.db
 desktop.ini
+CLAUDE*
+.claude
 
 # Electron
 release/
+releases/
 app/
+__eb_stage/
 
 # TypeScript
 *.tsbuildinfo

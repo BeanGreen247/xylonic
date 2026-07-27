@@ -1,0 +1,228 @@
+.lfm-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10100;
+}
+
+.lfm-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10101;
+    background: var(--bg-dark, #121212);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    width: min(420px, calc(100vw - 32px));
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+.lfm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lfm-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.lfm-title .fab {
+    font-size: 20px;
+    color: #d51007;
+}
+
+.lfm-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.12s, color 0.12s;
+}
+
+.lfm-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+/* ── Form ── */
+.lfm-form,
+.lfm-connected {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.lfm-hint {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.lfm-link {
+    color: var(--primary-color);
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.lfm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.lfm-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.lfm-field input {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.lfm-field input:focus {
+    border-color: var(--primary-color);
+}
+
+.lfm-field input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ── Buttons ── */
+.lfm-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 20px;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.lfm-btn:hover:not(:disabled) { opacity: 0.88; }
+.lfm-btn:active:not(:disabled) { transform: scale(0.97); }
+.lfm-btn:disabled { opacity: 0.45; cursor: default; }
+
+.lfm-btn-danger {
+    background: rgba(211, 47, 47, 0.8);
+}
+
+.lfm-btn-danger:hover:not(:disabled) {
+    background: #d32f2f;
+    opacity: 1;
+}
+
+/* ── Status ── */
+.lfm-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin: 0 20px 16px;
+}
+
+.lfm-status.ok  { background: rgba(29, 185, 84, 0.15); color: #1db954; }
+.lfm-status.err { background: rgba(211, 47, 47, 0.15);  color: #f44; }
+
+/* ── Connected state ── */
+.lfm-connected-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(213, 16, 7, 0.1);
+    border: 1px solid rgba(213, 16, 7, 0.25);
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.lfm-connected-icon {
+    font-size: 32px;
+    color: #d51007;
+    flex-shrink: 0;
+}
+
+.lfm-connected-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.lfm-connected-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* ── Toggle switch ── */
+.lfm-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.lfm-toggle {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.lfm-toggle.on { background: var(--primary-color); }
+
+.lfm-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.lfm-toggle.on .lfm-toggle-thumb { transform: translateX(20px); }

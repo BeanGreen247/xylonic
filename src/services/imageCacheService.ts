@@ -574,9 +574,19 @@ class ImageCacheService {
    */
   getFromMemoryCache(coverArtId: string): string | null {
     const direct = this.memoryCache.get(coverArtId);
-    if (direct) return direct;
+    if (direct) {
+      this.memoryCache.delete(coverArtId);
+      this.memoryCache.set(coverArtId, direct);
+      return direct;
+    }
     const alias = this.coverArtAliasMap.get(coverArtId);
-    return alias ? (this.memoryCache.get(alias) ?? null) : null;
+    if (!alias) return null;
+    const aliased = this.memoryCache.get(alias);
+    if (aliased) {
+      this.memoryCache.delete(alias);
+      this.memoryCache.set(alias, aliased);
+    }
+    return aliased ?? null;
   }
 
   /**

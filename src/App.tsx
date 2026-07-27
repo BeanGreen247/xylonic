@@ -416,11 +416,14 @@ const AppContent: React.FC = () => {
       if (!isAuthenticated) return;
       try {
         const online = await checkConnectivity();
-        if (!online && !offlineModeEnabled) {
+        // Read from localStorage directly as a fallback — the OfflineModeContext
+        // initCache effect is async and may not have updated React state yet.
+        const isAlreadyOffline = offlineModeEnabled || localStorage.getItem('offlineMode') === 'true';
+        if (!online && !isAlreadyOffline) {
           toggleOfflineMode();
           return;
         }
-        if (online && isCellular && !offlineModeEnabled && !isFirstTimeUser()
+        if (online && isCellular && !isAlreadyOffline && !isFirstTimeUser()
             && !cellularPromptShownRef.current) {
           toggleOfflineMode();
           cellularPromptShownRef.current = true;
@@ -538,20 +541,23 @@ const AppContent: React.FC = () => {
     }));
   };
 
-  // For search results - wrap with default names and preserve context
-  const handleSearchArtistClick = (artistId: string) => {
-    handleArtistClick(artistId, 'Artist');
+  // For search results — switch to library section so the drill-down views render
+  const handleSearchArtistClick = (artistId: string, artistName: string) => {
+    setAppSection('library');
+    handleArtistClick(artistId, artistName);
   };
 
-  const handleSearchAlbumClick = (albumId: string) => {
-    // When clicking album from search, we need to set the full navigation state
-    setNavigation({
+  const handleSearchAlbumClick = (albumId: string, albumName: string, artistName: string) => {
+    setAppSection('library');
+    setNavigation(prev => ({
+      ...prev,
       view: 'songs',
-      artistId: undefined, // Don't know artist from search
-      artistName: 'Unknown Artist',
       albumId,
-      albumName: 'Album'
-    });
+      albumName,
+      artistName,
+      sourceView: topView,
+      sourceSection: undefined,
+    }));
   };
 
   const handleBackToArtists = () => {

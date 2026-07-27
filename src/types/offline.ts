@@ -146,6 +146,7 @@ export interface CacheIndex {
 export interface UserMetadata {
   userId: string;                // username@server identifier
   likedSongs: string[];          // Array of liked song IDs
+  likedSongsTimestamps?: Record<string, number>; // ms epoch per song ID (newest = highest)
   downloadHistory: {             // Download history tracking
     albumId: string;
     downloadedAt: number;
@@ -181,6 +182,7 @@ export interface DownloadProgress {
   overallProgress: number;       // 0-100 overall progress percentage
   isPaused: boolean;             // Queue paused?
   isDownloading: boolean;        // Any active download?
+  pendingClear: boolean;         // Waiting for current song to finish before clearing
 }
 
 /**
@@ -216,7 +218,10 @@ export type DownloadEventType =
   | 'download-failed'
   | 'queue-paused'
   | 'queue-resumed'
-  | 'cache-updated';
+  | 'cache-updated'
+  | 'cache-verify-started'
+  | 'cache-verify-progress'
+  | 'cache-verify-complete';
 
 /**
  * Download manager event
@@ -226,4 +231,6 @@ export interface DownloadEvent {
   item?: DownloadQueueItem;
   progress?: DownloadProgress;
   error?: string;
+  verifyProgress?: { verified: number; total: number };
+  verifyResult?: { verified: number; removed: number; total: number; durationMs: number };
 }

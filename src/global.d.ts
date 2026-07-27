@@ -3,6 +3,7 @@
 interface PlayerState {
   currentSong: any | null;
   isPlaying: boolean;
+  isLoading: boolean;
   currentTime: number;
   duration: number;
   volume: number;
@@ -26,6 +27,7 @@ interface Window {
     // Offline cache operations
     getCacheDir: () => Promise<string>;
     getCacheLocation: () => Promise<string>;
+    getDiskSpace: (targetPath?: string) => Promise<{ available: number; total: number } | null>;
     setCacheLocation: (newPath: string) => Promise<boolean>;
     pickCacheLocation: () => Promise<string | null>;
     readCacheIndex: () => Promise<string>;
@@ -50,16 +52,37 @@ interface Window {
     deleteAudioDir: (hash: string) => Promise<boolean>;
     getAudioFilePath: (hash: string, filename: string) => Promise<string | null>;
     migrateFileToHashStorage: (oldPath: string, hash: string, filename: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
+    findSiblingArt: (audioHash: string) => Promise<string | null>;
+    extractEmbeddedArt: (audioHash: string) => Promise<string | null>;
     // Secure credential storage
     safeStorageAvailable: () => Promise<boolean>;
     encryptCredential: (plaintext: string) => Promise<string | null>;
     decryptCredential: (encrypted: string) => Promise<string | null>;
+    // Cover art resolution for navigator.mediaSession (needs file:// not blob://)
+    getCachedCoverArtUrl: (coverArtId: string) => Promise<string | null>;
+    findSiblingArtUrl: (audioHash: string) => Promise<string | null>;
+    saveArtToTemp: (buffer: number[], mimeType: string) => Promise<string | null>;
     // Logging
     writeLog: (params: { message: string; level: string }) => Promise<void>;
     getLogPath: () => Promise<string>;
     getLoggingEnabled: () => Promise<boolean>;
     setLoggingEnabled: (enabled: boolean) => Promise<boolean>;
     openLogFolder: () => Promise<boolean>;
+    // Remote discovery
+    remoteGetDeviceId: () => Promise<string>;
+    remoteGetDeviceName: () => Promise<string>;
+    remoteGetDevices: () => Promise<any[]>;
+    remoteSetControlEnabled: (enabled: boolean) => Promise<void>;
+    remoteSetControllerTarget: (id: string | null) => Promise<void>;
+    remoteSendCommand: (opts: { host: string; port: number; action: string; data: string; controllerId: string }) => Promise<{ ok: boolean; reason?: string }>;
+    onRemoteDeviceFound: (callback: (device: any) => void) => () => void;
+    onRemoteDeviceLost: (callback: (info: { id: string }) => void) => () => void;
+    onRemoteDevicePairingChanged: (callback: (info: { id: string; pairedWith?: string | null; controllingId?: string | null }) => void) => () => void;
+    onRemoteCommand: (callback: (cmd: { action: string; data: any }) => void) => () => void;
+    onRemotePairingEstablished: (callback: (info: { controllerId: string; controllerName: string }) => void) => () => void;
+    onRemotePairingCleared: (callback: (info: {}) => void) => () => void;
+    onRemotePlayerStateUpdate: (callback: (state: any) => void) => () => void;
+    onCacheRebuildTrigger: (callback: () => void) => () => void;
   };
   require?: any;
 }

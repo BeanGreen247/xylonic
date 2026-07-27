@@ -769,6 +769,11 @@ function _startRemoteCommandServer() {
                             res.writeHead(200, headers);
                             res.end('{"ok":false,"reason":"missing_id"}'); return;
                         }
+                        // Reject if this device has no account — no shared library to control
+                        if (!_remoteAccountId) {
+                            res.writeHead(200, headers);
+                            res.end('{"ok":false,"reason":"no_account"}'); return;
+                        }
                         // Reject if both sides have a non-empty accountId that differs
                         const controllerAccountId = (data || {}).controllerAccountId || '';
                         if (_remoteAccountId && controllerAccountId && _remoteAccountId !== controllerAccountId) {

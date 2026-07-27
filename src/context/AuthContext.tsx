@@ -2,9 +2,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { initializeStarredCache } from '../services/likedSongsService';
 import { saveConnection } from '../services/connectionHistoryService';
 import { saveCredentials, isSecureStorageAvailable, migratePlaintextCredentials } from '../services/secureCredentialService';
+import { metadataCache } from '../services/metadataCache';
 
 interface AuthContextType {
     isAuthenticated: boolean;
+    isLoading: boolean;
     username: string | null;
     serverUrl: string | null;
     isOfflineMode: boolean;
@@ -28,6 +30,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
@@ -38,21 +41,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const savedUsername = localStorage.getItem('username');
     const savedServerUrl = localStorage.getItem('serverUrl');
     const savedOfflineMode = localStorage.getItem('offlineMode') === 'true';
-    
+
     if (auth === 'true' && savedUsername) {
       setIsAuthenticated(true);
       setUsername(savedUsername);
       setServerUrl(savedServerUrl);
       setIsOfflineMode(savedOfflineMode);
-      
-      // Only initialize starred songs cache in online mode
-      if (!savedOfflineMode) {
-        initializeStarredCache().catch((error) => {
-          console.error('Failed to initialize starred cache on load:', error);
-        });
-      }
+
+      // Always initialize: loads pending offline changes from localStorage even
+      // when starting in offline mode so they survive app restarts.
+      initializeStarredCache().catch((error) => {
+        console.error('Failed to initialize starred cache on load:', error);
+      });
     }
-    
+
+    setIsLoading(false);
+
     // Attempt to migrate plaintext credentials to encrypted storage
     migratePlaintextCredentials().catch((error) => {
       console.error('Failed to migrate credentials:', error);
@@ -60,6 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (server: string, user: string, password: string, offlineMode: boolean = false) => {
+    metadataCache.invalidate();
     console.log('AuthContext: Logging in', { serverUrl: server, user, offlineMode });
     
     // Store authentication state
@@ -99,12 +104,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setServerUrl(server);
     setIsOfflineMode(offlineMode);
 
-    // Only initialize starred songs cache in online mode
-    if (!offlineMode) {
-      initializeStarredCache().catch((error) => {
-        console.error('Failed to initialize starred cache:', error);
-      });
-    }
+    initializeStarredCache().catch((error) => {
+      console.error('Failed to initialize starred cache:', error);
+    });
 
     // Notify listeners that auth/user changed
     if (typeof window !== 'undefined') {
@@ -113,6 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    metadataCache.invalidate();
     // Only remove auth-related keys, keep themes intact
     localStorage.removeItem('auth');
     localStorage.removeItem('serverUrl');
@@ -121,7 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Cache keys are now user+server specific, so they won't conflict between users
     // Keep 'username' so themes can still load!
     // Keep any other user data
-    
+
     setIsAuthenticated(false);
     setUsername(null);
     setServerUrl(null);
@@ -135,7 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, serverUrl, isOfflineMode, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, username, serverUrl, isOfflineMode, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

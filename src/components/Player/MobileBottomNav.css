@@ -1,0 +1,153 @@
+/* Desktop: hidden */
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        background: var(--surface);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.35);
+        z-index: 1002;
+        /* Safe area support for phones with home bar */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .mobile-nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 6px 4px;
+        transition: color 0.1s;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+    }
+
+    .mobile-nav-btn i {
+        font-size: 20px;
+        line-height: 1;
+    }
+
+    .mobile-nav-btn span {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        line-height: 1;
+    }
+
+    .mobile-nav-btn.active {
+        color: var(--primary-color);
+    }
+
+    .mobile-nav-btn:active {
+        transform: scale(0.9);
+        transition: transform 0.08s, color 0.1s;
+    }
+
+    .mobile-nav-btn.disabled {
+        opacity: 0.35;
+        cursor: default;
+    }
+
+    /* Remote button dot indicator (peers found but not connected) */
+    .mobile-nav-btn--remote {
+        position: relative;
+    }
+
+    .mobile-nav-remote-dot {
+        position: absolute;
+        top: 6px;
+        right: calc(50% - 14px);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--primary-color);
+    }
+
+    /* ── Panel submenu (Queue / History / Playlists) ── */
+    .mobile-nav-panel-wrap {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: stretch;
+    }
+
+    /* The trigger button inherits full width from the wrapper */
+    .mobile-nav-panel-wrap > .mobile-nav-btn {
+        flex: 1;
+    }
+
+    .mobile-nav-submenu {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--surface);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        min-width: 148px;
+        z-index: 1010;
+        animation: submenu-in 0.15s ease;
+    }
+
+    @keyframes submenu-in {
+        from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+        to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
+    }
+
+    .mobile-nav-submenu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 13px 16px;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        text-align: left;
+        transition: background 0.1s, color 0.1s;
+    }
+
+    .mobile-nav-submenu-item + .mobile-nav-submenu-item {
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .mobile-nav-submenu-item i {
+        font-size: 16px;
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .mobile-nav-submenu-item.active {
+        color: var(--primary-color);
+    }
+
+    .mobile-nav-submenu-item:active {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Subtle chevron on the trigger when submenu is open */
+    .mobile-nav-btn.submenu-open {
+        color: var(--primary-color);
+    }
+}

@@ -6,6 +6,15 @@ export interface Song {
     url: string;
     duration?: number;
     coverArt?: string;
+    // Audio metadata (populated from Subsonic API response)
+    bitRate?: number;
+    suffix?: string;
+    size?: number;
+    samplingRate?: number;
+    channelCount?: number;
+    year?: number;
+    track?: number;
+    discNumber?: number;
 }
 
 export interface PlayerState {

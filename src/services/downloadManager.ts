@@ -95,7 +95,7 @@ class DownloadManager {
             const reader = response.body?.getReader();
             if (!reader) throw new Error('No reader available');
 
-            const chunks: Uint8Array[] = [];
+            const chunks: Uint8Array<ArrayBuffer>[] = [];
             let receivedLength = 0;
 
             while (true) {

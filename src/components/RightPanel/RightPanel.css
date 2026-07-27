@@ -1,0 +1,615 @@
+/* ═══════════════════════════════════════════════
+   Right Panel
+   ═══════════════════════════════════════════════ */
+
+.right-panel-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+    pointer-events: none;
+}
+
+.right-panel-backdrop.open {
+    pointer-events: auto;
+}
+
+.right-panel {
+    position: fixed;
+    /* 64 px header + 10 px gap so panel doesn't glue to the header border */
+    top: 74px;
+    right: 0;
+    /* ~114 px player bar + 10 px gap so panel clears the bar */
+    bottom: 130px;
+    /* responsive: at least 260 px, at most 360 px, prefer 30 % of viewport */
+    width: clamp(260px, 30vw, 360px);
+    background: var(--bg-medium);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: none;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 1px));
+    transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+}
+
+.right-panel.open {
+    transform: translateX(0);
+}
+
+/* ── Panel header ─────────────────────────────── */
+.right-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    height: 44px;
+    flex-shrink: 0;
+    background: var(--bg-light);
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.right-panel-header-icon {
+    font-size: 13px;
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.right-panel-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.right-panel-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px 8px;
+    font-size: 13px;
+    transition: color 0.1s, background 0.1s;
+    line-height: 1;
+    border-radius: var(--radius-sm);
+}
+
+.right-panel-close:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Panel search bar ────────────────────────── */
+.right-panel-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-dark);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.right-panel-search-icon {
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.right-panel-search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 2px 0;
+}
+
+.right-panel-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.right-panel-search-clear {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 11px;
+    line-height: 1;
+    transition: color 0.1s;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+}
+
+.right-panel-search-clear:hover {
+    color: var(--text-primary);
+}
+
+.right-panel-close.active {
+    color: var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.1);
+}
+
+/* ── Scrollable content area ──────────────────── */
+.right-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.right-panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.right-panel-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.right-panel-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.right-panel-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Shared song row ──────────────────────────── */
+.panel-song-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.12s;
+    cursor: default;
+}
+
+.panel-song-row:last-child {
+    border-bottom: none;
+}
+
+.panel-song-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.panel-song-row.is-current {
+    background: rgba(var(--primary-color-rgb), 0.1);
+    border-left: 2px solid var(--primary-color);
+}
+
+.panel-drag-handle {
+    color: var(--text-muted);
+    cursor: grab;
+    font-size: 12px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.panel-drag-handle:active {
+    cursor: grabbing;
+}
+
+.panel-song-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.panel-song-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.panel-song-row.is-current .panel-song-title {
+    color: var(--primary-color);
+}
+
+.panel-song-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.panel-song-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.panel-song-actions {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+}
+
+.panel-song-row:hover .panel-song-actions {
+    opacity: 1;
+}
+
+.panel-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px 7px;
+    font-size: 12px;
+    transition: color 0.12s, background 0.12s;
+    line-height: 1;
+    border-radius: var(--radius-sm);
+}
+
+.panel-action-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.panel-action-btn.danger:hover {
+    color: #ff5555;
+    background: rgba(255, 85, 85, 0.1);
+}
+
+.panel-action-btn.primary:hover {
+    color: var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.1);
+}
+
+/* ── Section header (count + clear) ──────────── */
+.panel-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-medium);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 1;
+}
+
+.panel-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.panel-section-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 8px;
+    transition: color 0.12s, background 0.12s;
+    border-radius: var(--radius-sm);
+}
+
+.panel-section-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.panel-section-btn.danger:hover {
+    color: #ff5555;
+    background: rgba(255, 85, 85, 0.1);
+}
+
+/* ── Empty state ──────────────────────────────── */
+.panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    gap: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.panel-empty i {
+    font-size: 32px;
+    opacity: 0.35;
+}
+
+.panel-empty p {
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* ── Add-to-playlist dropdown ─────────────────── */
+.add-to-playlist-menu {
+    position: fixed;
+    background: var(--bg-light);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 1100;
+    min-width: 190px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+}
+
+.add-to-playlist-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.1s;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.add-to-playlist-menu-item:last-child {
+    border-bottom: none;
+}
+
+.add-to-playlist-menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.add-to-playlist-menu-item.create-new {
+    color: var(--primary-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-to-playlist-menu-empty {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* ── Playlist items (flush rows) ─────────────── */
+.playlist-card {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    background: transparent;
+}
+
+.playlist-card:last-child {
+    border-bottom: none;
+}
+
+.playlist-card-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    gap: 8px;
+    transition: background 0.12s;
+}
+
+.playlist-card-header:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.playlist-card-expand-icon {
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 12px;
+    flex-shrink: 0;
+    transition: transform 0.18s;
+}
+
+.playlist-card-expand-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.playlist-card-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.playlist-server-icon {
+    font-size: 10px;
+    color: var(--primary-color);
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.playlist-card-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.playlist-card-actions {
+    display: flex;
+    gap: 0;
+    flex-shrink: 0;
+}
+
+.playlist-card-songs {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.15s ease;
+}
+
+.playlist-card-songs.expanded {
+    max-height: 800px;
+}
+
+.playlist-rename-input {
+    flex: 1;
+    background: var(--bg-dark);
+    border: 1px solid var(--primary-color);
+    color: var(--text-primary);
+    font-size: 14px;
+    padding: 3px 8px;
+    outline: none;
+    border-radius: var(--radius-sm);
+}
+
+/* ── Create playlist form ─────────────────────── */
+.create-playlist-form {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.create-playlist-input {
+    flex: 1;
+    background: var(--bg-dark);
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    transition: background 0.12s;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.create-playlist-input:focus {
+    background: var(--bg-medium);
+}
+
+.create-playlist-input::placeholder {
+    color: var(--text-muted);
+}
+
+.create-playlist-btn {
+    background: var(--primary-color);
+    border: none;
+    color: var(--bg-dark);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: opacity 0.12s;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.create-playlist-btn:hover {
+    opacity: 0.88;
+}
+
+.create-playlist-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ── Drag-over target indicator ───────────────── */
+.panel-song-row.drag-over {
+    border-top: 2px solid var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.06);
+}
+
+/* ── Player-bar toggle buttons ────────────────── */
+.queue-panel-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.12s, background 0.12s;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
+}
+
+.queue-panel-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.queue-panel-btn.active {
+    color: var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.1);
+}
+
+/* ── Responsive: narrow / small-height windows ── */
+@media (max-width: 680px) {
+    /* Full-width sheet on mobile, sits between header and compact player + nav */
+    .right-panel {
+        width: 100%;
+        top: 56px;      /* mobile header */
+        bottom: 114px;  /* 58px compact player + 56px bottom nav */
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+    }
+
+    /* Larger touch targets inside the panel */
+    .panel-song-row {
+        padding: 12px 16px;
+        min-height: 60px;
+    }
+
+    /* Action buttons: always visible, 44 × 44 minimum */
+    .panel-song-actions {
+        opacity: 1 !important;
+        gap: 4px;
+    }
+
+    .panel-action-btn {
+        padding: 10px 12px;
+        font-size: 16px;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .panel-section-btn {
+        padding: 10px 14px;
+        font-size: 14px;
+        min-height: 44px;
+    }
+
+    /* Song info text */
+    .panel-song-title { font-size: 14px; }
+    .panel-song-sub   { font-size: 12px; }
+
+    /* Playlist card header */
+    .playlist-card-header { padding: 14px 16px; min-height: 56px; }
+    .playlist-card-name   { font-size: 15px; }
+
+    /* Create playlist form */
+    .create-playlist-input { padding: 14px 16px; font-size: 15px; }
+    .create-playlist-btn   { padding: 14px 18px; font-size: 13px; }
+}
+
+@media (max-height: 520px) {
+    .right-panel {
+        /* On very short windows collapse the gaps so nothing gets cut off */
+        top: 64px;
+        bottom: 120px;
+    }
+}

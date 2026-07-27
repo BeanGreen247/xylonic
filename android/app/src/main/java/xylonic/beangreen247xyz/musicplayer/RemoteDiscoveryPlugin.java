@@ -546,6 +546,10 @@ public class RemoteDiscoveryPlugin extends Plugin {
         if (controllerId == null || controllerId.isEmpty()) {
             return "{\"ok\":false,\"reason\":\"missing_id\"}";
         }
+        // Reject if this device has no account — no shared library to control
+        if (accountId.isEmpty()) {
+            return "{\"ok\":false,\"reason\":\"no_account\"}";
+        }
         // Reject if both sides have a non-empty accountId and they differ
         if (!accountId.isEmpty()
                 && controllerAccountId != null

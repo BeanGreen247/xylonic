@@ -18,6 +18,8 @@
 9. [State Management](#state-management)
 10. [Design Patterns & Best Practices](#design-patterns--best-practices)
 11. [Build Process & Cache Management](#build-process--cache-management)
+12. [Remote Control Architecture](#remote-control-architecture)
+13. [Android Native Layer](#android-native-layer)
 
 ---
 
@@ -29,14 +31,14 @@ Xylonic is an Electron-based desktop music streaming application built with Reac
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Desktop Runtime** | Electron 27.3.11 | Native desktop app wrapper |
-| **UI Framework** | React 18.2.0 | Component-based user interface |
-| **Type Safety** | TypeScript 4.9.5 | Static type checking |
+| **Desktop Runtime** | Electron 42.x | Native desktop app wrapper |
+| **UI Framework** | React 19.2.7 | Component-based user interface |
+| **Type Safety** | TypeScript 6.0.3 | Static type checking |
 | **State Management** | React Context API | Global state without prop drilling |
 | **HTTP Client** | Axios 1.6.0 | API communication with Subsonic servers |
-| **Build System** | react-scripts 5.0.1 | Webpack-based bundler |
+| **Build System** | Vite 8.1.0 | ESM dev server + Rollup/esbuild production builds |
 | **Security** | OS-native keychains | Encrypted credential storage |
-| **Packaging** | electron-builder 24.13.3 | Cross-platform app bundler (preset: react-cra) |
+| **Packaging** | electron-builder 26.x | Cross-platform app bundler |
 
 ### Key Features
 
@@ -49,6 +51,8 @@ Xylonic is an Electron-based desktop music streaming application built with Reac
 - **Pagination for large libraries**: 50 artists/albums per page prevents blob URL exhaustion
 - **Advanced cache management**: One-click clear all caches (images + offline data) with rebuild
 - **Build-time cleanup**: Automatic AppData cleanup before builds (preserves permanent_cache and color_settings)
+- **Background-safe downloads (Android)**: A `dataSync` foreground service (`DownloadService`) keeps the process alive while the app is backgrounded so JS `fetch()` streams are never interrupted
+- **OS-level download notification**: Live notification with song name, X/Y count, speed, and ETA driven by the platform bridge
 
 ---
 
@@ -366,7 +370,7 @@ sequenceDiagram
 
 ## Offline Cache System
 
-### Cache Architecture v2.0
+### Cache Architecture v2.1
 
 Xylonic implements a **multi-user, reference-counted cache** to prevent audio file duplication while supporting multiple users on the same machine.
 
@@ -832,6 +836,35 @@ clearMemoryCache(): void {
 | **Runtime (ongoing)** | Max 100 (LRU) | ~5MB | Indefinite |
 
 
+
+### Cache Integrity Verification
+
+`offlineCacheService.verifyPermanentCache(onProgress?)` performs a real filesystem check on every song in the user's `CacheIndex` and removes any orphaned index entries.
+
+**Algorithm:**
+1. Pre-collect `songIds = Object.keys(cacheIndex.songs)` (snapshot — safe against mutation during iteration)
+2. For each song: look up `audioRegistry.audioFiles[song.audioHash]`; call `getBridge().getAudioFilePath(hash, filename)` — on Android this is `Filesystem.stat()` (real FS check); on Electron it delegates to the main process
+3. If the file is missing from the registry OR not found on disk: call `removeFromCacheCore(songId)` (decrements ref count, removes from index; safe no-op if audio directory is already absent)
+4. Call `onProgress(verified, total)` every 25 songs to avoid UI flooding
+5. After the loop: call `saveIndex()` + `saveRegistry()` once (only if `removed > 0`)
+6. Return `{ verified, removed, total, durationMs }`
+
+**DownloadManager integration (`downloadManagerService.ts`):**
+- `private isVerifying: boolean` guard prevents concurrent runs
+- `triggerCacheVerification()` — public; called by the "Verify Cache" button in the UI
+- `runCacheVerification()` — private; emits `cache-verify-started`, streams `cache-verify-progress` events every 25 songs, emits `cache-verify-complete` with result
+- Auto-triggers at the end of `processQueue()` when the queue drains with at least one completed download
+
+**Event types** (all in `src/types/offline.ts`):
+```typescript
+'cache-verify-started'
+'cache-verify-progress'   // verifyProgress: { verified, total }
+'cache-verify-complete'   // verifyResult: { verified, removed, total, durationMs }
+```
+
+**UI (DownloadManagerWindow.tsx):** "Cache Integrity" section in Manage Cache shows a "Verify Cache" button (disabled while running or cache is empty), a live `X / Y songs` counter while running, and a result banner displaying verified count, orphaned entries removed, and elapsed time.
+
+---
 
 ### Cache Lookup Flow
 
@@ -1845,6 +1878,190 @@ useEffect(() => {
 }, [view]);
 ```
 
+### 6. Web Worker for Search
+
+Real-time library search runs on a dedicated background thread, keeping the main thread free for rendering and interaction.
+
+**Architecture:**
+
+```
+SearchContext.tsx (main thread)
+      │  search(query) → async Promise
+      ▼
+searchCacheService.ts
+      │  postMessage({ type: 'search', id, query })
+      ▼
+searchWorker.ts (Web Worker thread)
+      │  filter artists[], albums[], songs[]
+      │  postMessage({ type: 'result', id, artists, albums, songs })
+      ▼
+searchCacheService.ts
+      │  resolve pending Promise (keyed by id)
+      ▼
+SearchContext.tsx
+      └─ setState(results)
+```
+
+- Worker receives the full index once via `{ type: 'init', index }` on load
+- Every subsequent `search(query)` call posts `{ type: 'search', id, query }` and returns a Promise resolved when the worker replies
+- Pending-map: `Map<id, resolve>` — correlates async replies to their callers
+- Falls back to synchronous main-thread filtering if the worker fails to initialise
+- Bundled by Vite as a separate chunk: `searchWorker-*.js`
+
+**Impact:** 75,000+ `.includes()` comparisons on a 25K-song library no longer block the UI thread.
+
+### 7. Virtual Scrolling (SongList Hybrid)
+
+Per-album song lists use a hybrid approach to balance simplicity and performance:
+
+- **≤ 60 songs**: Natural `div.map()` render — no overhead, full CSS flexibility
+- **> 60 songs**: `react-window v2` `List` + `react-virtualized-auto-sizer v2` `AutoSizer` — only ~15 DOM nodes rendered at any time
+
+```typescript
+// react-window v2 API (incompatible with v1):
+// List uses rowComponent + rowProps, not children prop
+<AutoSizer renderProp={({ height, width }: { height: number | undefined; width: number | undefined }) => (
+  <List
+    height={height ?? 600}
+    width={width ?? 400}
+    rowCount={songs.length}
+    rowHeight={ITEM_HEIGHT}
+    rowComponent={SongRow}
+    rowProps={{ songs, currentSongId, onPlay, onContextMenu, formatDuration }}
+  />
+)} />
+```
+
+**Impact:** A 300-song album maintains the same DOM footprint (~15 nodes) as a 10-song album.
+
+### 8. Fisher-Yates Shuffle Queue
+
+Guarantees each song in the current playlist plays exactly once before any repeats.
+
+```typescript
+// PlayerContext.tsx
+const buildShuffleQueue = useCallback((length: number, currentIdx: number) => {
+  const indices = Array.from({ length }, (_, i) => i).filter(i => i !== currentIdx);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  shuffleQueueRef.current = indices;
+  shuffleQueueIndexRef.current = 0;
+}, []);
+```
+
+- Queue rebuilt when shuffle is toggled on or the playlist changes
+- `shuffleQueueIndexRef` steps linearly through the pre-shuffled array — no `Math.random()` per next-track call
+- When the queue is exhausted, it rebuilds (next cycle of all songs)
+
+**Impact:** No song repeats before the entire playlist is heard; distributes playback evenly.
+
+### 9. Electron IPC Position Throttle
+
+Reduces IPC traffic between the main window and the mini player from ~3,600 calls/min to ~120 calls/min.
+
+**Before:** A single `useEffect` with `[currentSong, isPlaying, ..., currentTime]` in deps fired at near-RAF rate (up to 60fps) because `currentTime` updates every animation frame.
+
+**After:** Two separate effects:
+
+```typescript
+// Effect A — metadata (fires immediately on song/state change)
+useEffect(() => {
+  if (!bridge.isElectron) return;
+  bridge.sendPlayerState({ currentSong, isPlaying, isLoading, currentTime,
+    duration, volume, shuffle, repeat, muted, coverArtUrl });
+}, [currentSong, isPlaying, isLoading, duration, volume, shuffle, repeat, muted]);
+
+// Effect B — position (gated at 2 fps = 500 ms)
+const lastIpcTimeRef = useRef(0);
+useEffect(() => {
+  if (!bridge.isElectron) return;
+  const now = Date.now();
+  if (now - lastIpcTimeRef.current < 500) return;
+  lastIpcTimeRef.current = now;
+  bridge.sendPlayerState({ currentSong, isPlaying, currentTime, ... });
+}, [currentTime]);
+```
+
+**Impact:** Mini player song title and album art update instantly on track change; seek bar updates smoothly at 2 fps with 30× fewer IPC calls.
+
+### 10. In-Memory Metadata TTL Cache
+
+`src/services/metadataCache.ts` — module-level singleton that caches Subsonic API responses in RAM with a 30-minute TTL, eliminating redundant network round-trips during library navigation.
+
+**Cache key patterns:**
+
+| Key | Contents | Set by |
+|-----|----------|--------|
+| `artists_<serverUrl>` | Artists list + song count | `ArtistList.tsx` |
+| `artist_<artistId>` | Artist albums array + `coverArt` ID | `AlbumList.tsx`, `SongList.tsx` |
+| `album_<albumId>` | Album songs array | `SongList.tsx` |
+| `albumsPage_<serverUrl>_<page>` | Paginated All Albums page | `AllAlbumsGrid.tsx` |
+
+**Implementation:**
+
+```typescript
+class MetadataCache {
+  private store = new Map<string, { data: unknown; expiresAt: number }>();
+
+  get<T>(key: string): T | null {
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) { this.store.delete(key); return null; }
+    return entry.data as T;
+  }
+
+  set(key: string, data: unknown, ttlMs = 30 * 60 * 1000): void {
+    this.store.set(key, { data, expiresAt: Date.now() + ttlMs });
+  }
+
+  invalidate(prefix?: string): void {
+    if (!prefix) { this.store.clear(); return; }
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) this.store.delete(key);
+    }
+  }
+}
+export const metadataCache = new MetadataCache();
+```
+
+**Cache invalidation:** `metadataCache.invalidate()` is called in `AuthContext.login()` and `AuthContext.logout()` to prevent stale data from leaking between user sessions or server connections.
+
+**getSongCount elimination:** `ArtistList.tsx` and `MainApp.tsx` use `searchCacheService.getSearchIndex()?.songs.length` when the search index is loaded, skipping the extra `getAlbumList2` API call that was used solely to sum song counts.
+
+**Impact:** Navigating Artists → Albums → Songs → back → another artist → back serves all list data from RAM after the first visit. A round-trip through the full hierarchy with a warm cache makes zero network calls.
+
+### 11. Mode-Aware Image Cache Sizing (`syncWithAppMode`)
+
+`imageCacheService.syncWithAppMode()` adjusts two runtime parameters based on the active power mode, preventing wasted concurrent fetches and oversized memory caches on constrained devices.
+
+| Mode | `maxConcurrentFetches` | `maxMemoryCacheSize` |
+|------|------------------------|----------------------|
+| Normal | 4 | 400 |
+| Performance | 2 | 200 |
+| Power-saver | 1 | 100 |
+
+Called at: `imageCacheService.initialize()` (first fetch) and via a module-level `window.addEventListener('appModeChanged', ...)` that fires whenever the user switches modes mid-session.
+
+**Impact:** On a power-saver session a library browse triggers at most 1 concurrent image fetch and retains at most 100 blob URLs in memory, cutting peak RAM usage to ¼ of the normal-mode ceiling.
+
+### 12. Mode-Aware Cover Art Lookahead + Native Artwork Skip
+
+`PlayerContext` prefetches cover art for the next N songs in the queue so art is ready before a track starts. The depth is mode-controlled:
+
+```typescript
+const maxAhead = isPowerSaverEnabled() ? 0 : isPerformanceModeEnabled() ? 2 : 4;
+```
+
+The native notification artwork preload (OS media notification thumbnail) is skipped entirely in power-saver mode:
+
+```typescript
+if (isPowerSaverEnabled()) return;
+```
+
+**Impact:** In power-saver mode, all art prefetch network calls are suppressed, freeing bandwidth and CPU for the audio stream. In performance mode lookahead is halved (2 songs) to balance quality with resource use.
+
 ---
 
 ## Build Process & Cache Management
@@ -2090,6 +2307,67 @@ session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
 
 ---
 
+## Remote Control Architecture
+
+Xylonic devices on the same LAN can discover and control each other using a two-layer protocol:
+
+### Transport Layers
+
+| Layer | Protocol | Port | Purpose |
+|-------|----------|------|---------|
+| **Discovery** | UDP multicast | 7766 | Devices announce presence; peers listen for `XYLONIC_HELLO` datagrams |
+| **Commands** | HTTP/TCP | 7767 | Controller sends JSON commands; target responds with result |
+
+### Multicast Group
+
+Presence broadcasts are sent to multicast group `239.255.85.89` (Android API 12+ requirement). On Electron, the main process joins this group on every non-loopback IPv4 interface so that broadcasts from any LAN adapter are received.
+
+### Device Roles
+
+| Role | Behaviour |
+|------|-----------|
+| **Target ("Be Controlled")** | Runs HTTP server on port 7767; broadcasts `XYLONIC_HELLO` datagrams so controllers can find it |
+| **Controller ("Control Others")** | Listens for `XYLONIC_HELLO` datagrams; sends `pair`, `play`, `pause`, `next`, `prev` etc. to target's HTTP server |
+
+A single device may be a target only, a controller only, or neither — toggled independently via the "Be Controlled" and "Control Others" switches.
+
+### Electron IPC for Remote Mode
+
+```
+Renderer (remoteDiscoveryService.ts)
+  │
+  ├─ remote-get-device-id / remote-get-device-name  ← sync identity from main at startup
+  ├─ remote-get-devices                             ← snapshot of devices found before renderer loaded
+  ├─ remote-set-control-enabled                     ← start/stop target broadcast + HTTP server
+  ├─ remote-set-controller-target                   ← lock controller onto a specific device ID
+  └─ remote-send-command { host, port, action, data, controllerId }
+              │
+  Main process (electron.js)
+  ├─ UDP socket (port 7766)  ← multicast listener on all interfaces
+  ├─ UDP socket              ← broadcaster (XYLONIC_HELLO datagrams)
+  └─ HTTP server (port 7767) ← command receiver; emits 'remote-command' IPC to renderer
+```
+
+### Command Payload Format
+
+All commands travel as a JSON body over TCP:
+
+```json
+{
+  "action": "pair",
+  "data": { "controllerName": "myhostname,Linux", "controllerId": "<uuid>" },
+  "controllerId": "<uuid>"
+}
+```
+
+`data` must always be a JSON **object** (never a string). Android's `RemoteDiscoveryPlugin` calls `cmd.getJSONObject("data")` and throws `JSONException` on a string value.
+
+### Device Name Convention
+
+Every device advertises its identity as `hostname,OSType` — for example `mypc,Linux`, `DESKTOP-ABC,Windows`, or `myhostname,macOS`. On Android the name is the device model string extracted from the user-agent. On Electron it is built in the main process from `os.hostname()` and `process.platform`.
+
+---
+
 ## Conclusion
 
 Xylonic's architecture is designed for:
@@ -2103,17 +2381,225 @@ Xylonic's architecture is designed for:
 
 ### Key Architectural Innovations
 
-1. **Reference-Counted Cache**: Shared audio storage with per-user metadata prevents duplication
+1. **Reference-Counted Cache (v2.1)**: Shared audio storage with per-user metadata prevents duplication
 2. **Composite Key Isolation**: IndexedDB and localStorage use `[user, server]` namespacing
 3. **Multi-Window IPC**: Bidirectional player state sync across main + mini player
 4. **Progressive Cache Building**: Optional first-login cache preload with age-based auto-refresh
 5. **Event-Driven Decoupling**: Custom DOM events prevent circular context dependencies
 6. **Pagination for Large Libraries**: 50 items per page prevents memory exhaustion from blob URLs
 7. **Advanced Cache Management**: One-click clearing of all caches with automatic rebuild
+8. **LAN Remote Control**: Two-layer UDP discovery + HTTP command protocol; works across Android ↔ Electron
+9. **Search Web Worker**: Off-main-thread filter passes via `searchWorker.ts`; async Promise API in `searchCacheService`; zero UI jank on libraries with 25K+ songs
+10. **In-Memory Metadata TTL Cache**: `metadataCache.ts` module-level singleton eliminates repeated `getArtists` / `getArtist` / `getAlbum` / `getAllAlbumsPaginated` calls on back/forward navigation; 30-min TTL; invalidated on login/logout
+11. **Fisher-Yates Shuffle Queue**: Pre-shuffled index in `PlayerContext.tsx` guarantees each song plays exactly once per cycle; no `Math.random()` per next-track call
 
 For questions or contributions, refer to the main [README.md](README.md) or open an issue on GitHub.
 
 ---
 
-**Last Updated:** February 16, 2026  
-**Version:** 26.2.16-release
+## Android Native Layer
+
+Xylonic's Android build (via Capacitor 8) includes several native Java plugins that extend beyond what the WebView can do alone. All plugins are registered in `MainActivity.java` and exposed to JavaScript through the `PlatformBridge` interface (`src/platform/bridge.ts`). Electron and web builds receive silent no-op implementations of the same interface.
+
+### Plugin Overview
+
+| Plugin class | Capacitor name | Purpose |
+|---|---|---|
+| `MediaControlPlugin` | `MediaControl` | Drives the `MusicService` foreground service; controls playback notification and MediaSession |
+| `RemoteDiscoveryPlugin` | `RemoteDiscovery` | UDP LAN discovery (port 7766) + HTTP command server (port 7767) for cross-device remote control |
+| `DownloadNotificationPlugin` | `DownloadNotification` | Starts/updates/stops the `DownloadService` foreground service; relays speed/ETA from JS to native |
+| `NativeDownloaderPlugin` | `NativeDownloader` | Thin Capacitor bridge; delegates all HTTP file download work to `DownloadService.submitDownload()` so the transfer runs entirely on a native Java thread, immune to WebView throttling |
+
+### Download Notification & Background Service
+
+#### Problem
+
+Android aggressively throttles or kills WebView JS execution when an app is moved to the background. A `fetch()` streaming download stalls or aborts as soon as the user switches apps or turns the screen off.
+
+#### Solution: Native `HttpURLConnection` inside `DownloadService`
+
+The actual HTTP transfer is performed by a native Java thread inside `DownloadService`, completely independent of the WebView. Chrome throttling is irrelevant because no JS executes during the download.
+
+```
+JS downloadManagerService.ts (Android path)
+        │  downloadSongNative()
+        │  NativeDownloader.startDownload({ url, hash, songId, title })
+        │
+NativeDownloaderPlugin.java        ← thin Capacitor bridge
+        │
+        ├─ DownloadService.instance.submitDownload()  ← service already up
+        └─ startForegroundService(intent) → 600 ms retry  ← first download
+                │
+        DownloadService.java               ← Android foreground service
+                │  ExecutorService (single-thread queue)
+                │  HttpURLConnection  ← native HTTP, no WebView involvement
+                │  FileOutputStream  → permanent_cache/audio/{hash}/audio.ext
+                │
+                ├─ updateProgress()   → foreground notification (always live)
+                └─ plugin.broadcastProgress() → JS `downloadProgress` event
+                        │
+                JS listener in downloadSongNative() → in-app progress UI
+```
+
+**Key behaviour:**
+
+- `DownloadService` calls `startForeground()` with `FOREGROUND_SERVICE_TYPE_DATA_SYNC` (API 29+), signalling to Android that this process is doing meaningful background work and must not be killed.
+- The download itself runs on `ExecutorService.newSingleThreadExecutor()` inside the service — not in the WebView. JS throttling has no effect on `HttpURLConnection`.
+- `android:stopWithTask="false"` in `AndroidManifest.xml` keeps the service alive even when the user swipes the app from the recents screen.
+- A `PowerManager.PARTIAL_WAKE_LOCK` prevents the CPU from sleeping mid-download when the screen turns off.
+- `START_STICKY` causes Android to restart the service automatically if it is killed under memory pressure.
+- The foreground notification is updated directly from the Java download thread every 500 ms, so it remains live regardless of JS state.
+- After all downloads complete, `DownloadService` transitions to a non-ongoing "Downloads complete" notification, then stops itself. The JS side calls `hideDownloadNotification()` 4 seconds later to dismiss the completion notification.
+- If the user clears the queue (`clearQueue()`), `DownloadService.shutdown()` is called immediately, cancelling both the notification and the service.
+
+#### `NativeDownloaderPlugin` Bridge Detail
+
+`NativeDownloaderPlugin` is deliberately minimal — it only bridges the Capacitor call to the service:
+
+```java
+@PluginMethod
+public void startDownload(PluginCall call) {
+    // Validate params, then:
+    DownloadService svc = DownloadService.instance;
+    if (svc != null) {
+        svc.submitDownload(url, hash, songId, title, this, call);
+    } else {
+        // Start service, retry after 600 ms
+        startForegroundService(new Intent(ACTION_START));
+        mainHandler.postDelayed(() -> svc2.submitDownload(...), 600);
+    }
+}
+
+void broadcastProgress(JSObject ev) {
+    notifyListeners("downloadProgress", ev);  // → JS addListener callback
+}
+```
+
+The TypeScript side uses `registerPlugin<NativeDownloaderPlugin>('NativeDownloader')` and splits on platform:
+
+```typescript
+// downloadManagerService.ts
+private async downloadSong(item, ...): Promise<void> {
+    if (Capacitor.isNativePlatform() && NativeDownloader) {
+        return this.downloadSongNative(item, ...);   // → Java HttpURLConnection
+    }
+    return this.downloadSongJS(item, ...);            // → JS fetch() (Electron)
+}
+```
+
+After a native download completes, `offlineCacheService.registerNativeDownload()` updates the audio registry and cache index without re-writing the audio bytes (the file is already on disk from the Java thread).
+
+`registerNativeDownload` calls are serialized through a `registrationQueue: Promise<void>` chain in `downloadManagerService.ts`. Without this, 1000+ concurrent fire-and-forget registrations each serialize the full cache JSON, causing a V8 heap OOM crash in the WebView renderer.
+
+#### Orphan Recovery (`reconcileOrphans`)
+
+**Problem:** Android OOM kills the WebView renderer process during long downloads. `DownloadService` (in the main app process) continues writing files to `permanent_cache/audio/`, but `songDownloaded` events have nowhere to go — JS is dead. On the next launch those songs appear as failed even though their audio files exist.
+
+**Three-part fix:**
+
+1. **`DownloadService.java`** — `appendCompletionLog()` appends `{hash, songId, extension, bytesReceived}` to `permanent_cache/completion_log.ndjson` after every successful download, before notifying JS. The log file survives renderer death because it is written by the foreground service (main process).
+
+2. **`NativeDownloaderPlugin.java`** — `readCompletionLog()` returns the log as a JS array; `clearCompletionLog()` deletes it after reconciliation.
+
+3. **`downloadManagerService.ts`** — `savePendingBatch()` persists `{song, quality, artistId, artistCoverArtId}` keyed by `songId` to localStorage before submitting to native. `reconcileOrphans()` (public): reads completion log + pending map → registers unindexed songs via `registerNativeDownload()` → clears both stores. Called in `MainApp.tsx` before `tryResumeQueue()` on every app start.
+
+#### Wakelock Watchdog
+
+`DownloadService.java` holds a `PowerManager.PARTIAL_WAKE_LOCK` to prevent the CPU from sleeping mid-download. The lock is refreshed by a `Runnable` that calls `acquireWakeLock()` every 2 seconds, independently of any WebView/JS activity. This prevents the lock from expiring after ~30 minutes when Android backgrounds the WebView renderer.
+
+#### Notification Channel
+
+| Field | Value |
+|---|---|
+| Channel ID | `xylonic_downloads` |
+| Channel name | Downloads |
+| Importance | `IMPORTANCE_LOW` (silent, no heads-up) |
+| Notification ID | `2` (distinct from music playback ID `1`) |
+
+#### Speed & ETA Calculation (JS side)
+
+`downloadManagerService.ts` maintains a rolling 3-second sample buffer of `{time, bytes}` pairs:
+
+```
+speed (bytes/sec) = (latestBytes − oldestBytes) / (latestTime − oldestTime)
+
+ETA = (contentLength − receivedBytes) / speed          ← current song
+    + pendingSongs × (contentLength / speed)            ← remaining songs (proxy)
+```
+
+Bridge calls are throttled to **one per 800 ms** to avoid flooding the Android notification manager. The formatted notification text looks like:
+
+```
+Title:  Song Name
+Text:   3/10 songs · 2.4 MB/s · ~1m 30s
+```
+
+#### Bridge Interface Methods
+
+```typescript
+// bridge.ts
+showDownloadNotification(opts: {
+  title: string;    // current song name
+  text: string;     // "3/10 songs · 2.4 MB/s · ~45s"
+  progress: number; // 0–100 overall
+  ongoing: boolean; // false = "complete" state
+}): Promise<void>;
+
+hideDownloadNotification(): Promise<void>;
+```
+
+- **Android**: routes through `DownloadNotificationPlugin` → `DownloadService`
+- **Electron / web**: silent no-op (defined in `electronBridge.ts` and `fallbackBridge.ts`)
+
+#### Android Manifest Declarations
+
+```xml
+<!-- Service declaration — stopWithTask=false keeps it alive after recents swipe -->
+<service
+    android:name=".DownloadService"
+    android:foregroundServiceType="dataSync"
+    android:exported="false"
+    android:stopWithTask="false" />
+
+<!-- Required permissions -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+```
+
+> **Android 14 note:** `dataSync` foreground services have a system-enforced 10-minute running limit on Android 14 (API 34). This is sufficient for typical album downloads. Very large batch downloads (>10 min) may need a future migration to `FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING` (API 35+).
+
+#### Battery Optimization Exemption (`MainActivity`)
+
+OEM "task killer" features (Doze, Samsung Adaptive Battery, MIUI MIUI Autostart) can terminate the foreground service or deny CPU time even with `PARTIAL_WAKE_LOCK`. To reliably prevent this, Xylonic requests the "Unrestricted" battery exemption on first launch:
+
+```java
+// MainActivity.java — called 3 s after onCreate() via Handler
+void requestBatteryOptimization() {
+    if (pm.isIgnoringBatteryOptimizations(pkg)) return; // already exempt
+
+    // Primary: standard Android "Always run in background?" dialog
+    startActivity(new Intent(ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                             Uri.parse("package:" + pkg)));
+
+    // Fallback A: Samsung One UI / MIUI 3-way battery toggle
+    // Fallback B: generic App Info page → Battery → Unrestricted
+}
+```
+
+The 3-second delay avoids showing a system dialog during cold-start WebView initialisation (which triggers `onPause()` and can crash the Capacitor bridge). The call lives in `MainActivity` rather than any plugin because `getActivity()` in a Capacitor plugin can silently return `null` before the Activity is fully resumed.
+
+### Music Playback Foreground Service (`MusicService`)
+
+The existing `MusicService` (channel `xylonic_playback`, notification ID `1`) manages the media notification, MediaSession, and hardware/Bluetooth media button routing. It is a separate foreground service from `DownloadService` and both can run simultaneously without conflict.
+
+```
+MusicService   (mediaPlayback type)  →  notification ID 1  →  channel: xylonic_playback
+DownloadService (dataSync type)       →  notification ID 2  →  channel: xylonic_downloads
+```
+
+---
+
+**Last Updated:** July 6, 2026  
+**Version:** 26.7.6

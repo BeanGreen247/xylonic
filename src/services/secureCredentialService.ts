@@ -9,6 +9,7 @@
  */
 
 import { logger } from '../utils/logger';
+import { getBridge } from '../platform/bridge';
 
 export interface StoredCredential {
   serverUrl: string;
@@ -24,7 +25,7 @@ const CREDENTIALS_KEY = 'secure_credentials';
  */
 export async function isSecureStorageAvailable(): Promise<boolean> {
   try {
-    return await window.electron?.safeStorageAvailable() ?? false;
+    return await getBridge().safeStorageAvailable();
   } catch (error) {
     logger.log('[SecureCredentials] Failed to check availability:', error);
     return false;
@@ -47,7 +48,7 @@ export async function saveCredentials(
     }
 
     // Encrypt password
-    const encryptedPassword = await window.electron?.encryptCredential(password);
+    const encryptedPassword = await getBridge().encryptCredential(password);
     if (!encryptedPassword) {
       logger.log('[SecureCredentials] Failed to encrypt password');
       return false;
@@ -120,7 +121,7 @@ export async function getDecryptedPassword(
     }
 
     // Decrypt password
-    const password = await window.electron?.decryptCredential(match.encryptedPassword);
+    const password = await getBridge().decryptCredential(match.encryptedPassword);
     if (!password) {
       logger.log('[SecureCredentials] Failed to decrypt password');
       return null;

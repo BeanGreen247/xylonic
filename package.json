@@ -1,9 +1,11 @@
 {
   "name": "xylonic",
-  "version": "26.2.16-release",
+  "version": "26.7.21",
+  "desktopName": "beangreen247.xylonic.musicplayer",
   "description": "Modern Subsonic music streaming client with Spotify-like UI. Stream your music library from any Subsonic-compatible server (Navidrome, Airsonic, Gonic) with full playback controls, album art, and responsive design.",
   "author": {
     "name": "BeanGreen247",
+    "email": "mozdrent@gmail.com",
     "url": "https://github.com/BeanGreen247"
   },
   "repository": {
@@ -26,108 +28,81 @@
   "main": "public/electron.js",
   "homepage": "./",
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/preferences": "^8.0.1",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "axios": "^1.6.0",
+    "dbus-next": "^0.10.2",
     "electron-is-dev": "^2.0.0",
     "md5": "^2.3.0",
+    "music-metadata": "^7.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-virtualized-auto-sizer": "^2.0.3",
+    "react-window": "^2.2.7"
   },
   "devDependencies": {
     "@types/md5": "^2.3.5",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-legacy": "^8.1.0",
+    "@vitejs/plugin-react": "^6.0.3",
     "concurrently": "^8.2.0",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "electron": "^27.0.0",
-    "electron-builder": "^24.6.0",
+    "electron-builder": "^26.15.3",
+    "terser": "^5.16.0",
     "typescript": "^4.9.5",
+    "vite": "^8.1.4",
     "wait-on": "^7.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "cross-env NODE_ENV=production react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
+    "start": "vite",
+    "build": "vite build",
+    "test": "echo \"No test runner configured\"",
     "electron": "electron .",
-    "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:serve:persist": "concurrently -k \"cross-env BROWSER=none SKIP_DEV_CLEAR=true npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:serve": "concurrently -k \"vite\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:serve:persist": "concurrently -k \"cross-env SKIP_DEV_CLEAR=true vite\" \"wait-on http://localhost:3000 && electron .\"",
     "prebuild:clean": "node scripts/clean-appdata-prebuild.js",
-    "electron:build": "npm run prebuild:clean && npm run build && electron-builder",
-    "electron:build:win": "npm run prebuild:clean && npm run build && electron-builder --win",
-    "electron:build:win-portable": "npm run prebuild:clean && npm run build && electron-builder --win portable",
-    "electron:build:mac": "npm run prebuild:clean && npm run build && electron-builder --mac",
-    "electron:build:linux": "npm run prebuild:clean && npm run build && electron-builder --linux",
-    "electron:build:linux-tar": "npm run prebuild:clean && npm run build && electron-builder --linux tar.gz",
-    "electron:build:linux-appimage": "npm run prebuild:clean && npm run build && electron-builder --linux AppImage",
-    "electron:build:linux-portable": "npm run prebuild:clean && npm run build && electron-builder --linux tar.gz",
-    "electron:build:all-portable": "npm run prebuild:clean && npm run build && electron-builder --win portable --linux tar.gz",
-    "electron:dev": "concurrently -k \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron . --inspect=5858\""
-  },
-  "build": {
-    "appId": "com.xylonic.app",
-    "productName": "Xylonic",
-    "files": [
-      "build/**/*",
-      "node_modules/**/*",
-      "public/electron.js"
-    ],
-    "directories": {
-      "buildResources": "assets",
-      "output": "dist"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "assets/icon.ico"
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "tar.gz",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "assets/icon.png",
-      "category": "AudioVideo"
-    },
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "icon": "assets/icon.icns"
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
-    }
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
+    "write-build-info:debug": "node scripts/write-build-info.js debug",
+    "write-build-info:release": "node scripts/write-build-info.js release",
+    "electron:build": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder\"",
+    "electron:build:win": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --win\"",
+    "electron:build:win-portable": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --win portable\"",
+    "electron:build:mac": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --mac\"",
+    "electron:build:linux": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --linux\"",
+    "electron:build:linux-tar": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --linux tar.gz\"",
+    "electron:build:linux-appimage": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --linux AppImage\"",
+    "electron:build:linux-portable": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --linux tar.gz\"",
+    "electron:build:all-portable": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder --win portable --linux tar.gz\"",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:3000 && electron . --inspect=5858\"",
+    "dev:reset": "node scripts/reset-dev.js",
+    "dev:reset:full": "node scripts/reset-dev.js --clear-audio",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:run": "npm run build && npx cap sync android && npx cap run android",
+    "android:build:debug": "bash build-android.sh debug",
+    "android:build:release": "bash build-android.sh release",
+    "android:build:both": "bash build-android.sh both",
+    "android:build-only:debug": "bash build-android.sh debug --build-only",
+    "android:build-only:release": "bash build-android.sh release --build-only",
+    "android:build-only:both": "bash build-android.sh both --build-only",
+    "android:install-only:debug": "bash build-android.sh debug --install-only",
+    "android:install-only:release": "bash build-android.sh release --install-only",
+    "android:install-only:both": "bash build-android.sh both --install-only",
+    "ios:setup": "npm run build && ([ -d ios ] || npx cap add ios) && npx cap sync ios",
+    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "ios:build": "bash build-ios.sh debug",
+    "ios:build:release": "bash build-ios.sh release",
+    "ios:sync-only": "bash build-ios.sh --sync-only",
+    "release:all": "node scripts/build-release.js",
+    "debug:all": "node scripts/build-debug.js"
   },
   "browserslist": {
     "production": [

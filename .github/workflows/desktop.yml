@@ -1,0 +1,196 @@
+name: Desktop Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Platforms to build'
+        required: false
+        default: 'all'
+        type: choice
+        options: [all, windows, linux, macos]
+
+jobs:
+  macos:
+    name: Build macOS (dmg / zip)
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.platforms == '' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Write build info
+        run: node scripts/write-build-info.js release
+
+      - name: Build React bundle
+        run: npm run build
+        env:
+          VITE_BUILD_TYPE: release
+
+      - name: Build macOS packages
+        run: npx electron-builder --mac dmg zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-macOS-dmg-${{ github.sha }}
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-macOS-zip-${{ github.sha }}
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "## macOS Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          for f in dist/*.dmg dist/*.zip; do
+            [ -f "$f" ] && echo "- **$(basename $f):** $(du -sh $f | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> Unsigned build — macOS will show a Gatekeeper warning on first open. Right-click → Open to bypass." >> $GITHUB_STEP_SUMMARY
+
+  windows:
+    name: Build Windows (portable)
+    runs-on: windows-latest
+    if: ${{ github.event.inputs.platforms == '' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Write build info
+        run: node scripts/write-build-info.js release
+
+      - name: Build React bundle
+        run: npm run build
+        env:
+          VITE_BUILD_TYPE: release
+
+      - name: Build Windows portable
+        run: npx electron-builder --win portable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-Windows-portable-${{ github.sha }}
+          path: dist/*-portable.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "## Windows Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          for f in dist/*-portable.exe; do
+            [ -f "$f" ] && echo "- **$(basename $f):** $(du -sh $f | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          done
+
+  linux:
+    name: Build Linux (AppImage / deb / tar.gz)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.platforms == '' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            libopenjp2-tools \
+            rpm \
+            fakeroot
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Write build info
+        run: node scripts/write-build-info.js release
+
+      - name: Build React bundle
+        run: npm run build
+        env:
+          VITE_BUILD_TYPE: release
+
+      - name: Build Linux packages
+        run: npx electron-builder --linux AppImage deb tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-Linux-AppImage-${{ github.sha }}
+          path: dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-Linux-deb-${{ github.sha }}
+          path: dist/*.deb
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload tar.gz
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-Linux-tar-${{ github.sha }}
+          path: dist/*.tar.gz
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "## Linux Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          for f in dist/*.AppImage dist/*.deb dist/*.tar.gz; do
+            [ -f "$f" ] && echo "- **$(basename $f):** $(du -sh $f | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          done

@@ -77,9 +77,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Xylonic-Android-release-${{ github.sha }}
-          path: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
           retention-days: 14
 
       - name: APK size info

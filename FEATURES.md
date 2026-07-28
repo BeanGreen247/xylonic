@@ -270,10 +270,13 @@
 - [x] Mode-aware cover art lookahead — 4/2/0 songs ahead (normal/performance/power-saver); native artwork preload skipped in power-saver
 - [x] Performance + power-saver CSS hardening — text-shadow/font-smoothing disabled in performance mode; pixelated image rendering in power-saver mode
 
+- [x] iOS support — CI builds unsigned device IPA on every push; install via Sideloadly on Windows (see [IOS_SETUP.md](IOS_SETUP.md))
+- [x] macOS desktop build — `.dmg` + `.zip` for Intel and Apple Silicon via GitHub Actions
+- [x] Full CI pipeline — Android APK, iOS IPA, Windows portable, Linux AppImage/deb/tar.gz, macOS dmg/zip all built automatically on push
+
 ### Planned
 
 #### Player
-- [ ] iOS support — native Capacitor app for iPhone/iPad (see [IOS_SETUP.md](IOS_SETUP.md))
 - [ ] Crossfade between tracks
 - [ ] Equalizer with presets
 - [ ] Replay Gain / volume normalisation

@@ -1,8 +1,8 @@
-# Xylonic — iOS Build Guide
+# Xylonic — iOS Install Guide
 
 ← [Back to README](README.md)
 
-This guide covers everything needed to build and install Xylonic on an iPhone or iPad.
+Xylonic builds iOS IPAs automatically on every push via GitHub Actions. Since the build runs on a macOS CI runner you never need a Mac locally. This guide covers how to get those builds onto your iPhone.
 
 ---
 
@@ -10,200 +10,168 @@ This guide covers everything needed to build and install Xylonic on an iPhone or
 
 | Step | Where | Time |
 |---|---|---|
-| Install `@capacitor/ios` | Linux (already done) | ~1 min |
-| First scaffold (`npx cap add ios`) | macOS or GitHub Actions | ~5 min |
-| Subsequent builds | GitHub Actions (automatic) | ~10 min |
-| Install on device | AltStore (free) | ~2 min |
+| Build triggers automatically | GitHub Actions (macOS runner) | ~10 min |
+| Download IPA | `scripts/download-ios-ipa.sh` or Actions tab | ~1 min |
+| Sign + install | Sideloadly on Linux | ~2 min |
+| Trust developer cert | iPhone Settings | ~30 sec |
+| Re-sign (every 7 days) | Sideloadly, phone plugged in | ~1 min |
 
 ---
 
 ## Prerequisites
 
-### What you need
-
-**A free Apple ID** — you almost certainly have one. This gets you personal sideloading with no cost.
-
-**Xcode 16+** — only runs on macOS. Free from the Mac App Store. Required to compile iOS apps. Since you're on Linux, GitHub Actions provides this for free (see [Building with GitHub Actions](#building-with-github-actions)).
-
-**CocoaPods** — Ruby gem required by Capacitor iOS. Pre-installed on GitHub Actions macOS runners.
-
-**Apple Developer Program ($99/year)** — only needed if you want to distribute on the App Store or use TestFlight to share with others. Not required for personal use or AltStore sideloading.
+- **Free Apple ID** — no paid developer account needed
+- **Sideloadly** (Windows or macOS) — download from [sideloadly.io](https://sideloadly.io). There is no Linux version; signing must be done from a Windows or macOS machine.
+- **`gh` CLI** (optional, Linux or Windows) — only needed for the download script; install via `sudo apt install gh` or from [cli.github.com](https://cli.github.com)
+- **USB cable** — iPhone must be plugged in to the Windows machine for signing
 
 ---
 
-## Installing on Your iPhone — AltStore (Recommended, Free)
+## Downloading the IPA
 
-[AltStore](https://altstore.io) is the cleanest free sideloading method. It re-signs your `.ipa` automatically every 7 days over WiFi, so you don't have to manually re-install.
+### Option A — Download script (Linux or Windows/WSL)
 
-### Setup (one-time)
+```bash
+bash scripts/download-ios-ipa.sh
+```
 
-1. **Install AltServer** on your computer:
-   - **Linux:** [AltServer-Linux](https://github.com/NyaMisty/AltServer-Linux) (community port, works well)
-   - **Windows/Mac:** [altstore.io](https://altstore.io) → Download AltServer
+This uses the `gh` CLI to find the latest successful iOS build, download the IPA artifact, and print the file path. See [`scripts/download-ios-ipa.sh`](scripts/download-ios-ipa.sh) for what it does.
 
-2. **Install AltStore on your iPhone:**
-   - Connect iPhone to computer via USB
-   - Open AltServer → "Install AltStore" → select your iPhone
-   - On iPhone: Settings → General → VPN & Device Management → trust your Apple ID
+By default it saves to `./ios-artifact/`. Pass a custom path as the first argument:
 
-3. **Install Xylonic:**
-   - Download the `.ipa` file from [GitHub Actions artifacts](https://github.com/BeanGreen247/xylonic/actions) (see [Building with GitHub Actions](#building-with-github-actions))
-   - Open AltStore on iPhone → `+` button → select the `.ipa`
-   - Done — Xylonic appears on your home screen
+```bash
+bash scripts/download-ios-ipa.sh ~/Downloads/xylonic-ios
+```
 
-### Auto-refresh (keep the app alive beyond 7 days)
+Once downloaded on Linux, transfer the `.ipa` to your Windows machine (USB drive, shared folder, or just re-download it in the browser on Windows) before the Sideloadly step.
 
-AltStore can auto-refresh apps when your iPhone and computer are on the same WiFi:
-- AltStore → Settings → enable "Background Refresh"
-- AltServer must be running on your computer (or set it to start at login)
+### Option B — Directly in browser on Windows (simplest)
 
----
-
-## Building with GitHub Actions
-
-Since building iOS requires macOS, the easiest path from Linux is to let GitHub Actions do it for free.
-
-### How it works
-
-1. Push to `main` → GitHub spins up a macOS runner
-2. Runner builds the React bundle, installs Capacitor, compiles the Xcode project
-3. Artifact (`.xcarchive` / `.ipa`) appears under the workflow run in the Actions tab
-4. Download and install via AltStore
-
-### First-time setup
-
-The `ios/` directory (the Xcode project) is created automatically on the first CI run if it doesn't exist. After the first successful run:
-
-1. Go to **Actions → iOS Build** on GitHub
-2. Download the `ios-project` artifact
-3. Extract and commit the `ios/` folder to the repo:
-   ```bash
-   # The CI uploads ios/ as an artifact on first run
-   # Unzip it into your repo root then commit
-   git add ios/
-   git commit -m "feat: add Capacitor iOS project scaffold"
-   git push
-   ```
-
-After that, subsequent CI runs skip the scaffold step and just sync + build.
-
-### Triggering a build
-
-- **Automatic:** every push to `main` triggers an iOS build
-- **Manual:** go to Actions → iOS Build → "Run workflow" button
-
-### Downloading the `.ipa`
-
-1. Go to your repo on GitHub → **Actions** tab
+1. Go to your repo → **Actions** tab
 2. Click the latest **iOS Build** run
-3. Scroll to **Artifacts** at the bottom → download `Xylonic-iOS`
-4. Unzip → you get either `Xylonic.ipa` (if signed) or `Xylonic.xcarchive`
-
-> **Unsigned build note:** The free CI build is unsigned. To install via AltStore, AltStore re-signs it with your Apple ID automatically. Just hand the `.ipa` to AltStore.
+3. Scroll to **Artifacts** → download `Xylonic-iOS-debug-unsigned-<sha>`
+4. Unzip — you get `Xylonic-debug-unsigned.ipa`
 
 ---
 
-## Building Locally (requires macOS)
+## Installing on Your iPhone
 
-If you get access to a Mac:
+> **Sideloadly is Windows/macOS only.** Do the signing step from your Windows machine, not Linux.
+
+### First-time setup (one-off)
+
+1. **Install Sideloadly** on Windows:
+   - Download the installer from [sideloadly.io](https://sideloadly.io) and run it
+
+2. **Trust your computer on the iPhone:**
+   - Plug iPhone in via USB
+   - Tap **Trust** on the iPhone prompt
+
+### Installing the IPA
+
+Do this from your **Windows machine**:
+
+1. Get the `.ipa` onto Windows — either download it directly from the Actions tab in your browser, or copy it over from Linux
+2. Open Sideloadly
+3. Plug iPhone in via USB — it should appear in the device dropdown
+4. Drag the `.ipa` into Sideloadly (or click the app icon area to browse)
+5. Enter your Apple ID email and click **Start**
+6. Sideloadly will prompt for your Apple ID password — it goes directly to Apple, not stored by Sideloadly
+7. Wait for "Done" — Xylonic appears on your home screen
+
+8. **Trust the certificate on iPhone:**
+   Settings → General → VPN & Device Management → your Apple ID → **Trust**
+
+### Re-signing every 7 days
+
+Free Apple ID certificates expire after 7 days. To refresh from Windows:
+
+1. Plug iPhone in via USB
+2. Open Sideloadly — Xylonic should still be listed
+3. Click **Start** again with the same IPA
+4. Done — no reinstall, data is preserved
+
+> To avoid doing this manually, set up **SideStore** (see [Upgrading to SideStore](#upgrading-to-sidestore) below).
+
+---
+
+## Upgrading to SideStore
+
+SideStore is an on-device app manager that refreshes certificates automatically over Wi-Fi — no cable, no desktop app needed after setup.
+
+**Install SideStore via Sideloadly** (one-time):
+
+1. Download the SideStore IPA from [sidestore.io](https://sidestore.io)
+2. Install it the same way as Xylonic above
+3. Open SideStore on iPhone and follow the setup (it needs an anisette server URL — the SideStore docs have a public one)
+
+Once SideStore is running, you can install and refresh Xylonic directly from SideStore without touching your Linux machine.
+
+---
+
+## What the CI produces
+
+The iOS workflow (`ios.yml`) runs on every push to `main` and on manual dispatch:
+
+- Scaffolds `ios/` via `npx cap add ios` if not yet committed to the repo
+- Syncs the React bundle into the Xcode project (`npx cap sync ios`)
+- Archives for real device (`-sdk iphoneos`, arm64)
+- Packages into an **unsigned IPA** (the `.app` bundle zipped into `Payload/`)
+- Uploads the IPA as a GitHub Actions artifact (retained 14 days)
+
+The IPA is unsigned because Apple does not allow CI runners to hold valid distribution certificates for free accounts. Sideloadly or SideStore handle the signing step locally using your Apple ID.
+
+### Triggering a build manually
+
+Go to **Actions → iOS Build → Run workflow** — choose `debug` (default) or `release`.
+
+### First-time scaffold
+
+On the very first run, `ios/` doesn't exist in the repo yet. The CI scaffolds it and uploads it as an artifact called `ios-project-scaffold`. Download that, unzip it into the repo root, and commit it:
 
 ```bash
-# Prerequisites (run once on the Mac)
-xcode-select --install
-sudo gem install cocoapods
-
-# Clone the repo and install deps
-git clone https://github.com/BeanGreen247/xylonic.git
-cd xylonic
-npm install
-
-# Scaffold iOS project (run once if ios/ doesn't exist)
-npm run ios:setup
-
-# Open in Xcode for signing + first run
-npm run ios:open
-
-# Or build from command line
-npm run ios:build          # simulator build (no signing needed)
-npm run ios:build:release  # device build (requires signing in Xcode first)
+git add ios/
+git commit -m "feat: add Capacitor iOS scaffold"
+git push
 ```
 
-### Manual `xcodebuild` commands
-
-```bash
-# Build for iOS Simulator (no signing, instant)
-xcodebuild -workspace ios/App/App.xcworkspace \
-  -scheme App \
-  -sdk iphonesimulator \
-  -configuration Debug \
-  build \
-  CODE_SIGNING_ALLOWED=NO
-
-# Archive for real device
-xcodebuild archive \
-  -workspace ios/App/App.xcworkspace \
-  -scheme App \
-  -sdk iphoneos \
-  -configuration Release \
-  -archivePath ./Xylonic.xcarchive
-
-# Export .ipa from archive
-xcodebuild -exportArchive \
-  -archivePath ./Xylonic.xcarchive \
-  -exportPath ./Xylonic-ipa \
-  -exportOptionsPlist ios/ExportOptions.plist
-```
+After that, future runs skip the scaffold step.
 
 ---
 
 ## Native Plugin Status
 
-The web layer (React/TypeScript) works on iOS out of the box. Native functionality requires Swift plugins equivalent to the Android Java ones:
+The web layer (React/TypeScript) runs on iOS immediately. These features need native Swift plugins that are planned but not yet written:
 
-| Feature | Android Plugin | iOS Status |
+| Feature | Android plugin | iOS status |
 |---|---|---|
-| Lock-screen controls (play/pause, skip) | `MediaControlPlugin.java` | 🔲 Planned — `MPNowPlayingInfoCenter` |
-| Background audio | `MusicService.java` | 🔲 Planned — `AVAudioSession` + Info.plist |
-| Background downloads | `NativeDownloaderPlugin.java` | 🔲 Planned — `URLSession` background tasks |
-| Download notification | `DownloadNotificationPlugin.java` | 🔲 Planned — `UNUserNotificationCenter` |
-| LAN remote discovery | `RemoteDiscoveryPlugin.java` | 🔲 Planned — `Network.framework` |
+| Lock-screen controls | `MediaControlPlugin.java` | Planned — `MPNowPlayingInfoCenter` |
+| Background audio | `MusicService.java` | Planned — `AVAudioSession` + Info.plist |
+| Background downloads | `NativeDownloaderPlugin.java` | Planned — `URLSession` background tasks |
+| Download notifications | `DownloadNotificationPlugin.java` | Planned — `UNUserNotificationCenter` |
+| LAN remote discovery | `RemoteDiscoveryPlugin.java` | Planned — `Network.framework` |
 
-> Until native plugins are ported, the app runs as a full-featured web app inside WKWebView. Playback, library browsing, downloading, themes, search, and most UI features work immediately. Background audio and lock-screen controls require the native plugins.
+Until those are ported, Xylonic runs as a full-featured web app inside WKWebView. Playback, library browsing, offline downloads, search, and most UI features work. Background audio and lock-screen controls require the native plugins.
 
 ---
 
 ## Distribution Options
 
-| Method | Cost | Who can install | Re-sign needed |
+| Method | Cost | Certificate expires | Notes |
 |---|---|---|---|
-| **AltStore** (sideload) | Free | You + people you share `.ipa` with | Every 7 days (auto) |
-| **Sideloadly** | Free | Same as AltStore | Every 7 days (manual) |
-| **TestFlight** | $99/yr Apple Dev | Up to 10,000 testers | Never |
-| **App Store** | $99/yr Apple Dev | Everyone | Never |
-
----
-
-## Capacitor Config (iOS section)
-
-The `capacitor.config.ts` already includes the iOS section:
-
-```typescript
-ios: {
-    scheme: 'Xylonic',
-    contentInset: 'always',
-},
-```
-
-The `Info.plist` background modes (`audio`, `fetch`) are set during the Xcode project setup to enable background audio and background downloads.
+| **Sideloadly** | Free | 7 days | Manual refresh via USB |
+| **SideStore** | Free | 7 days | Auto-refresh over Wi-Fi |
+| **TestFlight** | $99/yr | 90 days | Up to 10,000 testers |
+| **App Store** | $99/yr | Never | Public distribution |
 
 ---
 
 ## npm Scripts Reference
 
 ```bash
-npm run ios:setup         # scaffold ios/ if missing + sync web assets
-npm run ios:sync          # build React + cap sync ios (use after code changes)
-npm run ios:open          # open ios/App/App.xcworkspace in Xcode
-npm run ios:build         # sync + build for simulator (no signing needed)
-npm run ios:build:release # sync + archive for real device
+npm run ios:setup          # scaffold ios/ if missing + sync
+npm run ios:sync           # build React + cap sync ios
+npm run ios:open           # open Xcode project (requires macOS)
+npm run ios:build          # sync + build
+npm run ios:build:release  # sync + archive (release)
 ```

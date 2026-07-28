@@ -2,6 +2,20 @@
 
 All notable changes to Xylonic are documented here.
 
+## [26.7.28] - 2026-07-28
+
+### Added
+- **Desktop CI workflow** (`.github/workflows/desktop.yml`) — parallel jobs build all desktop targets on every push to `main`: Windows portable `.exe`, Linux AppImage + deb + tar.gz, macOS `.dmg` + `.zip` (x64 + arm64); manual dispatch has a per-platform selector
+- **macOS electron-builder config** — `electron-builder.json` now has a `mac` section with dmg + zip targets for both Intel (`x64`) and Apple Silicon (`arm64`); icon auto-generated from `assets/icon.png` on the macOS runner
+- **`scripts/download-ios-ipa.sh`** — uses `gh` CLI to find the latest successful iOS CI run, download the IPA artifact, and print the exact file path + Sideloadly instructions; run with `bash scripts/download-ios-ipa.sh [output-dir]`
+
+### Changed
+- **iOS CI** (`ios.yml`) — debug build now targets real device (`-sdk iphoneos`) instead of the simulator; both debug and release paths archive and package into an unsigned `.ipa` (Payload zip) ready for Sideloadly; `xcpretty` installed alongside CocoaPods; `set -o pipefail` on all `xcodebuild` steps so real failures are no longer masked
+- **Android CI** (`android.yml`) — release APK upload uses `*.apk` glob instead of two explicit paths; added `if-no-files-found: warn` so the step doesn't hard-fail when only the unsigned variant exists
+- **IOS_SETUP.md** — rewritten to reflect the Sideloadly-on-Windows install flow, correct the Linux limitation (Sideloadly is Windows/macOS only), document the 7-day refresh cycle, and reference the download script
+
+---
+
 ## [26.7.22] - 2026-07-22
 
 ### Fixed

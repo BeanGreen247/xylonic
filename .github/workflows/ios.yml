@@ -38,17 +38,15 @@ jobs:
         env:
           VITE_BUILD_TYPE: ${{ github.event.inputs.build_type || 'debug' }}
 
-      - name: Install CocoaPods
-        run: sudo gem install cocoapods --no-document
+      - name: Install CocoaPods and xcpretty
+        run: sudo gem install cocoapods xcpretty --no-document
 
       - name: Scaffold iOS project (first time only)
         run: |
           if [ ! -d "ios" ]; then
-            echo "ios/ not found — running npx cap add ios..."
             npx cap add ios
             echo "IOS_SCAFFOLDED=true" >> $GITHUB_ENV
           else
-            echo "ios/ already exists — skipping scaffold"
             echo "IOS_SCAFFOLDED=false" >> $GITHUB_ENV
           fi
 
@@ -61,33 +59,61 @@ jobs:
             cd ios/App && pod install
           fi
 
-      - name: Build for Simulator (debug)
+      - name: Archive (debug)
         if: ${{ github.event.inputs.build_type != 'release' }}
         run: |
-          xcodebuild \
+          set -o pipefail
+          xcodebuild archive \
             -workspace ios/App/App.xcworkspace \
             -scheme App \
-            -sdk iphonesimulator \
+            -sdk iphoneos \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
-            build \
+            -archivePath $RUNNER_TEMP/Xylonic-debug.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            | xcpretty --color || true
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color
 
-      - name: Archive for device (release, unsigned)
+      - name: Archive (release)
         if: ${{ github.event.inputs.build_type == 'release' }}
         run: |
+          set -o pipefail
           xcodebuild archive \
             -workspace ios/App/App.xcworkspace \
             -scheme App \
             -sdk iphoneos \
             -configuration Release \
-            -archivePath $RUNNER_TEMP/Xylonic.xcarchive \
+            -archivePath $RUNNER_TEMP/Xylonic-release.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            | xcpretty --color || true
+            | xcpretty --color
+
+      - name: Package unsigned IPA (debug)
+        if: ${{ github.event.inputs.build_type != 'release' }}
+        run: |
+          mkdir -p $RUNNER_TEMP/Payload
+          cp -r "$RUNNER_TEMP/Xylonic-debug.xcarchive/Products/Applications/App.app" \
+                "$RUNNER_TEMP/Payload/"
+          cd $RUNNER_TEMP && zip -r Xylonic-debug-unsigned.ipa Payload/
+          echo "IPA_PATH=$RUNNER_TEMP/Xylonic-debug-unsigned.ipa" >> $GITHUB_ENV
+
+      - name: Package unsigned IPA (release)
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        run: |
+          mkdir -p $RUNNER_TEMP/Payload
+          cp -r "$RUNNER_TEMP/Xylonic-release.xcarchive/Products/Applications/App.app" \
+                "$RUNNER_TEMP/Payload/"
+          cd $RUNNER_TEMP && zip -r Xylonic-release-unsigned.ipa Payload/
+          echo "IPA_PATH=$RUNNER_TEMP/Xylonic-release-unsigned.ipa" >> $GITHUB_ENV
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-iOS-${{ github.event.inputs.build_type || 'debug' }}-unsigned-${{ github.sha }}
+          path: ${{ env.IPA_PATH }}
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload iOS scaffold (if first-time)
         if: env.IOS_SCAFFOLDED == 'true'
@@ -97,14 +123,6 @@ jobs:
           path: ios/
           retention-days: 30
 
-      - name: Upload archive (release)
-        if: ${{ github.event.inputs.build_type == 'release' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: Xylonic-iOS-${{ github.sha }}
-          path: ${{ runner.temp }}/Xylonic.xcarchive
-          retention-days: 14
-
       - name: Summary
         run: |
           echo "## iOS Build Complete" >> $GITHUB_STEP_SUMMARY
@@ -112,17 +130,25 @@ jobs:
           echo "- **Build type:** ${{ github.event.inputs.build_type || 'debug' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          IPA=$(basename "$IPA_PATH")
+          SIZE=$(du -sh "$IPA_PATH" | cut -f1)
+          echo "- **IPA:** $IPA ($SIZE)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installing on your iPhone" >> $GITHUB_STEP_SUMMARY
+          echo "This is an **unsigned** IPA — it needs to be signed with your Apple ID before it will run." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**With Sideloadly (Linux AppImage):**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download the IPA artifact" >> $GITHUB_STEP_SUMMARY
+          echo "2. Open Sideloadly, drag the IPA in, plug in iPhone via USB" >> $GITHUB_STEP_SUMMARY
+          echo "3. Sign in with your Apple ID — Sideloadly signs and installs in one step" >> $GITHUB_STEP_SUMMARY
+          echo "4. Trust the developer on iPhone: Settings → General → VPN & Device Management" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> Free Apple ID certificate expires every 7 days. Replug and re-run Sideloadly to refresh." >> $GITHUB_STEP_SUMMARY
           if [ "$IOS_SCAFFOLDED" = "true" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "### First-time setup" >> $GITHUB_STEP_SUMMARY
-            echo "The \`ios/\` project was scaffolded for the first time." >> $GITHUB_STEP_SUMMARY
-            echo "Download the **ios-project-scaffold** artifact and commit it to your repo:" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-            echo "# Unzip artifact into repo root, then:" >> $GITHUB_STEP_SUMMARY
-            echo "git add ios/" >> $GITHUB_STEP_SUMMARY
-            echo "git commit -m 'feat: add Capacitor iOS project scaffold'" >> $GITHUB_STEP_SUMMARY
-            echo "git push" >> $GITHUB_STEP_SUMMARY
+            echo "The \`ios/\` project was scaffolded this run. Download **ios-project-scaffold** and commit it:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "git add ios/ && git commit -m 'feat: add Capacitor iOS scaffold' && git push" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Install on iPhone: download artifact → open AltStore → + → select .ipa" >> $GITHUB_STEP_SUMMARY
-          echo "See [IOS_SETUP.md](IOS_SETUP.md) for AltStore setup instructions." >> $GITHUB_STEP_SUMMARY

@@ -57,6 +57,25 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true
   },
+  "mac": {
+    "icon": "assets/icon.png",
+    "category": "public.app-category.music",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "artifactName": "${productName}-${version}-${arch}.${ext}"
+  },
+  "dmg": {
+    "title": "${productName} ${version}",
+    "writeUpdateInfo": false
+  },
   "linux": {
     "icon": "assets/icon.png",
     "target": [

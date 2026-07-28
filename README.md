@@ -4,7 +4,7 @@
   <img src="assets/icon.png" alt="Xylonic Logo" width="96"/>
 </p>
 
-A modern, beautiful music player for Subsonic-compatible servers with a Spotify-like UI, extensive customization, and native mobile support. Available on Windows, Linux (Electron), Android (Capacitor), and iOS (coming soon).
+A modern, beautiful music player for Subsonic-compatible servers with a Spotify-like UI, extensive customization, and native mobile support. Available on Windows, Linux, macOS (Electron), Android (Capacitor), and iOS (Capacitor — sideloaded via CI).
 
 **Version:** 26.7.17  
 **Author:** BeanGreen247  
@@ -21,7 +21,7 @@ For the complete feature list and roadmap see **[FEATURES.md](FEATURES.md)**.
 - Now Playing: ambient blurred art, three-card carousel, audio stats, dynamic art sizing; repeat persists across restarts
 - 12 themes + custom editor · Last.fm scrobbling · sleep timer
 - Virtual scrolling · web-worker search · MPRIS2 (Linux) · mode-aware image cache
-- iOS support coming soon — see [IOS_SETUP.md](IOS_SETUP.md)
+- iOS support via GitHub Actions CI — unsigned IPA built on every push, installed via Sideloadly; see [IOS_SETUP.md](IOS_SETUP.md)
 
 ## Screenshots
 
@@ -195,14 +195,25 @@ npm run android:build:both      # both
 
 ### Build for iOS
 
-> **Requires macOS** with Xcode 16+ for local builds. On Linux, use the [GitHub Actions iOS workflow](.github/workflows/ios.yml) instead.
+iOS builds run automatically on every push to `main` via GitHub Actions (macOS runner). A signed local Xcode setup is not required.
 
-See **[IOS_SETUP.md](IOS_SETUP.md)** for full setup instructions including AltStore sideloading.
+See **[IOS_SETUP.md](IOS_SETUP.md)** for the full install process — CI produces an unsigned IPA that you sign and install using **Sideloadly on Windows**.
 
 ```bash
-npm run ios:build          # debug (simulator)
-npm run ios:build:release  # release archive
-npm run ios:open           # open in Xcode
+# Download latest IPA from CI (requires gh CLI)
+bash scripts/download-ios-ipa.sh
+
+npm run ios:sync           # sync React build into Xcode project
+npm run ios:open           # open in Xcode (requires macOS)
+```
+
+### Build for macOS
+
+macOS builds (`.dmg` + `.zip`, Intel + Apple Silicon) also run via GitHub Actions. Trigger manually at **Actions → Desktop Build → Run workflow → macos**.
+
+Local build (requires macOS):
+```bash
+npm run electron:build:mac
 ```
 
 ### Manual Pre-Build Cleanup
@@ -711,4 +722,4 @@ For issues, questions, or feature requests:
 
 **Built with love for music lovers who want a modern, beautiful, and customizable way to stream their Subsonic library.**
 
-**v26.7.16** - Queue & position persistence across restarts; offline mode memory (no redundant "Mobile Data Detected" prompt); swipe/drag-down to close Now Playing on Android large screen and desktop; iOS build support via GitHub Actions; Android GitHub Actions CI; FEATURES.md and IOS_SETUP.md added
+**v26.7.28** - Full CI pipeline: Android APK, iOS unsigned IPA (device build, Sideloadly), Windows portable, Linux AppImage/deb/tar.gz, macOS dmg/zip (Intel + Apple Silicon); `scripts/download-ios-ipa.sh`; IOS_SETUP.md rewritten

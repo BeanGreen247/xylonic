@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -59,12 +59,24 @@ jobs:
             cd ios/App && pod install
           fi
 
+      - name: Detect Xcode project type
+        run: |
+          if [ -f "ios/App/App.xcworkspace" ]; then
+            echo "XCODE_BUILD_FLAG=-workspace" >> $GITHUB_ENV
+            echo "XCODE_BUILD_PATH=ios/App/App.xcworkspace" >> $GITHUB_ENV
+            echo "Detected: CocoaPods workspace"
+          else
+            echo "XCODE_BUILD_FLAG=-project" >> $GITHUB_ENV
+            echo "XCODE_BUILD_PATH=ios/App/App.xcodeproj" >> $GITHUB_ENV
+            echo "Detected: SPM project (Capacitor 8 default)"
+          fi
+
       - name: Archive (debug)
         if: ${{ github.event.inputs.build_type != 'release' }}
         run: |
           set -o pipefail
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
+            $XCODE_BUILD_FLAG $XCODE_BUILD_PATH \
             -scheme App \
             -sdk iphoneos \
             -configuration Debug \
@@ -79,7 +91,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
+            $XCODE_BUILD_FLAG $XCODE_BUILD_PATH \
             -scheme App \
             -sdk iphoneos \
             -configuration Release \

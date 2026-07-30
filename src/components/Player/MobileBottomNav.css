@@ -151,37 +151,4 @@
         color: var(--primary-color);
     }
 
-    /* ── iOS 26 Liquid Glass ── */
-    body.ios-platform .mobile-bottom-nav {
-        background: rgba(22, 22, 26, 0.55);
-        backdrop-filter: blur(24px) saturate(160%);
-        -webkit-backdrop-filter: blur(24px) saturate(160%);
-        border-top: 1px solid rgba(255, 255, 255, 0.18);
-        box-shadow:
-            0 -1px 0 rgba(255, 255, 255, 0.06),
-            0 -12px 40px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Specular rim — bright gradient streak at the very top of the bar */
-    body.ios-platform .mobile-bottom-nav::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 8px;
-        right: 8px;
-        height: 1px;
-        background: linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.35) 25%,
-            rgba(255, 255, 255, 0.45) 50%,
-            rgba(255, 255, 255, 0.35) 75%,
-            transparent 100%
-        );
-        pointer-events: none;
-    }
-
-    body.ios-platform .mobile-nav-btn.active {
-        color: var(--primary-light);
-    }
 }

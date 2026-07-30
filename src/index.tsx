@@ -26,6 +26,7 @@ initPowerSaverMode();
 
 if (Capacitor.getPlatform() === 'ios') {
   document.body.classList.add('ios-platform');
+  console.log(`[Xylonic] iOS viewport ${window.innerWidth}×${window.innerHeight} dpr=${window.devicePixelRatio}`);
 }
 
 const container = document.getElementById('root');

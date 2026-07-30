@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
   },
   ios: {
     scheme: 'Xylonic',
-    contentInset: 'always',
+    contentInset: 'never',
   },
   plugins: {
     // Capacitor Preferences - used by the color-config bridge

@@ -14,9 +14,7 @@ const config: CapacitorConfig = {
   },
   ios: {
     scheme: 'Xylonic',
-    // viewport-fit=cover + env(safe-area-inset-*) in CSS handles all insets.
-    // 'always' conflicts with viewport-fit=cover by double-applying insets.
-    contentInset: 'never',
+    contentInset: 'always',
   },
   plugins: {
     // Capacitor Preferences - used by the color-config bridge

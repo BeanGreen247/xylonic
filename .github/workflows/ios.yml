@@ -53,6 +53,15 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync ios
 
+      - name: Inject custom app icon
+        run: |
+          ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          mkdir -p "$ICONSET"
+          cp resources/ios-icons/AppIcon.png        "$ICONSET/AppIcon.png"
+          cp resources/ios-icons/AppIcon~dark.png   "$ICONSET/AppIcon~dark.png"
+          cp resources/ios-icons/AppIcon~tinted.png "$ICONSET/AppIcon~tinted.png"
+          cp resources/ios-icons/Contents.json      "$ICONSET/Contents.json"
+
       - name: Install CocoaPods dependencies
         run: |
           if [ -f "ios/App/Podfile" ]; then

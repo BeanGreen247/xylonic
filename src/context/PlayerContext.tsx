@@ -877,6 +877,23 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
         if (!currentSong.coverArt) return;
 
+        // iOS fast path: MPNowPlayingInfoCenter loads HTTPS URLs natively.
+        // CapacitorHttp intercepts fetch() and response.blob() can return
+        // malformed data, so avoid the data-URL conversion path entirely.
+        if (Capacitor.getPlatform() === 'ios' && !offlineCacheService.getConfig().enabled) {
+            const { username, password, serverUrl } = getFromStorage();
+            if (username && password && serverUrl) {
+                const artUrl = getCoverArtUrl(serverUrl, username, password, currentSong.coverArt!, 512);
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title:   currentSong.title,
+                    artist:  currentSong.artist,
+                    album:   currentSong.album,
+                    artwork: [{ src: artUrl, sizes: '512x512', type: 'image/jpeg' }],
+                });
+            }
+            return;
+        }
+
         const controller = new AbortController();
 
         (async () => {
@@ -906,7 +923,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                     } catch { /* fall through to Subsonic fetch */ }
                 }
 
-                // ── Level 3 (Electron) / only path (Capacitor): fetch → data URL ──
+                // ── Level 3 (Electron) / web fallback: fetch → data URL ──
                 if (!artSrc && !offlineCacheService.getConfig().enabled) {
                     const { username, password, serverUrl } = getFromStorage();
                     if (username && password && serverUrl) {

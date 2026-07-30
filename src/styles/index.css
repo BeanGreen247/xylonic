@@ -3010,10 +3010,14 @@ body.power-saver-mode .album-art {
        otherwise collapse button content to (56 - env()) px.
    ─────────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
-    /* Push all content below Dynamic Island and above home-indicator strip */
+    /* Push all content below Dynamic Island and above home-indicator strip.
+       overflow-x: hidden prevents any fixed child from expanding the layout
+       viewport beyond 100vw, which would make the nav appear wider than the
+       screen on WKWebView. */
     body.ios-platform .app {
         padding-top: env(safe-area-inset-top, 0px);
         padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+        overflow-x: hidden;
     }
 
     /* Header: horizontal safe areas only — height stays 56px */

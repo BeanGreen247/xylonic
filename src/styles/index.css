@@ -2999,39 +2999,33 @@ body.power-saver-mode .album-art {
 
 /* ─── iOS safe-area layout ─────────────────────────────────────────────────────
    Requires: viewport-fit=cover in HTML meta (env() returns 0 without it).
-   Requires: contentInset: 'never' in capacitor.config.ts (no native insets
-             fighting CSS — CSS env() is the single source of truth).
-   All four safe-area edges handled; env() 0-fallback is safe on non-iOS.
+   Requires: contentInset: 'never' in capacitor.config.ts (CSS is sole authority).
+   Strategy:
+     - Vertical: .app padding-top/bottom push all children into the safe area.
+       Header stays 56px — NOT extended behind the Dynamic Island.
+     - Horizontal: padding on .header/.main-content only; NOT on .app itself
+       (which would create background-colour gaps at the screen edges).
+     - Nav: shifted up via bottom: env() and a ::after fills the home-indicator
+       strip below. Nav height is never changed — border-box + padding would
+       otherwise collapse button content to (56 - env()) px.
    ─────────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
-    /* Header extends behind Dynamic Island; content starts below it */
-    body.ios-platform .header {
-        height: calc(56px + env(safe-area-inset-top, 0px)) !important;
-        min-height: calc(56px + env(safe-area-inset-top, 0px)) !important;
-        padding-top: env(safe-area-inset-top, 0px);
-        padding-left: calc(12px + env(safe-area-inset-left, 0px)) !important;
-        padding-right: calc(12px + env(safe-area-inset-right, 0px)) !important;
-    }
-
-    /* App scrollable area: inset from bottom to clear nav + home indicator */
+    /* Push all content below Dynamic Island and above home-indicator strip */
     body.ios-platform .app {
+        padding-top: env(safe-area-inset-top, 0px);
         padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
     }
 
-    /* Main content: respect horizontal safe areas */
-    body.ios-platform .main-content {
+    /* Header: horizontal safe areas only — height stays 56px */
+    body.ios-platform .header {
         padding-left: calc(12px + env(safe-area-inset-left, 0px)) !important;
         padding-right: calc(12px + env(safe-area-inset-right, 0px)) !important;
     }
 
-    /* Bottom nav: height grows with home indicator so buttons stay full-height.
-       height: 56px + padding-bottom: 34px with border-box collapses button area
-       to 22px — the calc on height prevents that. */
-    body.ios-platform .mobile-bottom-nav {
-        height: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-        padding-left: env(safe-area-inset-left, 0px);
-        padding-right: env(safe-area-inset-right, 0px);
+    /* Main content: horizontal safe areas */
+    body.ios-platform .main-content {
+        padding-left: calc(12px + env(safe-area-inset-left, 0px)) !important;
+        padding-right: calc(12px + env(safe-area-inset-right, 0px)) !important;
     }
 }
 

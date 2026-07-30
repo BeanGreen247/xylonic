@@ -482,18 +482,23 @@
   min-width: 0;
 }
 
-/* ── Mobile: full-screen, horizontal scrollable tab bar ── */
+/* ── Mobile: bottom sheet, horizontal scrollable tab bar ── */
 @media (max-width: 767px) {
   .lic-modal {
-    width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    top: 0;
+    /* Bottom sheet — same pattern as .quality-picker-modal on mobile */
+    width: 100%;
+    height: auto;
+    max-height: 82vh;
+    top: auto;
     left: 0;
+    right: 0;
+    bottom: 0;
     transform: none;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
+    border-radius: 16px 16px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: none;
+    box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5);
+    animation: qp-slide-up 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .lic-layout {

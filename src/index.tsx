@@ -27,6 +27,14 @@ initPowerSaverMode();
 if (Capacitor.getPlatform() === 'ios') {
   document.body.classList.add('ios-platform');
   console.log(`[Xylonic] iOS viewport ${window.innerWidth}×${window.innerHeight} dpr=${window.devicePixelRatio}`);
+
+  // WKWebView respects maximum-scale=1 in the viewport meta (unlike Safari browser),
+  // but gesture events can still fire before the meta is parsed. Belt-and-suspenders:
+  // block all multi-touch zoom gestures at the JS level too.
+  const blockZoom = (e: Event) => e.preventDefault();
+  document.addEventListener('gesturestart',  blockZoom, { passive: false });
+  document.addEventListener('gesturechange', blockZoom, { passive: false });
+  document.addEventListener('gestureend',    blockZoom, { passive: false });
 }
 
 const container = document.getElementById('root');

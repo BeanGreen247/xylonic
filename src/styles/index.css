@@ -63,6 +63,12 @@ input, textarea, [contenteditable="true"] {
     -webkit-user-select: text;
 }
 
+html {
+    width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+}
+
 body {
     font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -2380,6 +2386,10 @@ body {
     /* Hide buttons that live in the bottom nav on mobile */
     .mini-player-button,
     .help-button { display: none !important; }
+
+    /* Hide desktop-only links — no action on iOS native */
+    .github-link,
+    .support-link { display: none !important; }
 
     /* Tighter header buttons */
     .header-right { gap: 6px; }

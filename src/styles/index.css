@@ -2986,6 +2986,25 @@ body.power-saver-mode .album-art {
     }
 }
 
+/* ─── iOS safe-area layout ───────────────────────────────────────────────────────
+   Requires viewport-fit=cover in the HTML meta tag.
+   Applied only when body.ios-platform is set (see index.tsx).
+   ─────────────────────────────────────────────────────────────────────────────── */
+
+/* Extend mobile header down from the status bar / Dynamic Island */
+@media (max-width: 767px) {
+    body.ios-platform .header {
+        padding-top: env(safe-area-inset-top, 0px);
+        height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+        min-height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    }
+
+    /* App bottom padding must cover nav bar height + home indicator */
+    body.ios-platform .app {
+        padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
 /* ─── Very narrow phones (≤ 360px wide, e.g. 480×800 @240dpi) ──────────────────── */
 @media (max-width: 360px) {
     /* Slimmer app title so it doesn't crowd header buttons */

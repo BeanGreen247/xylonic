@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import './styles/index.css';
 import App from './App';
@@ -22,6 +23,10 @@ axios.interceptors.response.use(
 // Power saver takes precedence: run it last so it wins if somehow both are saved.
 initPerformanceMode();
 initPowerSaverMode();
+
+if (Capacitor.getPlatform() === 'ios') {
+  document.body.classList.add('ios-platform');
+}
 
 const container = document.getElementById('root');
 const root = createRoot(container!);

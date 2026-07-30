@@ -10,9 +10,13 @@ All notable changes to Xylonic are documented here.
 - **`scripts/download-ios-ipa.sh`** — uses `gh` CLI to find the latest successful iOS CI run, download the IPA artifact, and print the exact file path + Sideloadly instructions; run with `bash scripts/download-ios-ipa.sh [output-dir]`
 
 ### Changed
-- **iOS CI** (`ios.yml`) — debug build now targets real device (`-sdk iphoneos`) instead of the simulator; both debug and release paths archive and package into an unsigned `.ipa` (Payload zip) ready for Sideloadly; `xcpretty` installed alongside CocoaPods; `set -o pipefail` on all `xcodebuild` steps so real failures are no longer masked
-- **Android CI** (`android.yml`) — release APK upload uses `*.apk` glob instead of two explicit paths; added `if-no-files-found: warn` so the step doesn't hard-fail when only the unsigned variant exists
+- **iOS CI** (`ios.yml`) — debug build now targets real device (`-sdk iphoneos`) instead of the simulator; both debug and release paths archive and package into an unsigned `.ipa` (Payload zip) ready for Sideloadly; `xcpretty` installed alongside CocoaPods; `set -o pipefail` on all `xcodebuild` steps so real failures are no longer masked; dynamic project-type detection after `cap sync` sets `XCODE_BUILD_FLAG`/`XCODE_BUILD_PATH` to `-workspace`/`.xcworkspace` (CocoaPods) or `-project`/`.xcodeproj` (SPM, Capacitor 8 default) so xcodebuild never fails on a missing workspace file
+- **Android CI** (`android.yml`) — release APK upload uses `*.apk` glob instead of two explicit paths; added `if-no-files-found: warn` so the step doesn't hard-fail when only the unsigned variant exists; Java bumped 17 → 21 (Capacitor Android 8 sets `sourceCompatibility = JavaVersion.VERSION_21`)
+- **All CI workflows** — Node.js bumped 20 → 24 (Node 20 deprecated on GitHub Actions runners; Capacitor CLI also requires ≥ 22)
 - **IOS_SETUP.md** — rewritten to reflect the Sideloadly-on-Windows install flow, correct the Linux limitation (Sideloadly is Windows/macOS only), document the 7-day refresh cycle, and reference the download script
+
+### Known issue
+- **App renders fullscreen with no UI controls on device** — after installing the CI-built IPA on iPhone, the app opens fullscreen but the in-app playback controls and navigation are not visible; media/lock-screen controls do appear and respond, indicating audio and the native media session are working; root cause unknown, to be investigated next session
 
 ---
 

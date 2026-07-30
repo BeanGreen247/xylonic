@@ -3,7 +3,12 @@
 ## In Progress
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
-- [ ] Build and install latest APK (Jul 22: offline audio swap, liked race fix, bridge log throttle; Jul 17: NowPlayingOverlay, repeat persistence, mode-aware cache)
+- [ ] **iOS viewport overflow** — app extends beyond the screen boundaries, behaving like a fullscreen
+      app that ignores safe-area insets; controls exist but are cut off or pushed out of the visible
+      viewport; media/lock-screen controls work fine (audio + native media session functional);
+      suspects: missing `viewport-fit=cover` + `env(safe-area-inset-*)` CSS, Capacitor WKWebView
+      `contentInset` config, or `<meta name="viewport">` not constraining to device width;
+      to investigate Jul 29
 
 ## Backlog
 - [ ] Replace `npm test` — no test runner configured after removing react-scripts; add Vitest if needed
@@ -15,7 +20,10 @@
       (lower priority — ArtistList and AlbumList views cover the main download path)
 - [ ] Compress search index in IndexedDB — `CompressionStream('deflate')` (Chromium built-in) would give 3–5× smaller IDB storage for large libraries; write path stores `ArrayBuffer`; read path handles both compressed v2.0 and legacy v1.0 records for migration
 
+## Done (this cycle, cont.)
+
 ## Done (this cycle)
+- [x] Full CI pipeline (Jul 28): Android APK, iOS unsigned IPA, Windows portable, Linux AppImage/deb/tar.gz, macOS dmg/zip (x64+arm64) all building on push; `scripts/download-ios-ipa.sh` added; IOS_SETUP.md rewritten for Sideloadly-on-Windows; Node bumped to 24, Java to 21
 - [x] Cache integrity verification (Jul 6): `verifyPermanentCache()`, "Verify Cache" button in Download Manager, auto-run after queue drains, live progress + result banner; works on all platforms
 - [x] Download system fixup (Jul 4): 6 correctness bugs fixed
       1. Duplicate event guards: `songDownloaded`/`songFailed` handlers now idempotent

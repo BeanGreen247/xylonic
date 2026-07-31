@@ -2,6 +2,19 @@
 
 All notable changes to Xylonic are documented here.
 
+## [Unreleased]
+
+### Added
+- **`@capacitor/network` plugin** — replaces `navigator.connection` for cellular detection; `navigator.connection` is unsupported in WKWebView (iOS); `Network.getStatus()` + `Network.addListener()` return accurate `connectionType: 'cellular'` via native iOS/Android APIs
+- **`.npmrc` `include=dev`** — devDependencies (vite, typescript, electron, etc.) now install correctly when `NODE_ENV=production` is set in the shell environment, enabling clean `npm install` on any dev machine
+
+### Fixed
+- **Auto-offline on cellular broken** — two root causes: (1) `OfflineModeContext` initial config state was missing `autoOfflineOnCellular: true`, so the field was `undefined` (falsy) when the App.tsx launch effect ran before `initCache()` resolved; (2) `isCellular` was always `false` on iOS because WKWebView doesn't support `navigator.connection`; fixed by seeding `autoOfflineOnCellular: true` in the initial state + logout reset, switching to `@capacitor/network` on native platforms, and adding `cacheInitialized` to the launch effect deps so it re-fires after the saved config is loaded
+- **Album art missing in iOS Control Center / lock screen** — previous "fast path" set an HTTPS URL in `MediaMetadata.artwork`; iOS `MPNowPlayingInfoCenter` then tried to fetch that URL natively, bypassing CapacitorHttp; for HTTP Subsonic servers on a LAN, iOS ATS blocked the request silently; now uses `CapacitorHttp.request({ responseType: 'arraybuffer' })` which bypasses ATS via native URLSession, gets a base64 payload, and constructs a `data:image/jpeg;base64,…` URL so `MPNowPlayingInfoCenter` receives raw image bytes and makes no outbound request
+- **iOS app version mismatch** — `Info.plist` `CFBundleShortVersionString` was never updated in CI (Capacitor scaffolds it with a default); added a `PlistBuddy` step in `ios.yml` after `cap sync` that writes the `package.json` version to both `CFBundleShortVersionString` and `CFBundleVersion`
+
+---
+
 ## [26.7.31] - 2026-07-31
 
 ### Added

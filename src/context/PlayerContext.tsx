@@ -877,19 +877,29 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
         if (!currentSong.coverArt) return;
 
-        // iOS fast path: MPNowPlayingInfoCenter loads HTTPS URLs natively.
-        // CapacitorHttp intercepts fetch() and response.blob() can return
-        // malformed data, so avoid the data-URL conversion path entirely.
+        // iOS fast path: MPNowPlayingInfoCenter fetches artwork natively, bypassing
+        // CapacitorHttp, so HTTP Subsonic URLs are blocked by ATS. Instead, fetch via
+        // CapacitorHttp.request (arraybuffer → base64) and pass a data: URL so no
+        // outbound request is needed at the native layer.
         if (Capacitor.getPlatform() === 'ios' && !offlineCacheService.getConfig().enabled) {
             const { username, password, serverUrl } = getFromStorage();
-            if (username && password && serverUrl) {
+            if (username && password && serverUrl && currentSong.coverArt) {
                 const artUrl = getCoverArtUrl(serverUrl, username, password, currentSong.coverArt!, 512);
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title:   currentSong.title,
-                    artist:  currentSong.artist,
-                    album:   currentSong.album,
-                    artwork: [{ src: artUrl, sizes: '512x512', type: 'image/jpeg' }],
-                });
+                (async () => {
+                    try {
+                        const { CapacitorHttp } = await import('@capacitor/core');
+                        const res = await CapacitorHttp.request({ url: artUrl, method: 'GET', responseType: 'arraybuffer' });
+                        if (res.status !== 200 || !res.data) return;
+                        const dataUrl = `data:image/jpeg;base64,${res.data}`;
+                        if (navigator.mediaSession.metadata?.title !== currentSong.title) return;
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title:   currentSong.title,
+                            artist:  currentSong.artist,
+                            album:   currentSong.album,
+                            artwork: [{ src: dataUrl, sizes: '512x512', type: 'image/jpeg' }],
+                        });
+                    } catch { /* keep text-only metadata */ }
+                })();
             }
             return;
         }

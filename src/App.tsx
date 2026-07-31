@@ -440,7 +440,7 @@ const AppContent: React.FC = () => {
     };
 
     checkOnLaunch();
-  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, cacheInitialized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // React when the browser fires the native offline event (clean disconnect).
   const prevOnlineRef = React.useRef(isOnline);

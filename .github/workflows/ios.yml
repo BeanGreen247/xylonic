@@ -53,6 +53,14 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync ios
 
+      - name: Set iOS version from package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$PLIST"
+          echo "Set iOS version to $VERSION"
+
       - name: Inject custom app icon
         run: |
           ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"

@@ -4,6 +4,8 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Network } from '@capacitor/network';
 import { OfflineModeConfig } from '../types/offline';
 import { offlineCacheService } from '../services/offlineCacheService';
 import { useAuth } from './AuthContext';
@@ -26,10 +28,7 @@ const OfflineModeContext = createContext<OfflineModeContextType | undefined>(und
 export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { isAuthenticated, username, serverUrl } = useAuth();
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [isCellular, setIsCellular] = useState<boolean>(() => {
-    const conn = (navigator as any).connection;
-    return conn?.type === 'cellular';
-  });
+  const [isCellular, setIsCellular] = useState<boolean>(false);
   const offlineTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cacheInitialized, setCacheInitialized] = useState<boolean>(false);
   // Seed enabled from localStorage immediately so the offline guard in PlayerContext
@@ -37,7 +36,8 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [config, setConfig] = useState<OfflineModeConfig>(() => ({
     enabled: localStorage.getItem('offlineMode') === 'true',
     preferCache: true,
-    warnCacheSizeAt: 1000
+    warnCacheSizeAt: 1000,
+    autoOfflineOnCellular: true,
   }));
 
   /**
@@ -123,21 +123,35 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     };
 
-    const conn = (navigator as any).connection;
-    const handleConnectionChange = () => {
-      setIsCellular(conn?.type === 'cellular');
-    };
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     document.addEventListener('visibilitychange', handleVisibility);
-    conn?.addEventListener('change', handleConnectionChange);
+
+    let networkListenerHandle: Promise<{ remove(): void }> | null = null;
+
+    if (Capacitor.isNativePlatform()) {
+      // Use native network plugin for accurate cellular detection on Android/iOS.
+      // navigator.connection is not supported in WKWebView on iOS.
+      Network.getStatus().then(s => setIsCellular(s.connectionType === 'cellular')).catch(() => {});
+      networkListenerHandle = Network.addListener('networkStatusChange', s => {
+        setIsCellular(s.connectionType === 'cellular');
+      });
+    } else {
+      const conn = (navigator as any).connection;
+      const handleConnectionChange = () => setIsCellular(conn?.type === 'cellular');
+      setIsCellular(conn?.type === 'cellular');
+      conn?.addEventListener('change', handleConnectionChange);
+      // Store cleanup on the handle slot via a resolved promise
+      networkListenerHandle = conn
+        ? Promise.resolve({ remove: () => conn.removeEventListener('change', handleConnectionChange) })
+        : null;
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       document.removeEventListener('visibilitychange', handleVisibility);
-      conn?.removeEventListener('change', handleConnectionChange);
+      networkListenerHandle?.then(h => h.remove()).catch(() => {});
       if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -262,7 +276,8 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
       const defaultConfig: OfflineModeConfig = {
         enabled: false,
         preferCache: true,
-        warnCacheSizeAt: 1000
+        warnCacheSizeAt: 1000,
+        autoOfflineOnCellular: true,
       };
       setConfig(defaultConfig);
       offlineCacheService.saveConfig(defaultConfig);

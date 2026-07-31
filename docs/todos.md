@@ -3,8 +3,7 @@
 ## In Progress
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
-- [ ] **Offline mode and downloads on iOS** — not yet tested on device; JS download path is now active
-      (NativeDownloader guard changed to Android-only); needs a real install to confirm end-to-end
+- [ ] **iOS device testing** — downloads, offline playback, album art in Control Center, auto-offline on cellular; all code changes landed, needs real install to confirm end-to-end
 - [ ] **Compress search index in IndexedDB** — `CompressionStream('deflate')` for 3–5× smaller IDB
       storage for large libraries (#9 in backlog, carry-forward)
 

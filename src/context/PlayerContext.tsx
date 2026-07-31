@@ -878,25 +878,49 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         if (!currentSong.coverArt) return;
 
         // iOS fast path: MPNowPlayingInfoCenter fetches artwork natively, bypassing
-        // CapacitorHttp, so HTTP Subsonic URLs are blocked by ATS. Instead, fetch via
-        // CapacitorHttp.request (arraybuffer → base64) and pass a data: URL so no
-        // outbound request is needed at the native layer.
+        // CapacitorHttp, so HTTP Subsonic URLs are blocked by ATS.
+        // CapacitorHttp.request() has no native iOS impl and falls back to the JS
+        // web class, which internally calls response.blob() — the known broken path.
+        // Use fetch() + ReadableStream reader instead: this is the same proven path
+        // that downloadSongJS uses for audio files on iOS.
         if (Capacitor.getPlatform() === 'ios' && !offlineCacheService.getConfig().enabled) {
             const { username, password, serverUrl } = getFromStorage();
             if (username && password && serverUrl && currentSong.coverArt) {
                 const artUrl = getCoverArtUrl(serverUrl, username, password, currentSong.coverArt!, 512);
                 (async () => {
                     try {
-                        const { CapacitorHttp } = await import('@capacitor/core');
-                        const res = await CapacitorHttp.request({ url: artUrl, method: 'GET', responseType: 'arraybuffer' });
-                        if (res.status !== 200 || !res.data) return;
-                        const dataUrl = `data:image/jpeg;base64,${res.data}`;
+                        const response = await fetch(artUrl);
+                        if (!response.ok || !response.body) return;
+
+                        const reader = response.body.getReader();
+                        const chunks: Uint8Array[] = [];
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            if (value) chunks.push(value);
+                        }
+
+                        const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+                        const bytes = new Uint8Array(totalLen);
+                        let pos = 0;
+                        for (const c of chunks) { bytes.set(c, pos); pos += c.length; }
+
+                        // Chunked String.fromCharCode avoids stack overflow on large images
+                        let binary = '';
+                        const step = 8192;
+                        for (let i = 0; i < bytes.length; i += step) {
+                            binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + step, bytes.length)));
+                        }
+
+                        const mime = (response.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
+                        const dataUrl = `data:${mime};base64,${btoa(binary)}`;
+
                         if (navigator.mediaSession.metadata?.title !== currentSong.title) return;
                         navigator.mediaSession.metadata = new MediaMetadata({
                             title:   currentSong.title,
                             artist:  currentSong.artist,
                             album:   currentSong.album,
-                            artwork: [{ src: dataUrl, sizes: '512x512', type: 'image/jpeg' }],
+                            artwork: [{ src: dataUrl, sizes: '512x512', type: mime }],
                         });
                     } catch { /* keep text-only metadata */ }
                 })();

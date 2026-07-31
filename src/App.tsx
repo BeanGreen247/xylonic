@@ -82,7 +82,7 @@ const AppHooksMount: React.FC = () => {
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, logout, username, serverUrl } = useAuth();
   const { isSearching, navigatedFromSearch, returnToSearch, setOnClearCallback, activateSearch, clearSearch } = useSearch();
-  const { isOnline, offlineModeEnabled, isCellular, toggleOfflineMode, checkConnectivity, cacheInitialized } = useOfflineMode();
+  const { isOnline, offlineModeEnabled, isCellular, toggleOfflineMode, checkConnectivity, cacheInitialized, config } = useOfflineMode();
   const {
     isRemoteModeAvailable,
     isOnWifi,
@@ -154,6 +154,9 @@ const AppContent: React.FC = () => {
     if (!username || !serverUrl) return true;
     return localStorage.getItem(getCacheKey('cachePreloaded')) === null;
   };
+
+  const hasCachedSongs = (): boolean =>
+    offlineCacheService.getCacheStats().totalSongs > 0;
 
   // Apply mode-specific core affinity after the bridge (IPC) is available
   React.useEffect(() => {
@@ -423,7 +426,8 @@ const AppContent: React.FC = () => {
           toggleOfflineMode();
           return;
         }
-        if (online && isCellular && !isAlreadyOffline && !isFirstTimeUser()
+        if (online && isCellular && !isAlreadyOffline
+            && config.autoOfflineOnCellular && hasCachedSongs()
             && !cellularPromptShownRef.current) {
           toggleOfflineMode();
           cellularPromptShownRef.current = true;
@@ -472,7 +476,7 @@ const AppContent: React.FC = () => {
     if (!isAuthenticated || !isCellular) return;
     if (offlineModeEnabled) return;
     if (cellularPromptShownRef.current) return;
-    if (isFirstTimeUser()) return;
+    if (!config.autoOfflineOnCellular || !hasCachedSongs()) return;
     toggleOfflineMode();
     cellularPromptShownRef.current = true;
     setShowCellularModePrompt(true);

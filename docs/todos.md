@@ -3,12 +3,10 @@
 ## In Progress
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
-- [ ] **iOS viewport overflow** — app extends beyond the screen boundaries, behaving like a fullscreen
-      app that ignores safe-area insets; controls exist but are cut off or pushed out of the visible
-      viewport; media/lock-screen controls work fine (audio + native media session functional);
-      suspects: missing `viewport-fit=cover` + `env(safe-area-inset-*)` CSS, Capacitor WKWebView
-      `contentInset` config, or `<meta name="viewport">` not constraining to device width;
-      to investigate Jul 29
+- [ ] **Offline mode and downloads on iOS** — not yet tested on device; JS download path is now active
+      (NativeDownloader guard changed to Android-only); needs a real install to confirm end-to-end
+- [ ] **Compress search index in IndexedDB** — `CompressionStream('deflate')` for 3–5× smaller IDB
+      storage for large libraries (#9 in backlog, carry-forward)
 
 ## Backlog
 - [ ] Replace `npm test` — no test runner configured after removing react-scripts; add Vitest if needed
@@ -23,6 +21,9 @@
 ## Done (this cycle, cont.)
 
 ## Done (this cycle)
+- [x] Auto-offline on mobile data setting (Jul 31): `autoOfflineOnCellular` toggle in Settings → Offline & Cache; defaults ON once songs cached; gated by direct `totalSongs > 0` check replacing `isFirstTimeUser()` proxy
+- [x] iOS downloads routed to JS path (Jul 31): `NativeDownloader` guard changed from `isNativePlatform()` to `getPlatform() === 'android'`; iOS now uses `downloadSongJS` → `Filesystem.writeFile(Directory.Data)`
+- [x] iOS safe-area layout, bottom nav, MediaSession art, app icon, zoom lock, Licenses + Download Manager modal fixes (Jul 30) — all UI issues from first iOS device install resolved; icons working with dark/light/tinted adaptive variants; viewport zoom locked in WKWebView; both full-screen-blocking modals converted to closeable overlays
 - [x] Full CI pipeline (Jul 28): Android APK, iOS unsigned IPA, Windows portable, Linux AppImage/deb/tar.gz, macOS dmg/zip (x64+arm64) all building on push; `scripts/download-ios-ipa.sh` added; IOS_SETUP.md rewritten for Sideloadly-on-Windows; Node bumped to 24, Java to 21
 - [x] Cache integrity verification (Jul 6): `verifyPermanentCache()`, "Verify Cache" button in Download Manager, auto-run after queue drains, live progress + result banner; works on all platforms
 - [x] Download system fixup (Jul 4): 6 correctness bugs fixed

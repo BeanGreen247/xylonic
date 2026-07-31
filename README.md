@@ -6,7 +6,7 @@
 
 A modern, beautiful music player for Subsonic-compatible servers with a Spotify-like UI, extensive customization, and native mobile support. Available on Windows, Linux, macOS (Electron), Android (Capacitor), and iOS (Capacitor — sideloaded via CI).
 
-**Version:** 26.7.17  
+**Version:** 26.7.31  
 **Author:** BeanGreen247  
 **License:** MIT
 

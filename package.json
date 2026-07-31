@@ -1,6 +1,6 @@
 {
   "name": "xylonic",
-  "version": "26.7.28",
+  "version": "26.7.31",
   "desktopName": "beangreen247.xylonic.musicplayer",
   "description": "Modern Subsonic music streaming client with Spotify-like UI. Stream your music library from any Subsonic-compatible server (Navidrome, Airsonic, Gonic) with full playback controls, album art, and responsive design.",
   "author": {

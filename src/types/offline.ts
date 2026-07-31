@@ -193,6 +193,7 @@ export interface OfflineModeConfig {
   preferCache: boolean;          // Always prefer cached songs (offline-first)
   maxCacheSize?: number;         // Max cache size in MB (optional limit)
   warnCacheSizeAt: number;       // Warn at X MB (e.g., 1000 = 1GB)
+  autoOfflineOnCellular: boolean; // Auto-switch to offline when on mobile data
 }
 
 /**

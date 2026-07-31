@@ -75,8 +75,8 @@ interface NativeDownloaderPlugin {
   clearCompletionLog(): Promise<void>;
 }
 
-// Only register on Android/iOS — null on Electron/web so the JS fetch path is used
-const NativeDownloader: NativeDownloaderPlugin | null = Capacitor.isNativePlatform()
+// Android-only native downloader; iOS uses the JS fetch path (Filesystem.writeFile)
+const NativeDownloader: NativeDownloaderPlugin | null = Capacitor.getPlatform() === 'android'
   ? registerPlugin<NativeDownloaderPlugin>('NativeDownloader')
   : null;
 

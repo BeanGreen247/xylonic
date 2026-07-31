@@ -34,7 +34,8 @@ class OfflineCacheService {
   private config: OfflineModeConfig = {
     enabled: false,
     preferCache: true,
-    warnCacheSizeAt: 1000 // 1GB
+    warnCacheSizeAt: 1000, // 1GB
+    autoOfflineOnCellular: true,
   };
   private userId: string = '';
   private serverUrl: string = '';

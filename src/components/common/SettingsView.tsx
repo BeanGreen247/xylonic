@@ -54,7 +54,7 @@ const VIEW_OPTIONS: { view: TopLevelView; label: string; icon: string }[] = [
 ];
 
 const SettingsView: React.FC = () => {
-  const { offlineModeEnabled, toggleOfflineMode } = useOfflineMode();
+  const { offlineModeEnabled, toggleOfflineMode, config: offlineConfig, updateConfig: updateOfflineConfig } = useOfflineMode();
   const { username, login } = useAuth();
   const { sleepTimerRemaining, bitrate, setBitrate } = usePlayer();
   const {
@@ -620,6 +620,29 @@ const SettingsView: React.FC = () => {
               </span>
             </span>
           </button>
+          <div className="settings-divider" />
+          {(() => {
+            const hasSongs = offlineCacheService.getCacheStats().totalSongs > 0;
+            return (
+              <button
+                className={`settings-row${offlineConfig.autoOfflineOnCellular ? ' active' : ''}${!hasSongs ? ' disabled' : ''}`}
+                onClick={() => hasSongs && updateOfflineConfig({ autoOfflineOnCellular: !offlineConfig.autoOfflineOnCellular })}
+              >
+                <span className="settings-row-icon"><i className="fas fa-signal" /></span>
+                <span className="settings-row-label">
+                  Auto-offline on mobile data
+                  <span className="settings-row-sub">
+                    {hasSongs ? 'Switch to offline automatically on cellular' : 'Download songs first to enable'}
+                  </span>
+                </span>
+                <span className="settings-row-action">
+                  <span className={`settings-badge ${offlineConfig.autoOfflineOnCellular && hasSongs ? 'on' : 'off'}`}>
+                    {offlineConfig.autoOfflineOnCellular && hasSongs ? 'On' : 'Off'}
+                  </span>
+                </span>
+              </button>
+            );
+          })()}
           <div className="settings-divider" />
           <button className="settings-row" onClick={() => setShowDownloadManager(true)}>
             <span className="settings-row-icon"><i className="fas fa-download" /></span>

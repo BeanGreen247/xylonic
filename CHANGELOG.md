@@ -2,6 +2,38 @@
 
 All notable changes to Xylonic are documented here.
 
+## [26.7.31] - 2026-07-31
+
+### Added
+- **Auto-offline on mobile data setting** — new toggle in Settings → Offline & Cache: "Auto-offline on mobile data"; when enabled (default once songs are cached), the app automatically switches to offline mode on cellular and shows the "Mobile Data Detected" prompt; disabled with an explanatory hint when no songs are cached; persisted in `OfflineModeConfig.autoOfflineOnCellular`
+
+### Fixed
+- **iOS downloads** — `NativeDownloader` was registered on all native platforms (`isNativePlatform()`), but the native plugin only exists on Android; iOS tried the native path and silently failed; changed guard to `getPlatform() === 'android'` so iOS falls back to the JS fetch path (`downloadSongJS` → `Filesystem.writeFile(Directory.Data)`); `Directory.Data` is the app's private sandbox — no entitlement needed
+
+### Changed
+- **Cellular auto-offline guard** — replaced the `isFirstTimeUser()` localStorage proxy with a direct `offlineCacheService.getCacheStats().totalSongs > 0` check in both the launch and mid-session cellular effects; behavior is identical for users with cached songs but is now accurately scoped to "has songs to play offline" rather than "has preloaded search cache"
+
+---
+
+## [26.7.30] - 2026-07-30
+
+### Added
+- **iOS adaptive app icons** — three 1024×1024 PNG variants (`resources/ios-icons/`) injected into the Xcode project by the iOS CI workflow: `AppIcon.png` (light/white), `AppIcon~dark.png` (`#121212`), `AppIcon~tinted.png` (grayscale for iOS tint); `Contents.json` uses the iOS 18 universal single-icon adaptive format so the home screen always shows the correct variant
+- **iOS CI: custom icon injection step** — added a `cp` step in `ios.yml` (after `cap sync`, before CocoaPods) that copies the three icon files into `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
+
+### Fixed
+- **iOS safe-area layout** — `viewport-fit=cover` + `contentInset: 'never'` established as the canonical WKWebView strategy; `.app` gets `padding-top: env(safe-area-inset-top)` (content starts below Dynamic Island) and `padding-bottom: calc(56px + env(safe-area-inset-bottom))` (reserves nav + home indicator space); `.header` and `.main-content` get `padding-left/right: calc(12px + env(safe-area-inset-*))` for side safe areas
+- **iOS bottom nav clipping** — `padding-bottom` expansion collapsed the 56 px button area to 22 px under `box-sizing: border-box`; replaced with `bottom: env(safe-area-inset-bottom)` lift and an `::after` pseudo-element that fills the home-indicator strip with `var(--surface)`
+- **iOS MediaSession album art** — `CapacitorHttp` intercepts `fetch()` and `response.blob()` returns malformed data on iOS; added an iOS fast path that passes the HTTPS cover-art URL directly to `MediaMetadata`, letting `MPNowPlayingInfoCenter` load the image natively; existing data-URL pipeline kept for Electron/web/offline
+- **iOS viewport zoom lock** — `minimum-scale=1, maximum-scale=1` added to both `index.html` viewport metas (WKWebView enforces these unlike Safari browser); `gesturestart/change/end` JS event blockers and `touch-action: pan-x pan-y` CSS added as belt-and-suspenders to prevent pinch-zoom from sticking
+- **Licenses modal uncloseable on mobile** — was `height: 100vh; top: 0` full-screen; now a bottom sheet: `max-height: 82vh; bottom: 0; border-radius: 16px 16px 0 0` with `qp-slide-up` animation; horizontal tab bar preserved
+- **Download Manager modal uncloseable on mobile** — `.mobile` class and `@media (max-width: 768px)` both rendered `height: 100%; width: 100%; border-radius: 0; background: transparent`; replaced with centered dialog matching the theme-picker style: `width: 92%; max-height: 80vh; border-radius: 16px; backdrop-filter: blur(4px); background: rgba(0,0,0,0.75)`
+
+### Known issues
+- **iOS downloads not functional** — no storage-permission entitlement configured for iOS; downloaded songs cannot be written to persistent storage; to be addressed in a future session
+
+---
+
 ## [26.7.28] - 2026-07-28
 
 ### Added

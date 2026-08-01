@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Permits plain-HTTP connections to self-hosted Subsonic servers on private
+  networks. The manifest also sets android:usesCleartextTraffic="true" which
+  covers arbitrary IPs; this file adds explicit trust for the system CA store.
+  Public hostnames still require HTTPS.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

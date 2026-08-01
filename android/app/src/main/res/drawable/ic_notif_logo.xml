@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Single path with fillType="evenOdd": the outer circle fills white, the
+    note head, stem, and flag are wound the same way so the even-odd rule
+    punches them out as transparent holes.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="
+            M36,256
+            A220,220,0,0,1,476,256
+            A220,220,0,0,1,36,256 Z
+
+            M271.92,336.21
+            A61,47,-15,0,1,154.08,367.79
+            A61,47,-15,0,1,271.92,336.21 Z
+
+            M263,128
+            A13,13,0,0,1,276,141
+            L276,345
+            A13,13,0,0,1,263,358
+            A13,13,0,0,1,250,345
+            L250,141
+            A13,13,0,0,1,263,128 Z
+
+            M265,118
+            C355,130 353,216 286,261
+            A13,13,0,0,0,309,263
+            C376,234 376,160 291,138
+            A13,13,0,0,0,265,118 Z
+        " />
+
+</vector>

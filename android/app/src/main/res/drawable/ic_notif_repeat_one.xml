@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Repeat-one: standard repeat arrows with a centred "1" digit added.
+    The digit is a filled bar with a short diagonal serif — same weight as
+    the arrows so it reads clearly at notification icon sizes.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- repeat arrows -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,7h10v3l4,-4-4,-4v3H5v6h2V7zM17,17H7v-3l-4,4 4,4v-3h12v-6h-2v5z" />
+
+    <!-- "1": diagonal lead-in from top-left, then vertical stem -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10L11.5,9L13.5,9L13.5,15L11.5,15L11.5,11L10,11Z" />
+
+</vector>

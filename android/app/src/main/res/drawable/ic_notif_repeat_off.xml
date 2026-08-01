@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Repeat-off: standard repeat arrows with a diagonal slash punched through
+    them via fillType="evenOdd", matching the universal "disabled" convention.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="
+            M7,7h10v3l4,-4-4,-4v3H5v6h2V7z
+            M17,17H7v-3l-4,4 4,4v-3h12v-6h-2v5z
+            M2,20.5L3.5,22.5L22,3.5L20.5,1.5Z
+        " />
+
+</vector>

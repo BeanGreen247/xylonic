@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Xylonic</string>
+    <string name="title_activity_main">Xylonic</string>
+    <string name="package_name">xylonic.beangreen247xyz.musicplayer</string>
+    <string name="custom_url_scheme">xylonic.beangreen247xyz.musicplayer</string>
+</resources>

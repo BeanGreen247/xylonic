@@ -44,7 +44,7 @@ CLAUDE*
 # Electron
 release/
 releases/
-app/
+/app/
 __eb_stage/
 
 # TypeScript

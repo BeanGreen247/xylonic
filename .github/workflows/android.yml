@@ -70,6 +70,7 @@ jobs:
         with:
           name: Xylonic-Android-debug-${{ github.sha }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
           retention-days: 14
 
       - name: Upload release APK

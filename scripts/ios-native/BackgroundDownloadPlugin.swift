@@ -120,6 +120,22 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
 
     public func urlSession(
         _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        guard let desc = downloadTask.taskDescription else { return }
+        let songId = String(desc.split(separator: "|").first ?? Substring(desc))
+        notifyListeners("downloadProgress", data: [
+            "songId": songId,
+            "bytesWritten": totalBytesWritten,
+            "totalBytes": totalBytesExpectedToWrite,
+        ])
+    }
+
+    public func urlSession(
+        _ session: URLSession,
         task: URLSessionTask,
         didCompleteWithError error: Error?
     ) {

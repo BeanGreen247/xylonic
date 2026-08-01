@@ -100,6 +100,10 @@ interface BackgroundDownloadPlugin {
     event: 'backgroundDownloadFailed',
     handler: (data: { songId: string; error: string }) => void
   ): Promise<PluginListenerHandle>;
+  addListener(
+    event: 'downloadProgress',
+    handler: (data: { songId: string; bytesWritten: number; totalBytes: number }) => void
+  ): Promise<PluginListenerHandle>;
 }
 
 const BackgroundDownload: BackgroundDownloadPlugin | null = Capacitor.getPlatform() === 'ios'
@@ -211,6 +215,14 @@ class DownloadManagerService {
       const cb = this.iosPendingCallbacks.get(data.songId);
       if (cb) { this.iosPendingCallbacks.delete(data.songId); cb.reject(new Error(data.error)); }
     }).catch(() => {});
+    BackgroundDownload.addListener('downloadProgress', (data) => {
+      const item = this.currentDownload;
+      if (!item || item.song.id !== data.songId) return;
+      const hasTotal = data.totalBytes > 0;
+      if (hasTotal) item.progress = Math.round((data.bytesWritten / data.totalBytes) * 100);
+      this.emit({ type: 'download-progress', item, progress: this.getProgress() });
+      this.pushDownloadNotification(data.bytesWritten, !hasTotal);
+    }).catch(() => {});
   }
 
   /**
@@ -290,8 +302,9 @@ class DownloadManagerService {
     if (!hasActiveWork) return;
 
     if (this.isDownloading) {
-      // Native batch is self-sufficient — leave it alone.
+      // Native downloads are self-sufficient — leave them alone.
       if (NativeDownloader && this.useBatchMode) return;
+      if (BackgroundDownload) return;
 
       // JS fetch path: detect a stuck read loop.
       const staleSec = (Date.now() - this.lastProgressMs) / 1000;
@@ -973,7 +986,7 @@ class DownloadManagerService {
 
     // Register callbacks BEFORE startDownload to prevent a race where the native
     // side completes and fires the event before we're listening.
-    const result = await new Promise<{ audioHash: string; extension: string; fileSize: number }>(
+    const downloadPromise = new Promise<{ audioHash: string; extension: string; fileSize: number }>(
       (resolve, reject) => {
         this.iosPendingCallbacks.set(item.song.id, { resolve, reject });
         BackgroundDownload!.startDownload({
@@ -986,6 +999,15 @@ class DownloadManagerService {
         });
       }
     );
+    // Safety net: if the plugin event never fires, reject after 5 minutes so the
+    // normal retry logic kicks in instead of hanging the queue indefinitely.
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => {
+        this.iosPendingCallbacks.delete(item.song.id);
+        reject(new Error('iOS background download timed out — will retry'));
+      }, 5 * 60 * 1000)
+    );
+    const result = await Promise.race([downloadPromise, timeoutPromise]);
 
     await offlineCacheService.registerNativeDownload(
       item.song, item.quality,
@@ -1248,6 +1270,10 @@ class DownloadManagerService {
 
       const stale = Date.now() - this.lastProgressMs;
       if (stale > DownloadManagerService.STUCK_THRESHOLD_MS) {
+        // iOS native downloads have no JS progress updates — the URLSession delegate
+        // feeds lastProgressMs via the downloadProgress event. Skip the abort here;
+        // the stuck check keeps ticking and will fire if a genuine stall occurs.
+        if (BackgroundDownload) return;
         logger.warn('[DownloadManager] Stuck JS download detected — aborting fetch');
         this.stopStuckCheck();
         // Abort the active fetch; the AbortError propagates through downloadSongJS →

@@ -986,28 +986,30 @@ class DownloadManagerService {
 
     // Register callbacks BEFORE startDownload to prevent a race where the native
     // side completes and fires the event before we're listening.
-    const downloadPromise = new Promise<{ audioHash: string; extension: string; fileSize: number }>(
+    // Single Promise merges the timeout so clearTimeout fires on every exit path.
+    const result = await new Promise<{ audioHash: string; extension: string; fileSize: number }>(
       (resolve, reject) => {
-        this.iosPendingCallbacks.set(item.song.id, { resolve, reject });
+        const timer = setTimeout(() => {
+          this.iosPendingCallbacks.delete(item.song.id);
+          reject(new Error('iOS background download timed out — will retry'));
+        }, 5 * 60 * 1000);
+
+        this.iosPendingCallbacks.set(item.song.id, {
+          resolve: (data) => { clearTimeout(timer); resolve(data); },
+          reject:  (err)  => { clearTimeout(timer); reject(err); },
+        });
+
         BackgroundDownload!.startDownload({
           url: streamUrl,
           songId: item.song.id,
           audioHash,
         }).catch((err: Error) => {
+          clearTimeout(timer);
           this.iosPendingCallbacks.delete(item.song.id);
           reject(err);
         });
       }
     );
-    // Safety net: if the plugin event never fires, reject after 5 minutes so the
-    // normal retry logic kicks in instead of hanging the queue indefinitely.
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => {
-        this.iosPendingCallbacks.delete(item.song.id);
-        reject(new Error('iOS background download timed out — will retry'));
-      }, 5 * 60 * 1000)
-    );
-    const result = await Promise.race([downloadPromise, timeoutPromise]);
 
     await offlineCacheService.registerNativeDownload(
       item.song, item.quality,

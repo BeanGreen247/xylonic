@@ -10,6 +10,7 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
     private var urlSession: URLSession?
     private let completionLogKey = "xylonic_ios_bg_download_log"
     private let serialQueue = DispatchQueue(label: "xylonic.bgdownload.serial", qos: .utility)
+    private var lastProgressNotifyTime: Date = .distantPast
 
     public override func load() {
         let config = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
@@ -125,12 +126,15 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         totalBytesWritten: Int64,
         totalBytesExpectedToWrite: Int64
     ) {
+        let now = Date()
+        guard now.timeIntervalSince(lastProgressNotifyTime) >= 0.5 else { return }
+        lastProgressNotifyTime = now
         guard let desc = downloadTask.taskDescription else { return }
         let songId = String(desc.split(separator: "|").first ?? Substring(desc))
         notifyListeners("downloadProgress", data: [
             "songId": songId,
-            "bytesWritten": totalBytesWritten,
-            "totalBytes": totalBytesExpectedToWrite,
+            "bytesWritten": Int(totalBytesWritten),
+            "totalBytes": Int(totalBytesExpectedToWrite),
         ])
     }
 

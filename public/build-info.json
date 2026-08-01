@@ -1,12 +1,12 @@
 {
-  "version": "26.7.21",
+  "version": "26.08.01",
   "buildType": "debug",
-  "buildNumber": "1b4a0a",
-  "builtAt": "2026-07-22T15:15:07.352Z",
+  "buildNumber": "f610a6",
+  "builtAt": "2026-08-01T09:08:34.312Z",
   "deps": {
     "react": "18.2.0",
     "typescript": "4.9.5",
-    "vite": "8.1.4",
+    "vite": "8.2.0",
     "axios": "1.6.0",
     "fontawesome": "7.2.0",
     "electron": "27.0.0",

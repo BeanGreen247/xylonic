@@ -104,6 +104,7 @@ interface BackgroundDownloadPlugin {
     event: 'downloadProgress',
     handler: (data: { songId: string; bytesWritten: number; totalBytes: number }) => void
   ): Promise<PluginListenerHandle>;
+  probeConnection(opts: { url: string }): Promise<{ ok: boolean }>;
 }
 
 const BackgroundDownload: BackgroundDownloadPlugin | null = Capacitor.getPlatform() === 'ios'
@@ -183,6 +184,10 @@ class DownloadManagerService {
 
   // Guard against concurrent cache verification runs
   private isVerifying: boolean = false;
+
+  // Ensures the local-network permission dialog fires via a foreground URLSession
+  // probe before the first background-session download. Reset on each JS session.
+  private iosNetworkProbed = false;
 
   // iOS background download: pending resolve/reject callbacks keyed by songId.
   // A single persistent listener dispatches to whichever song is active.
@@ -982,6 +987,14 @@ class DownloadManagerService {
     item: DownloadQueueItem,
     streamUrl: string,
   ): Promise<void> {
+    // iOS 14+: background URLSessions bypass the local-network permission dialog.
+    // A foreground probe fires the dialog once so subsequent background downloads
+    // are allowed. Errors are intentionally swallowed — we proceed regardless.
+    if (!this.iosNetworkProbed) {
+      this.iosNetworkProbed = true;
+      await BackgroundDownload!.probeConnection({ url: streamUrl }).catch(() => {});
+    }
+
     const audioHash = offlineCacheService.getAudioHash(item.song.id);
 
     // Register callbacks BEFORE startDownload to prevent a race where the native

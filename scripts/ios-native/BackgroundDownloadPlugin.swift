@@ -68,6 +68,21 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         call.resolve()
     }
 
+    // Makes a foreground HEAD request so iOS shows the local-network permission
+    // dialog before the background URLSession is used. Background sessions bypass
+    // the prompt entirely on iOS 14+, so this must be called first.
+    @objc func probeConnection(_ call: CAPPluginCall) {
+        guard let urlStr = call.getString("url"), let url = URL(string: urlStr) else {
+            call.resolve(["ok": false])
+            return
+        }
+        var request = URLRequest(url: url, timeoutInterval: 5)
+        request.httpMethod = "HEAD"
+        URLSession.shared.dataTask(with: request) { _, _, _ in
+            call.resolve(["ok": true])
+        }.resume()
+    }
+
     // MARK: - URLSessionDownloadDelegate
 
     public func urlSession(

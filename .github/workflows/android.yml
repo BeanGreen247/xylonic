@@ -60,6 +60,19 @@ jobs:
         if: ${{ github.event.inputs.build_type != 'release' }}
         run: cd android && ./gradlew assembleDebug --no-daemon
 
+      - name: Locate debug APK
+        if: ${{ github.event.inputs.build_type != 'release' }}
+        run: |
+          echo "=== APKs produced ==="
+          find android/app/build/outputs -name "*.apk" 2>/dev/null | grep -v test || echo "(none found)"
+          APK=$(find android/app/build/outputs -name "*.apk" 2>/dev/null | grep -i debug | grep -v test | head -1)
+          if [ -z "$APK" ]; then
+            echo "ERROR: no debug APK found after assembleDebug"
+            exit 1
+          fi
+          echo "APK_PATH=$APK" >> $GITHUB_ENV
+          echo "Using: $APK"
+
       - name: Build release APK (unsigned)
         if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'both' }}
         run: cd android && ./gradlew assembleRelease --no-daemon
@@ -69,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Xylonic-Android-debug-${{ github.sha }}
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.APK_PATH }}
           if-no-files-found: error
           retention-days: 14
 
@@ -89,8 +102,8 @@ jobs:
           echo "- **Build type:** ${{ github.event.inputs.build_type || 'debug' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
-            SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+          if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
+            SIZE=$(du -sh "$APK_PATH" | cut -f1)
             echo "- **Debug APK:** $SIZE" >> $GITHUB_STEP_SUMMARY
           fi
           if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then

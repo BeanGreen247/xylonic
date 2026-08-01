@@ -75,11 +75,44 @@ interface NativeDownloaderPlugin {
   clearCompletionLog(): Promise<void>;
 }
 
-// Android-only native downloader; iOS uses the JS fetch path (Filesystem.writeFile)
+// Android-only native downloader; iOS uses the background URLSession plugin below
 const NativeDownloader: NativeDownloaderPlugin | null = Capacitor.getPlatform() === 'android'
   ? registerPlugin<NativeDownloaderPlugin>('NativeDownloader')
   : null;
 
+interface BackgroundDownloadPlugin {
+  startDownload(opts: {
+    url: string;
+    songId: string;
+    audioHash: string;
+    headers?: Record<string, string>;
+  }): Promise<void>;
+  cancelDownload(opts: { songId: string }): Promise<void>;
+  readCompletionLog(): Promise<{
+    entries: Array<{ songId: string; audioHash: string; extension: string; fileSize: number }>;
+  }>;
+  clearCompletionLog(): Promise<void>;
+  addListener(
+    event: 'backgroundDownloadCompleted',
+    handler: (data: { songId: string; audioHash: string; extension: string; fileSize: number }) => void
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    event: 'backgroundDownloadFailed',
+    handler: (data: { songId: string; error: string }) => void
+  ): Promise<PluginListenerHandle>;
+}
+
+const BackgroundDownload: BackgroundDownloadPlugin | null = Capacitor.getPlatform() === 'ios'
+  ? registerPlugin<BackgroundDownloadPlugin>('BackgroundDownload')
+  : null;
+
+interface BackgroundKeepAlivePlugin {
+  arm(): Promise<void>;
+  disarm(): Promise<void>;
+}
+const BackgroundKeepAlive: BackgroundKeepAlivePlugin | null = Capacitor.getPlatform() === 'ios'
+  ? registerPlugin<BackgroundKeepAlivePlugin>('BackgroundKeepAlive')
+  : null;
 
 type DownloadEventListener = (event: DownloadEvent) => void;
 
@@ -147,6 +180,13 @@ class DownloadManagerService {
   // Guard against concurrent cache verification runs
   private isVerifying: boolean = false;
 
+  // iOS background download: pending resolve/reject callbacks keyed by songId.
+  // A single persistent listener dispatches to whichever song is active.
+  private iosPendingCallbacks = new Map<string, {
+    resolve: (data: { audioHash: string; extension: string; fileSize: number }) => void;
+    reject: (err: Error) => void;
+  }>();
+
   constructor() {
     this.restoreQueue();
     if (typeof document !== 'undefined') {
@@ -155,6 +195,22 @@ class DownloadManagerService {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this.handleNetworkRestore.bind(this));
     }
+    this.initIOSListeners();
+  }
+
+  private initIOSListeners(): void {
+    if (!BackgroundDownload) return;
+    BackgroundDownload.addListener('backgroundDownloadCompleted', (data) => {
+      const cb = this.iosPendingCallbacks.get(data.songId);
+      if (cb) {
+        this.iosPendingCallbacks.delete(data.songId);
+        cb.resolve({ audioHash: data.audioHash, extension: data.extension, fileSize: data.fileSize });
+      }
+    }).catch(() => {});
+    BackgroundDownload.addListener('backgroundDownloadFailed', (data) => {
+      const cb = this.iosPendingCallbacks.get(data.songId);
+      if (cb) { this.iosPendingCallbacks.delete(data.songId); cb.reject(new Error(data.error)); }
+    }).catch(() => {});
   }
 
   /**
@@ -449,6 +505,7 @@ class DownloadManagerService {
       this.currentDownload = null;
       this.persistQueue();
       this.notifyDownloadActive(false);
+      BackgroundKeepAlive?.disarm().catch(() => {});
 
       this.downloadedAlbumCovers.clear();
       this.downloadedArtistCovers.clear();
@@ -482,6 +539,7 @@ class DownloadManagerService {
 
     this.isDownloading = true;
     this.notifyDownloadActive(true);
+    BackgroundKeepAlive?.arm().catch(() => {});
 
     try {
       if (NativeDownloader && this.useBatchMode) {
@@ -813,6 +871,8 @@ class DownloadManagerService {
 
       if (NativeDownloader) {
         await this.downloadSongNative(item, streamUrl, serverUrl, username, password);
+      } else if (BackgroundDownload) {
+        await this.downloadSongNativeIOS(item, streamUrl);
       } else {
         await this.downloadSongJS(item, streamUrl, serverUrl, username, password);
       }
@@ -896,6 +956,56 @@ class DownloadManagerService {
     } finally {
       if (progressHandle) progressHandle.remove();
     }
+  }
+
+  /**
+   * iOS native background download: hands the HTTP transfer to URLSessionDownloadTask
+   * so it survives WKWebView suspension. The Swift plugin writes the file directly to
+   * permanent_cache/audio/<hash>/audio<ext> in the Documents directory, matching the
+   * path capacitorBridge.saveAudioFile() produces. Completion is delivered via an event
+   * that resolves the pending promise registered in iosPendingCallbacks.
+   */
+  private async downloadSongNativeIOS(
+    item: DownloadQueueItem,
+    streamUrl: string,
+  ): Promise<void> {
+    const audioHash = offlineCacheService.getAudioHash(item.song.id);
+
+    // Register callbacks BEFORE startDownload to prevent a race where the native
+    // side completes and fires the event before we're listening.
+    const result = await new Promise<{ audioHash: string; extension: string; fileSize: number }>(
+      (resolve, reject) => {
+        this.iosPendingCallbacks.set(item.song.id, { resolve, reject });
+        BackgroundDownload!.startDownload({
+          url: streamUrl,
+          songId: item.song.id,
+          audioHash,
+        }).catch((err: Error) => {
+          this.iosPendingCallbacks.delete(item.song.id);
+          reject(err);
+        });
+      }
+    );
+
+    await offlineCacheService.registerNativeDownload(
+      item.song, item.quality,
+      result.audioHash, result.extension, result.fileSize,
+      item.artistId, item.artistCoverArtId
+    );
+
+    if (!offlineCacheService.isCached(item.song.id)) {
+      throw new Error('File not found in cache after iOS background download — will retry');
+    }
+
+    logger.log('[DownloadManager] iOS background download complete:', item.song.title);
+    item.status = 'completed';
+    item.completedAt = Date.now();
+    item.progress = 100;
+    this.sessionCompleted++;
+    this.persistQueue();
+    this.emit({ type: 'download-completed', item, progress: this.getProgress() });
+    this.emit({ type: 'cache-updated' });
+    this.scheduleAutoClear(item.id);
   }
 
   /**
@@ -1416,6 +1526,59 @@ class DownloadManagerService {
   }
 
   /**
+   * iOS equivalent of the Android completion-log reconcile. When the app is woken
+   * by the OS for a background URLSession event, the WebView may not be live yet.
+   * The Swift plugin writes each completed download to UserDefaults so this startup
+   * pass can register any songs whose event was never delivered to JS.
+   */
+  private async reconcileIOSOrphans(): Promise<void> {
+    if (!BackgroundDownload) return;
+
+    let entries: Array<{ songId: string; audioHash: string; extension: string; fileSize: number }>;
+    try {
+      const result = await BackgroundDownload.readCompletionLog();
+      entries = result.entries ?? [];
+    } catch {
+      return;
+    }
+    if (entries.length === 0) return;
+
+    let pending: Record<string, {
+      song: DownloadableSong;
+      quality: DownloadQuality;
+      artistId?: string;
+      artistCoverArtId?: string;
+    }> = {};
+    try {
+      pending = JSON.parse(localStorage.getItem(DownloadManagerService.QUEUE_KEY) || '[]')
+        .reduce((acc: any, item: any) => { acc[item.song?.id] = item; return acc; }, {});
+    } catch {}
+
+    let recovered = 0;
+    for (const entry of entries) {
+      if (offlineCacheService.isCached(entry.songId)) continue;
+      const item = pending[entry.songId];
+      if (!item) continue;
+      try {
+        await offlineCacheService.registerNativeDownload(
+          item.song, item.quality, entry.audioHash, entry.extension, entry.fileSize,
+          item.artistId, item.artistCoverArtId
+        );
+        recovered++;
+      } catch (e) {
+        logger.warn('[DownloadManager] reconcileIOSOrphans: failed to register', entry.songId, e);
+      }
+    }
+
+    try { await BackgroundDownload.clearCompletionLog(); } catch {}
+
+    if (recovered > 0) {
+      logger.log(`[DownloadManager] iOS: recovered ${recovered} orphaned background downloads`);
+      this.emit({ type: 'cache-updated' });
+    }
+  }
+
+  /**
    * Re-register songs that were downloaded natively but whose songDownloaded event
    * was lost because the WebView renderer died mid-batch (e.g. Android OOM).
    *
@@ -1424,6 +1587,7 @@ class DownloadManagerService {
    * and registers any orphaned songs without re-downloading them.
    */
   public async reconcileOrphans(): Promise<void> {
+    await this.reconcileIOSOrphans();
     if (!NativeDownloader) return;
 
     let entries: Array<{ hash: string; songId: string; extension: string; bytesReceived: number }>;

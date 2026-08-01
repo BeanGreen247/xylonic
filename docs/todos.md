@@ -3,9 +3,8 @@
 ## In Progress
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
-- [ ] **iOS device testing** — downloads, offline playback, album art in Control Center, auto-offline on cellular; all code changes landed, needs real install to confirm end-to-end
-- [ ] **Compress search index in IndexedDB** — `CompressionStream('deflate')` for 3–5× smaller IDB
-      storage for large libraries (#9 in backlog, carry-forward)
+- [ ] **iOS auto-offline on cellular** — needs device test on cellular data (was on WiFi during this session)
+- [ ] **iOS background downloads — device test** — CI needs to build new IPA with `BackgroundDownloadPlugin.swift` injected; sideload and verify downloads continue when app is backgrounded; also test orphan recovery on cold-start
 
 ## Backlog
 - [ ] Replace `npm test` — no test runner configured after removing react-scripts; add Vitest if needed
@@ -20,6 +19,10 @@
 ## Done (this cycle, cont.)
 
 ## Done (this cycle)
+- [x] iOS album art in Control Center / lock screen (Jul 31): `fetch()` + `response.body.getReader()` streaming reader assembles image bytes → `btoa` → `data:` URL in `MediaMetadata.artwork`; `MPNowPlayingInfoCenter` receives raw bytes inline; confirmed working on device. (`CapacitorHttp.request(arraybuffer)` tried first but has no native iOS impl — falls back to broken `response.blob()` path)
+- [x] Auto-offline on cellular bugs fixed (Jul 31): `autoOfflineOnCellular` missing from initial config state (falsy before `initCache` resolved); `isCellular` always false on iOS (`navigator.connection` unsupported in WKWebView); fixed with `@capacitor/network` + initial state seed + `cacheInitialized` dep in launch effect
+- [x] iOS app version in Info.plist (Jul 31): `PlistBuddy` step in `ios.yml` writes `package.json` version to `CFBundleShortVersionString` + `CFBundleVersion` after `cap sync`
+- [x] devDep install fix (Jul 31): `.npmrc` `include=dev` — `npm install` now works with `NODE_ENV=production` set globally
 - [x] Auto-offline on mobile data setting (Jul 31): `autoOfflineOnCellular` toggle in Settings → Offline & Cache; defaults ON once songs cached; gated by direct `totalSongs > 0` check replacing `isFirstTimeUser()` proxy
 - [x] iOS downloads routed to JS path (Jul 31): `NativeDownloader` guard changed from `isNativePlatform()` to `getPlatform() === 'android'`; iOS now uses `downloadSongJS` → `Filesystem.writeFile(Directory.Data)`
 - [x] iOS safe-area layout, bottom nav, MediaSession art, app icon, zoom lock, Licenses + Download Manager modal fixes (Jul 30) — all UI issues from first iOS device install resolved; icons working with dark/light/tinted adaptive variants; viewport zoom locked in WKWebView; both full-screen-blocking modals converted to closeable overlays

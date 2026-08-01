@@ -81,6 +81,15 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         let songId    = parts[0]
         let audioHash = parts[1]
 
+        // Reject non-200 responses before touching the file — 401/404 bodies
+        // would be written to disk as the "audio file" and corrupt the cache entry.
+        if let http = downloadTask.response as? HTTPURLResponse, http.statusCode != 200 {
+            notifyListeners("backgroundDownloadFailed", data: [
+                "songId": songId, "error": "HTTP \(http.statusCode)",
+            ])
+            return
+        }
+
         let mimeType = (downloadTask.response as? HTTPURLResponse)?
             .value(forHTTPHeaderField: "Content-Type") ?? "audio/mpeg"
         let ext = mimeTypeToExtension(mimeType)

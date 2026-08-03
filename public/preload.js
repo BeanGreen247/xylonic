@@ -106,6 +106,8 @@ contextBridge.exposeInMainWorld('electron', {
   getOsPlatform: () => ipcRenderer.invoke('get-os-platform'),
   detectLinuxFirewall: () => ipcRenderer.invoke('detect-linux-firewall'),
   setDownloadActive: (active) => ipcRenderer.invoke('set-download-active', active),
+  setDownloadProgress: (opts) => ipcRenderer.invoke('set-download-progress', opts),
+  clearDownloadProgress: () => ipcRenderer.invoke('clear-download-progress'),
   // Logging
   writeLog: ({ message, level }) => ipcRenderer.invoke('write-log', { message, level }),
   getLogPath: () => ipcRenderer.invoke('get-log-path'),

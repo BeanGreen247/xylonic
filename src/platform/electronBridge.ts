@@ -49,8 +49,8 @@ export const electronBridge: PlatformBridge = {
   async preloadNextArtwork(_url) {},
   onMediaControl(_cb) { return () => {}; },
 
-  async showDownloadNotification(_opts) {},
-  async hideDownloadNotification() {},
+  showDownloadNotification: (opts) => e().setDownloadProgress(opts),
+  hideDownloadNotification: () => e().clearDownloadProgress(),
   setDownloadActive: (active) => e().setDownloadActive(active),
 
   getSystemStats: () => e().getSystemStats(),

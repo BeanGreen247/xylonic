@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, protocol, Menu, shell, dialog, safeStorage, session, nativeImage, net, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, Menu, Tray, shell, dialog, safeStorage, session, nativeImage, net, powerSaveBlocker } = require('electron');
 const { execFile } = require('child_process');
 const https = require('https');
 const http = require('http');
@@ -894,6 +894,45 @@ ipcMain.handle('get-os-platform', () => process.platform);
 ipcMain.handle('set-download-active', (_event, active) => {
     _activeDownloads = !!active;
     _updatePowerSave();
+});
+
+// Dock/taskbar progress bar + tray tooltip for background downloads.
+let downloadTray = null;
+ipcMain.handle('set-download-progress', (_event, { progress = 0, indeterminate = false, title = '', text = '' } = {}) => {
+    if (!mainWindow) return;
+    try {
+        mainWindow.setProgressBar(
+            indeterminate ? 2 : Math.min(Math.max(progress, 0), 100) / 100,
+            { mode: indeterminate ? 'indeterminate' : 'normal' }
+        );
+    } catch { /* setProgressBar unsupported on this platform build */ }
+
+    if (!downloadTray) {
+        try {
+            downloadTray = new Tray(nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'icon-tray.png')));
+        } catch { downloadTray = null; }
+    }
+    if (downloadTray) {
+        const pct = indeterminate ? '…' : `${Math.round(progress)}%`;
+        downloadTray.setToolTip(`${title || 'Downloading'}${text ? `: ${text}` : ''} (${pct})`);
+    }
+
+    if (process.platform === 'darwin' && app.dock) {
+        app.dock.setBadge(indeterminate ? '…' : `${Math.round(progress)}%`);
+    }
+});
+
+ipcMain.handle('clear-download-progress', () => {
+    if (mainWindow) {
+        try { mainWindow.setProgressBar(-1); } catch { /* ignore */ }
+    }
+    if (downloadTray) {
+        downloadTray.destroy();
+        downloadTray = null;
+    }
+    if (process.platform === 'darwin' && app.dock) {
+        app.dock.setBadge('');
+    }
 });
 
 // Detect which Linux firewall tools are present (for the firewall setup dialog)

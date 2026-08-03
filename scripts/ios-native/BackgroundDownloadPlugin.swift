@@ -58,6 +58,46 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         call.resolve()
     }
 
+    // Enqueues every item's URLSessionDownloadTask up front on the shared background
+    // URLSession, instead of relying on the JS queue to call startDownload one song at a
+    // time. This removes the dependency on WKWebView JS timers firing between songs, which
+    // is unreliable while the app is backgrounded even with BackgroundKeepAlive armed.
+    @objc func startBatch(_ call: CAPPluginCall) {
+        guard let items = call.getArray("items", JSObject.self) else {
+            call.reject("Missing required parameter: items")
+            return
+        }
+
+        for item in items {
+            guard
+                let urlStr    = item["url"] as? String,
+                let url       = URL(string: urlStr),
+                let songId    = item["songId"] as? String,
+                let audioHash = item["audioHash"] as? String
+            else { continue }
+
+            var request = URLRequest(url: url)
+            if let headers = item["headers"] as? [String: String] {
+                for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
+            }
+
+            let task = urlSession!.downloadTask(with: request)
+            task.taskDescription = "\(songId)|\(audioHash)"
+            task.resume()
+        }
+
+        // Resolve once tasks are scheduled, not once they finish — completion is reported
+        // asynchronously per-song via the existing backgroundDownloadCompleted/Failed events.
+        call.resolve()
+    }
+
+    @objc func cancelBatch(_ call: CAPPluginCall) {
+        urlSession?.getAllTasks { tasks in
+            for task in tasks { task.cancel() }
+        }
+        call.resolve()
+    }
+
     @objc func readCompletionLog(_ call: CAPPluginCall) {
         let log = UserDefaults.standard.array(forKey: completionLogKey) as? [[String: Any]] ?? []
         call.resolve(["entries": log])

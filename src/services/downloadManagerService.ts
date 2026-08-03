@@ -88,6 +88,11 @@ interface BackgroundDownloadPlugin {
     headers?: Record<string, string>;
   }): Promise<void>;
   cancelDownload(opts: { songId: string }): Promise<void>;
+  /** Enqueues every item's URLSessionDownloadTask up front — no JS round-trips between songs. */
+  startBatch(opts: {
+    items: Array<{ url: string; songId: string; audioHash: string; headers?: Record<string, string> }>;
+  }): Promise<void>;
+  cancelBatch(): Promise<void>;
   readCompletionLog(): Promise<{
     entries: Array<{ songId: string; audioHash: string; extension: string; fileSize: number }>;
   }>;
@@ -135,6 +140,9 @@ class DownloadManagerService {
   // Whether startBatch is available on the native side. Set false on first failure
   // so we fall back to single-song mode without looping.
   private useBatchMode: boolean = true;
+
+  // Same as useBatchMode, but for the iOS BackgroundDownload plugin.
+  private useBatchModeIOS: boolean = true;
 
   // Set by clearQueue() while a download is active. The current song is allowed
   // to finish (avoiding file corruption) then the queue is wiped.
@@ -590,6 +598,31 @@ class DownloadManagerService {
           this.currentDownload = item;
           await this.downloadSong(item);
         }
+      } else if (BackgroundDownload && this.useBatchModeIOS) {
+        // iOS batch mode — enqueue every URLSessionDownloadTask up front so the OS's
+        // own background session drives the transfer, without relying on a JS
+        // setTimeout chain that can stall while the app is backgrounded.
+        this.lastProgressMs = Date.now();
+        this.currentDownload = pendingItems[0];
+        const maxRetry = pendingItems.reduce((m, i) => Math.max(m, i.retryCount), 0);
+        if (maxRetry > 0 && !this.isPaused) {
+          const backoffMs = Math.min(5000 * Math.pow(2, Math.min(maxRetry - 1, 3)), 60_000);
+          logger.log(`[DownloadManager] iOS batch retry ${maxRetry} — waiting ${Math.round(backoffMs / 1000)}s`);
+          await new Promise<void>(resolve => setTimeout(resolve, backoffMs));
+          if (this.isPaused || this.pendingClear) {
+            this.isDownloading = false;
+            return;
+          }
+        }
+        try {
+          await this.downloadBatchNativeIOS(pendingItems, serverUrl, username, password);
+        } catch (batchErr) {
+          logger.warn('[DownloadManager] iOS batch mode unavailable, falling back to single-song:', batchErr);
+          this.useBatchModeIOS = false;
+          const item = pendingItems[0];
+          this.currentDownload = item;
+          await this.downloadSong(item);
+        }
       } else {
         // Electron/web, or Android with batch mode disabled: one song at a time.
         const item = pendingItems[0];
@@ -843,6 +876,212 @@ class DownloadManagerService {
     if (retriableCount > 0) {
       this.sessionFailed = Math.max(0, this.sessionFailed - retriableCount);
       logger.log(`[DownloadManager] Queued ${retriableCount} songs for batch retry`);
+      this.persistQueue();
+      this.emit({ type: 'queue-updated', progress: this.getProgress() });
+    }
+  }
+
+  /**
+   * iOS batch download: hands every pending song's URLSessionDownloadTask to the
+   * background URLSession up front (BackgroundDownload.startBatch), instead of the
+   * single-song downloadSongNativeIOS path which chains songs via a JS setTimeout
+   * that can stall once the app is backgrounded. Completion/failure/progress are
+   * still delivered per-song via the existing native events, so this mirrors
+   * downloadBatchNative's (Android) structure closely.
+   */
+  private async downloadBatchNativeIOS(
+    items: DownloadQueueItem[],
+    serverUrl: string,
+    username: string,
+    password: string
+  ): Promise<void> {
+    const toDownload: DownloadQueueItem[] = [];
+    for (const item of items) {
+      if (offlineCacheService.isCached(item.song.id)) {
+        item.status      = 'completed';
+        item.completedAt = Date.now();
+        item.progress    = 100;
+        this.sessionCompleted++;
+        this.scheduleAutoClear(item.id);
+      } else {
+        toDownload.push(item);
+      }
+    }
+    if (this.sessionCompleted > 0) {
+      this.persistQueue();
+      this.emit({ type: 'queue-updated', progress: this.getProgress() });
+    }
+    if (toDownload.length === 0) return;
+
+    const batchItems = toDownload.map(item => ({
+      url:       getStreamUrl(serverUrl, username, password, item.song.id, this.qualityToBitrate(item.quality)),
+      songId:    item.song.id,
+      audioHash: offlineCacheService.getAudioHash(item.song.id),
+    }));
+
+    const itemMap = new Map(toDownload.map(i => [i.song.id, i]));
+
+    // iOS 14+: background URLSessions bypass the local-network permission dialog.
+    // A foreground probe fires the dialog once so subsequent background downloads
+    // are allowed. Errors are intentionally swallowed — we proceed regardless.
+    if (!this.iosNetworkProbed) {
+      this.iosNetworkProbed = true;
+      await BackgroundDownload!.probeConnection({ url: batchItems[0].url }).catch(() => {});
+    }
+
+    const VALIDATE_INTERVAL = 25;
+    let songsProcessed = 0;
+    const validateFailed = async () => {
+      const failedItems = [...itemMap.values()].filter(i => i.status === 'failed');
+      if (failedItems.length === 0) return;
+      let entries: Array<{ songId: string; audioHash: string; extension: string; fileSize: number }>;
+      try {
+        entries = (await BackgroundDownload!.readCompletionLog()).entries ?? [];
+      } catch { return; }
+      const logById = new Map(entries.map(e => [e.songId, e]));
+      let rescued = 0;
+      for (const item of failedItems) {
+        const entry = logById.get(item.song.id);
+        if (!entry) continue;
+        item.status      = 'completed';
+        item.completedAt = Date.now();
+        item.progress    = 100;
+        this.sessionCompleted++;
+        this.sessionFailed = Math.max(0, this.sessionFailed - 1);
+        this.scheduleAutoClear(item.id);
+        const songRef = { ...item.song };
+        const { quality, artistId, artistCoverArtId } = item;
+        this.registrationQueue = this.registrationQueue
+          .then(() => offlineCacheService.registerNativeDownload(
+            songRef, quality, entry.audioHash, entry.extension, entry.fileSize, artistId, artistCoverArtId
+          ))
+          .catch(e => logger.warn('[DownloadManager] rescue registration failed:', e));
+        this.downloadCoverArt(item, serverUrl, username, password)
+          .catch(() => {});
+        rescued++;
+      }
+      if (rescued > 0) {
+        logger.log(`[DownloadManager] Rescued ${rescued} false-failed songs`);
+        this.persistQueue();
+        this.emit({ type: 'queue-updated', progress: this.getProgress() });
+        this.emit({ type: 'cache-updated' });
+      }
+    };
+
+    let progressHandle:  PluginListenerHandle | null = null;
+    let completedHandle: PluginListenerHandle | null = null;
+    let failedHandle:    PluginListenerHandle | null = null;
+
+    // Unlike Android's startBatch (which blocks until every song finishes), the iOS
+    // native call resolves as soon as tasks are scheduled — so this promise (resolved
+    // once every song reaches a terminal state) is what the batch actually awaits.
+    let terminalCount = 0;
+    let resolveAllTerminal!: () => void;
+    const allTerminal = new Promise<void>(resolve => { resolveAllTerminal = resolve; });
+    const markTerminal = () => {
+      terminalCount++;
+      if (terminalCount >= toDownload.length) resolveAllTerminal();
+    };
+
+    try {
+      progressHandle = await BackgroundDownload!.addListener('downloadProgress', (data) => {
+        const item = itemMap.get(data.songId);
+        if (!item) return;
+        if (item.status === 'pending') {
+          item.status    = 'downloading';
+          item.startedAt = Date.now();
+        }
+        if (data.totalBytes > 0) item.progress = Math.round((data.bytesWritten / data.totalBytes) * 100);
+        this.currentDownload = item;
+        this.lastProgressMs  = Date.now();
+        this.pushDownloadNotification(data.bytesWritten, data.totalBytes <= 0);
+        this.emit({ type: 'download-progress', item, progress: this.getProgress() });
+      });
+
+      completedHandle = await BackgroundDownload!.addListener('backgroundDownloadCompleted', (data) => {
+        const item = itemMap.get(data.songId);
+        if (!item) return;
+        if (item.status === 'completed') return;
+
+        item.status      = 'completed';
+        item.completedAt = Date.now();
+        item.progress    = 100;
+        this.sessionCompleted++;
+        this.persistQueue();
+        this.emit({ type: 'download-completed', item, progress: this.getProgress() });
+        this.emit({ type: 'cache-updated' });
+        this.scheduleAutoClear(item.id);
+
+        const songRef = { ...item.song };
+        const { quality, artistId, artistCoverArtId } = item;
+        const { audioHash, extension, fileSize } = data;
+        this.registrationQueue = this.registrationQueue
+          .then(() => offlineCacheService.registerNativeDownload(
+            songRef, quality, audioHash, extension, fileSize, artistId, artistCoverArtId
+          ))
+          .catch(e => logger.warn('[DownloadManager] registerNativeDownload failed:', e));
+
+        this.downloadCoverArt(item, serverUrl, username, password)
+          .catch(e => logger.warn('[DownloadManager] Cover art download failed:', e));
+
+        songsProcessed++;
+        if (songsProcessed % VALIDATE_INTERVAL === 0) {
+          validateFailed().catch(() => {});
+        }
+        markTerminal();
+      });
+
+      failedHandle = await BackgroundDownload!.addListener('backgroundDownloadFailed', (data) => {
+        const item = itemMap.get(data.songId);
+        if (!item) return;
+        if (item.status === 'failed') return;
+        item.status = 'failed';
+        item.error  = data.error;
+        this.sessionFailed++;
+        this.persistQueue();
+        this.emit({ type: 'download-failed', item, progress: this.getProgress(), error: data.error });
+
+        songsProcessed++;
+        if (songsProcessed % VALIDATE_INTERVAL === 0) {
+          validateFailed().catch(() => {});
+        }
+        markTerminal();
+      });
+
+      this.savePendingBatch(toDownload);
+
+      this.pushDownloadNotification(0, true);
+      await BackgroundDownload!.startBatch({ items: batchItems });
+      // Wait for every song to reach a terminal state before validating/draining —
+      // startBatch itself only confirms tasks were scheduled, not that they finished.
+      await allTerminal;
+      // Final pass, then a delayed pass to catch tail-end false-failures.
+      await validateFailed();
+      await new Promise<void>(resolve => setTimeout(resolve, 10_000));
+      await validateFailed();
+      await this.registrationQueue;
+      await offlineCacheService.flushAll();
+      this.clearPendingBatch();
+      BackgroundDownload!.clearCompletionLog().catch(() => {});
+
+    } finally {
+      progressHandle?.remove();
+      completedHandle?.remove();
+      failedHandle?.remove();
+    }
+
+    let retriableCount = 0;
+    for (const item of toDownload) {
+      if (item.status === 'failed' && item.retryCount < this.maxRetries) {
+        item.retryCount++;
+        item.status = 'pending';
+        item.error = `Retry ${item.retryCount}/${this.maxRetries}: network error`;
+        retriableCount++;
+      }
+    }
+    if (retriableCount > 0) {
+      this.sessionFailed = Math.max(0, this.sessionFailed - retriableCount);
+      logger.log(`[DownloadManager] Queued ${retriableCount} songs for iOS batch retry`);
       this.persistQueue();
       this.emit({ type: 'queue-updated', progress: this.getProgress() });
     }
@@ -1466,6 +1705,9 @@ class DownloadManagerService {
       if (NativeDownloader && this.useBatchMode) {
         NativeDownloader.cancelBatch().catch(() => {});
       }
+      if (BackgroundDownload && this.useBatchModeIOS) {
+        BackgroundDownload.cancelBatch().catch(() => {});
+      }
 
       // Drop everything except the currently-downloading item so the UI shows
       // just the one song that is still in flight.
@@ -1492,6 +1734,7 @@ class DownloadManagerService {
     this.currentDownload = null;
     this.isDownloading = false;
     this.useBatchMode = true;
+    this.useBatchModeIOS = true;
     this.pendingClear = false;
     this.sessionTotal = 0;
     this.sessionCompleted = 0;

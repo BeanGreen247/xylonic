@@ -3,8 +3,8 @@
 ## In Progress
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
-- [ ] **iOS auto-offline on cellular** — needs device test on cellular data (was on WiFi during this session)
-- [ ] **iOS background downloads — device test** — CI needs to build new IPA with `BackgroundDownloadPlugin.swift` injected; sideload and verify downloads continue when app is backgrounded; also test orphan recovery on cold-start
+- [ ] **iOS auto-offline on cellular** — needs device test on cellular data (was on WiFi during testing)
+- [ ] **iOS background downloads — device test** — new IPA includes `probeConnection` local-network permission fix + throttled progress events + ATS config; sideload and verify: (1) local-network dialog appears on first download, (2) downloads complete, (3) downloads continue when app is backgrounded, (4) orphan recovery on cold-start
 
 ## Backlog
 - [ ] Replace `npm test` — no test runner configured after removing react-scripts; add Vitest if needed
@@ -17,6 +17,10 @@
 - [ ] Compress search index in IndexedDB — `CompressionStream('deflate')` (Chromium built-in) would give 3–5× smaller IDB storage for large libraries; write path stores `ArrayBuffer`; read path handles both compressed v2.0 and legacy v1.0 records for migration
 
 ## Done (this cycle, cont.)
+
+- [x] iOS local-network permission probe (Aug 2): `probeConnection()` method added to `BackgroundDownloadPlugin`; fires a foreground `URLSession.shared` HEAD request before first background download; iOS 14+ background sessions bypass the local-network permission dialog — foreground probe triggers it; `iosNetworkProbed` flag (reset each JS session) prevents repeat probes
+- [x] Android CI APK never uploaded (Aug 2): root `.gitignore` had stale non-anchored `app/` pattern (meant for Electron) matching `android/app/` — entire `:app` Gradle module source missing from git; Gradle built 121 library tasks but produced no APK; fixed by anchoring pattern to `/app/` and committing `android/app/` source; `android/.gitignore` excludes generated `capacitor.build.gradle`
+- [x] Android CI APK upload path (Aug 2): added dynamic `find`-based `Locate debug APK` step + `APK_PATH` env var; `if-no-files-found: error` on upload step surfaces path issues immediately instead of silently skipping
 
 ## Done (this cycle)
 - [x] iOS album art in Control Center / lock screen (Jul 31): `fetch()` + `response.body.getReader()` streaming reader assembles image bytes → `btoa` → `data:` URL in `MediaMetadata.artwork`; `MPNowPlayingInfoCenter` receives raw bytes inline; confirmed working on device. (`CapacitorHttp.request(arraybuffer)` tried first but has no native iOS impl — falls back to broken `response.blob()` path)

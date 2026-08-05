@@ -139,6 +139,42 @@ After that, future runs skip the scaffold step.
 
 ---
 
+## Debugging on Linux (no Mac, no Xcode)
+
+You don't need a Mac to debug a sideloaded build over USB — these tools talk to the iPhone directly from Linux via `usbmuxd`.
+
+### Install
+
+```bash
+sudo apt install libimobiledevice-utils   # idevice_id, ideviceinfo, idevicesyslog
+pipx install pymobiledevice3              # webinspector/CDP bridge into the WKWebView
+```
+
+`usbmuxd` and `libimobiledevice-1.0-6` are pulled in automatically as dependencies if not already present.
+
+### Device syslog (native/system-level logs)
+
+```bash
+idevice_id -l          # confirm the phone is detected + trusted
+idevicesyslog           # live unified log stream (NSLog/os_log from native Swift code shows up here)
+```
+
+Useful for native-side `NSLog()` tracing (e.g. inside a Capacitor Swift plugin) and OS-level signals (crashes, `runningboardd`, `nsurlsessiond`). It does **not** show WKWebView JS `console.log` output — WebKit's JS console isn't piped into the unified log.
+
+### Live JS console / WebView inspection (no Safari/Mac needed)
+
+1. On the iPhone: **Settings → Apps → Safari → Advanced → Web Inspector** → on
+2. On Linux:
+   ```bash
+   pymobiledevice3 webinspector opened-tabs   # sanity check — lists the app's WebView
+   pymobiledevice3 webinspector cdp           # starts a Chrome DevTools Protocol bridge on ws://127.0.0.1:9222
+   ```
+3. Connect any CDP client (a small Python script with the `websockets` package works fine) to the printed `webSocketDebuggerUrl` and enable `Runtime`/`Console`/`Log` domains to see live `console.log` output, exceptions, and to run `Runtime.evaluate` against the page — e.g. reading `localStorage`, checking `window.Capacitor.Plugins`, or clicking DOM elements to simulate real UI taps, all without touching the phone.
+
+This combination (`idevicesyslog` for native logs + the CDP bridge for JS-side state) is enough to diagnose most native-plugin bugs on a sideloaded build without ever needing Xcode or a Mac.
+
+---
+
 ## Native Plugin Status
 
 The web layer (React/TypeScript) runs on iOS immediately. These features need native Swift plugins that are planned but not yet written:

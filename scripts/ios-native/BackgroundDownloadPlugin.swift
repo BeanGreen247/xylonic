@@ -17,7 +17,14 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         config.sessionSendsLaunchEvents = true
         config.isDiscretionary = false
         urlSession = URLSession(configuration: config, delegate: self, delegateQueue: nil)
-        NSLog("[XyBGDL] load() — background URLSession created, identifier=%@", Self.sessionIdentifier)
+        trace("load() — background URLSession created, identifier=\(Self.sessionIdentifier)")
+    }
+
+    // Routes diagnostic messages through the Capacitor event bridge (visible via CDP/JS
+    // console) instead of NSLog — NSLog output from a sideloaded, non-Xcode-attached
+    // process isn't reliably persisted/visible in idevicesyslog on modern iOS.
+    private func trace(_ msg: String) {
+        notifyListeners("xyDebugTrace", data: ["msg": msg])
     }
 
     // MARK: - Plugin methods
@@ -65,11 +72,11 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
     // is unreliable while the app is backgrounded even with BackgroundKeepAlive armed.
     @objc func startBatch(_ call: CAPPluginCall) {
         guard let items = call.getArray("items", JSObject.self) else {
-            NSLog("[XyBGDL] startBatch: getArray(items) returned nil — rejecting")
+            trace("startBatch: getArray(items) returned nil — rejecting")
             call.reject("Missing required parameter: items")
             return
         }
-        NSLog("[XyBGDL] startBatch: received %d items, urlSession=%@", items.count, urlSession == nil ? "nil" : "set")
+        trace("startBatch: received \(items.count) items, urlSession=\(urlSession == nil ? "nil" : "set")")
 
         var scheduled = 0
         var skipped = 0
@@ -81,7 +88,7 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
                 let audioHash = item["audioHash"] as? String
             else {
                 skipped += 1
-                NSLog("[XyBGDL] startBatch: skipped malformed item: %@", String(describing: item))
+                trace("startBatch: skipped malformed item: \(String(describing: item))")
                 continue
             }
 
@@ -95,11 +102,11 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
             task.resume()
             scheduled += 1
             if scheduled <= 3 {
-                NSLog("[XyBGDL] startBatch: resumed task for songId=%@ state=%ld", songId, task.state.rawValue)
+                trace("startBatch: resumed task for songId=\(songId) state=\(task.state.rawValue)")
             }
         }
 
-        NSLog("[XyBGDL] startBatch: done — scheduled=%d skipped=%d", scheduled, skipped)
+        trace("startBatch: done — scheduled=\(scheduled) skipped=\(skipped)")
         // Resolve once tasks are scheduled, not once they finish — completion is reported
         // asynchronously per-song via the existing backgroundDownloadCompleted/Failed events.
         call.resolve()
@@ -144,7 +151,7 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL
     ) {
-        NSLog("[XyBGDL] didFinishDownloadingTo — task=%@ desc=%@", downloadTask, downloadTask.taskDescription ?? "nil")
+        trace("didFinishDownloadingTo — desc=\(downloadTask.taskDescription ?? "nil")")
         guard let desc = downloadTask.taskDescription else { return }
         let parts = desc.split(separator: "|", maxSplits: 1).map(String.init)
         guard parts.count == 2 else { return }
@@ -205,11 +212,10 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         totalBytesWritten: Int64,
         totalBytesExpectedToWrite: Int64
     ) {
-        NSLog("[XyBGDL] didWriteData — desc=%@ written=%lld total=%lld expected=%lld",
-              downloadTask.taskDescription ?? "nil", bytesWritten, totalBytesWritten, totalBytesExpectedToWrite)
         let now = Date()
         guard now.timeIntervalSince(lastProgressNotifyTime) >= 0.5 else { return }
         lastProgressNotifyTime = now
+        trace("didWriteData — desc=\(downloadTask.taskDescription ?? "nil") written=\(bytesWritten) total=\(totalBytesWritten) expected=\(totalBytesExpectedToWrite)")
         guard let desc = downloadTask.taskDescription else { return }
         let songId = String(desc.split(separator: "|").first ?? Substring(desc))
         notifyListeners("downloadProgress", data: [
@@ -224,8 +230,7 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
         task: URLSessionTask,
         didCompleteWithError error: Error?
     ) {
-        NSLog("[XyBGDL] didCompleteWithError — desc=%@ error=%@",
-              task.taskDescription ?? "nil", error?.localizedDescription ?? "nil")
+        trace("didCompleteWithError — desc=\(task.taskDescription ?? "nil") error=\(error?.localizedDescription ?? "nil")")
         // Only fires for network/transport errors (not for successful completions,
         // which already called didFinishDownloadingTo above).
         guard let error = error, let desc = task.taskDescription else { return }
@@ -236,7 +241,7 @@ public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
     }
 
     public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
-        NSLog("[XyBGDL] urlSessionDidFinishEvents")
+        trace("urlSessionDidFinishEvents")
         // Must be called on the main thread to signal to iOS that background processing is done.
         DispatchQueue.main.async {
             Self.backgroundCompletionHandler?()

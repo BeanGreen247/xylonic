@@ -3,7 +3,16 @@ import AVFoundation
 import Capacitor
 
 @objc(BackgroundKeepAlivePlugin)
-public class BackgroundKeepAlivePlugin: CAPPlugin {
+public class BackgroundKeepAlivePlugin: CAPPlugin, CAPBridgedPlugin {
+
+    // See BackgroundDownloadPlugin.swift for why this explicit registration replaced
+    // the old Objective-C CAP_PLUGIN macro approach.
+    public let identifier = "BackgroundKeepAlivePlugin"
+    public let jsName = "BackgroundKeepAlive"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "arm",     returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "disarm",  returnType: CAPPluginReturnPromise),
+    ]
 
     private var audioEngine: AVAudioEngine?
     private var isArmed = false    // JS has active downloads pending

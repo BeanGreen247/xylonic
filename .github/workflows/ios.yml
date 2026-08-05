@@ -94,9 +94,7 @@ jobs:
       - name: Inject native plugins
         run: |
           cp scripts/ios-native/BackgroundDownloadPlugin.swift ios/App/App/
-          cp scripts/ios-native/BackgroundDownloadPlugin.m    ios/App/App/
           cp scripts/ios-native/BackgroundKeepAlive.swift     ios/App/App/
-          cp scripts/ios-native/BackgroundKeepAlive.m         ios/App/App/
           cp scripts/ios-native/AppDelegate.swift             ios/App/App/
 
       - name: Register native plugins in Xcode project
@@ -111,9 +109,7 @@ jobs:
             }
             %w[
               BackgroundDownloadPlugin.swift
-              BackgroundDownloadPlugin.m
               BackgroundKeepAlive.swift
-              BackgroundKeepAlive.m
             ].each do |name|
               next if app_group.children.any? { |c| c.respond_to?(:path) && c.path == name }
               ref = app_group.new_reference(name)

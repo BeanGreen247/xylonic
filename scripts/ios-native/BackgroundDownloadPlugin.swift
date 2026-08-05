@@ -2,7 +2,23 @@ import Foundation
 import Capacitor
 
 @objc(BackgroundDownloadPlugin)
-public class BackgroundDownloadPlugin: CAPPlugin, URLSessionDownloadDelegate {
+public class BackgroundDownloadPlugin: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDelegate {
+
+    // Capacitor 8 plugin registration — the old Objective-C CAP_PLUGIN macro (previously
+    // in a separate .m file) relies on ObjC runtime class-scanning that Capacitor 8's
+    // SPM-oriented bridge does not reliably perform. This explicit Swift-side registration
+    // is the current required mechanism; see https://capacitorjs.com/docs/plugins/ios.
+    public let identifier = "BackgroundDownloadPlugin"
+    public let jsName = "BackgroundDownload"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "startDownload",      returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "cancelDownload",     returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "startBatch",         returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "cancelBatch",        returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "readCompletionLog",  returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearCompletionLog", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "probeConnection",    returnType: CAPPluginReturnPromise),
+    ]
 
     public static let sessionIdentifier = "xylonic.background.download"
     public static var backgroundCompletionHandler: (() -> Void)?

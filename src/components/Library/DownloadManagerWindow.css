@@ -643,15 +643,40 @@
   color: #dc3545;
 }
 
-/* Active download card */
+/* Active download card(s) — container holds one card per concurrent download */
+.active-downloads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* With more than one concurrent download, shrink each card so several fit without
+   the list dominating the window; cap height and let it scroll past ~4 cards. */
+.active-downloads-list.multi {
+  max-height: 320px;
+  overflow-y: auto;
+  gap: 8px;
+}
+
 .active-download-card {
   background: var(--bg-light);
   border: 2px solid var(--primary-color);
   border-radius: 12px;
   padding: 16px 20px;
-  margin-bottom: 20px;
   box-shadow: 0 4px 16px rgba(29, 185, 84, 0.15);
 }
+
+.active-downloads-list.multi .active-download-card {
+  padding: 10px 14px;
+  border-width: 1px;
+}
+
+.active-downloads-list.multi .active-download-label { display: none; }
+
+.active-downloads-list.multi .active-download-title { font-size: 0.88rem; }
+
+.active-downloads-list.multi .active-download-sub { font-size: 0.76rem; margin-bottom: 6px; }
 
 .active-download-label {
   font-size: 0.78rem;

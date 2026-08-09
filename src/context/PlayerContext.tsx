@@ -852,10 +852,13 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     // data: URLs are decoded entirely in-process — no network, no filesystem access
     // required.
     //
-    // Resolution order (both platforms):
-    //   1. (Electron) Explicitly cached cover art → readCachedImage → data URL
+    // Resolution order (all platforms):
+    //   1. Explicitly cached offline cover art → readCachedImage → data URL
+    //      (works on Electron and Capacitor/iOS/Android — readCachedImage is implemented
+    //      identically on all of them; this is the only path that works while offline)
     //   2. imageCacheService IDB by coverArt ID → FileReader → data URL  (same source as AlbumArt UI)
-    //   3. Fetch from Subsonic in renderer → FileReader → data URL
+    //   3. iOS-only: fetch() + streaming reader → data URL (bypasses ATS/CapacitorHttp issues)
+    //   4. Fetch from Subsonic in renderer → FileReader → data URL
     //
     // Level 2 ensures the notification always shows the same art as the player UI.
     // The old Level 2 (sibling/embedded audio-file art) was removed because it could
@@ -876,6 +879,28 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         });
 
         if (!currentSong.coverArt) return;
+
+        // Level 1 (all platforms): explicitly cached offline cover art. Checked first —
+        // it's the fastest path and the only one that works while offline. readCachedImage
+        // is implemented identically on Electron and Capacitor (iOS/Android), so this is
+        // not platform-gated.
+        if (offlineCacheService.isCoverArtCached(currentSong.coverArt)) {
+            const cachedPath = offlineCacheService.getCachedCoverArtPath(currentSong.coverArt);
+            if (cachedPath) {
+                (async () => {
+                    const artSrc = await bridge.readCachedImage(cachedPath);
+                    if (!artSrc) return;
+                    if (navigator.mediaSession.metadata?.title !== currentSong.title) return;
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title:   currentSong.title,
+                        artist:  currentSong.artist,
+                        album:   currentSong.album,
+                        artwork: [{ src: artSrc, sizes: '512x512', type: 'image/jpeg' }],
+                    });
+                })();
+                return;
+            }
+        }
 
         // iOS fast path: MPNowPlayingInfoCenter fetches artwork natively, bypassing
         // CapacitorHttp, so HTTP Subsonic URLs are blocked by ATS.
@@ -934,13 +959,8 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             try {
                 let artSrc: string | null = null;
 
-                if (bridge.isElectron) {
-                    // ── Level 1: explicitly cached cover art ──────────────────
-                    if (offlineCacheService.isCoverArtCached(currentSong.coverArt!)) {
-                        const rel = offlineCacheService.getCachedCoverArtPath(currentSong.coverArt!);
-                        if (rel) artSrc = await bridge.readCachedImage(rel);
-                    }
-                }
+                // (Level 1 — explicitly cached offline cover art — is handled above,
+                // before this async block, for all platforms.)
 
                 // ── Level 2: imageCacheService IDB (same source as the player UI) ─
                 if (!artSrc) {

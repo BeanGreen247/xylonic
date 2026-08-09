@@ -20,7 +20,7 @@ import { DownloadQuality } from '../../types/offline';
 import { isPerformanceModeEnabled, setPerformanceMode } from '../../services/performanceModeService';
 import { isPowerSaverEnabled, setPowerSaverMode } from '../../services/powerSaverService';
 import { isEnabled as isRenderTimerEnabled, setEnabled as setRenderTimerEnabled } from '../../services/renderTimerService';
-import { getDefaultDownloadQuality, saveDefaultDownloadQuality, saveStreamingQuality } from '../../utils/settingsManager';
+import { getDefaultDownloadQuality, saveDefaultDownloadQuality, saveStreamingQuality, getMaxConcurrentDownloads, saveMaxConcurrentDownloads, MAX_CONCURRENT_DOWNLOADS_LIMIT } from '../../utils/settingsManager';
 import ThemeSelector from './ThemeSelector';
 import FirewallSetupDialog from './FirewallSetupDialog';
 import SleepTimerPicker, { fmtSleepRemaining } from './SleepTimerPicker';
@@ -68,6 +68,7 @@ const SettingsView: React.FC = () => {
   const [showFirewallDialog, setShowFirewallDialog] = useState(false);
 
   const [defaultDlQuality, setDefaultDlQuality] = useState<DownloadQuality>(getDefaultDownloadQuality);
+  const [maxConcurrentDownloads, setMaxConcurrentDownloads] = useState<number>(getMaxConcurrentDownloads);
   const [perfMode,      setPerfMode]      = useState(isPerformanceModeEnabled);
   const [powerSaver,    setPowerSaver]    = useState(isPowerSaverEnabled);
   const [renderTimer, setRenderTimer] = useState(isRenderTimerEnabled);
@@ -165,6 +166,12 @@ const SettingsView: React.FC = () => {
   const handleQualityChange = (q: DownloadQuality) => {
     setDefaultDlQuality(q);
     saveDefaultDownloadQuality(q);
+  };
+
+  const handleMaxConcurrentChange = (count: number) => {
+    setMaxConcurrentDownloads(count);
+    saveMaxConcurrentDownloads(count);
+    downloadManager.syncMaxConcurrentDownloads();
   };
 
   const handleStreamingQualityChange = (raw: string) => {
@@ -812,6 +819,27 @@ const SettingsView: React.FC = () => {
                 <option value="256">256 kbps</option>
                 <option value="128">128 kbps</option>
                 <option value="64">64 kbps</option>
+              </select>
+            </span>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-row non-interactive">
+            <span className="settings-row-icon"><i className="fas fa-layer-group" /></span>
+            <span className="settings-row-label">Concurrent Downloads
+              <span className="settings-row-sub">
+                {maxConcurrentDownloads === 1 ? 'One song at a time' : `Up to ${maxConcurrentDownloads} songs at once`}
+                {Capacitor.getPlatform() === 'ios' ? ' — iOS applies this from next app launch' : ''}
+              </span>
+            </span>
+            <span className="settings-row-action">
+              <select
+                className="settings-select"
+                value={maxConcurrentDownloads}
+                onChange={e => handleMaxConcurrentChange(Number(e.target.value))}
+              >
+                {Array.from({ length: MAX_CONCURRENT_DOWNLOADS_LIMIT }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
               </select>
             </span>
           </div>

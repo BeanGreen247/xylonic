@@ -259,23 +259,27 @@ const DownloadManagerWindow: React.FC<DownloadManagerWindowProps> = ({ isOpen, o
             </div>
           )}
 
-          {/* Active download card — always visible when downloading */}
-          {progress.currentSong ? (
-            <div className="active-download-card">
-              <div className="active-download-label">
-                <i className="fas fa-arrow-circle-down" /> Now downloading
-              </div>
-              <div className="active-download-title">{progress.currentSong.song.title}</div>
-              <div className="active-download-sub">
-                {progress.currentSong.artistName} — {progress.currentSong.albumName}
-              </div>
-              <div className="active-download-bar-wrap">
-                <div
-                  className="active-download-bar"
-                  style={{ width: `${progress.currentSong.progress}%` }}
-                />
-              </div>
-              <div className="active-download-pct">{progress.currentSong.progress}%</div>
+          {/* Active download card(s) — one per concurrent download, always visible while downloading */}
+          {progress.currentDownloads.length > 0 ? (
+            <div className={`active-downloads-list${progress.currentDownloads.length > 1 ? ' multi' : ''}`}>
+              {progress.currentDownloads.map(dl => (
+                <div className="active-download-card" key={dl.id}>
+                  <div className="active-download-label">
+                    <i className="fas fa-arrow-circle-down" /> Now downloading
+                  </div>
+                  <div className="active-download-title">{dl.song.title}</div>
+                  <div className="active-download-sub">
+                    {dl.artistName} — {dl.albumName}
+                  </div>
+                  <div className="active-download-bar-wrap">
+                    <div
+                      className="active-download-bar"
+                      style={{ width: `${dl.progress}%` }}
+                    />
+                  </div>
+                  <div className="active-download-pct">{dl.progress}%</div>
+                </div>
+              ))}
             </div>
           ) : !hasActivity ? (
             <p className="empty-queue">No downloads in queue</p>

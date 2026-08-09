@@ -16,6 +16,21 @@ export function saveDefaultDownloadQuality(quality: DownloadQuality): void {
   localStorage.setItem(DEFAULT_DL_QUALITY_KEY, quality);
 }
 
+const MAX_CONCURRENT_DOWNLOADS_KEY = 'xylonic_max_concurrent_downloads';
+const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 3;
+export const MAX_CONCURRENT_DOWNLOADS_LIMIT = 8;
+
+export function getMaxConcurrentDownloads(): number {
+  const saved = parseInt(localStorage.getItem(MAX_CONCURRENT_DOWNLOADS_KEY) || '', 10);
+  if (Number.isFinite(saved) && saved >= 1 && saved <= MAX_CONCURRENT_DOWNLOADS_LIMIT) return saved;
+  return DEFAULT_MAX_CONCURRENT_DOWNLOADS;
+}
+
+export function saveMaxConcurrentDownloads(count: number): void {
+  const clamped = Math.min(MAX_CONCURRENT_DOWNLOADS_LIMIT, Math.max(1, Math.round(count)));
+  localStorage.setItem(MAX_CONCURRENT_DOWNLOADS_KEY, String(clamped));
+}
+
 export async function saveStreamingQuality(bitrate: number | null): Promise<void> {
   try {
     const { username } = getFromStorage();

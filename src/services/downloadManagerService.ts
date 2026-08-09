@@ -20,6 +20,7 @@ import { logger } from '../utils/logger';
 import { getBridge } from '../platform/bridge';
 import { Capacitor, registerPlugin, PluginListenerHandle } from '@capacitor/core';
 import md5 from 'md5';
+import { getMaxConcurrentDownloads } from '../utils/settingsManager';
 
 interface NativeDownloaderPlugin {
   startDownload(opts: {
@@ -110,6 +111,9 @@ interface BackgroundDownloadPlugin {
     handler: (data: { songId: string; bytesWritten: number; totalBytes: number }) => void
   ): Promise<PluginListenerHandle>;
   probeConnection(opts: { url: string }): Promise<{ ok: boolean }>;
+  /** Persists the concurrency cap for next app launch — httpMaximumConnectionsPerHost
+   *  is fixed for the lifetime of the background URLSession, so this can't apply mid-session. */
+  setMaxConcurrentDownloads(opts: { count: number }): Promise<void>;
 }
 
 const BackgroundDownload: BackgroundDownloadPlugin | null = Capacitor.getPlatform() === 'ios'
@@ -184,6 +188,12 @@ class DownloadManagerService {
   // AbortController for the active JS fetch — lets the stuck check cancel cleanly
   private currentAbortController: AbortController | null = null;
 
+  // Per-item abort controllers + last-progress timestamps for concurrent JS downloads
+  // (Electron/web). Keyed by DownloadQueueItem.id so the stuck-check can abort exactly
+  // the stalled download without disturbing other downloads running at the same time.
+  private activeAbortControllers = new Map<string, AbortController>();
+  private activeLastProgressMs = new Map<string, number>();
+
   private persistQueueTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Serial queue for cache-index registrations. Prevents hundreds of concurrent
@@ -213,6 +223,9 @@ class DownloadManagerService {
       window.addEventListener('online', this.handleNetworkRestore.bind(this));
     }
     this.initIOSListeners();
+    // Sync the JS-side concurrency setting to native UserDefaults; takes effect on the
+    // next app launch since httpMaximumConnectionsPerHost is fixed for the session's lifetime.
+    BackgroundDownload?.setMaxConcurrentDownloads({ count: getMaxConcurrentDownloads() }).catch(() => {});
   }
 
   private initIOSListeners(): void {
@@ -623,8 +636,12 @@ class DownloadManagerService {
           this.currentDownload = item;
           await this.downloadSong(item);
         }
+      } else if (!NativeDownloader && !BackgroundDownload) {
+        // Electron/web: N concurrent downloads via JS fetch, bounded by the
+        // "Concurrent downloads" setting (1-8, default 3).
+        await this.processConcurrentJS();
       } else {
-        // Electron/web, or Android with batch mode disabled: one song at a time.
+        // Android native fallback (batch mode disabled): one song at a time.
         const item = pendingItems[0];
 
         // Exponential backoff between retries so the network has time to recover.
@@ -1285,6 +1302,55 @@ class DownloadManagerService {
   }
 
   /**
+   * Electron/web: run up to N download workers concurrently (N = the configured
+   * concurrency setting, capped at MAX_CONCURRENT_DOWNLOADS_LIMIT), each pulling the
+   * next pending item off the shared queue until it's empty. Reuses downloadSong()
+   * per item, so retry/backoff/completion-log bookkeeping is identical to single-song
+   * mode — only the scheduling is concurrent.
+   */
+  private async processConcurrentJS(): Promise<void> {
+    const maxConcurrent = Math.max(1, getMaxConcurrentDownloads());
+    const pendingCount  = this.queue.filter(i => i.status === 'pending').length;
+    const workerCount   = Math.min(maxConcurrent, pendingCount);
+
+    this.startStuckCheck();
+    try {
+      await Promise.all(
+        Array.from({ length: workerCount }, () => this.downloadWorkerJS())
+      );
+    } finally {
+      this.stopStuckCheck();
+    }
+  }
+
+  private async downloadWorkerJS(): Promise<void> {
+    while (true) {
+      if (this.isPaused || this.pendingClear) return;
+
+      const item = this.queue.find(i => i.status === 'pending');
+      if (!item) return;
+
+      // Claim synchronously (no await before this point) so no other worker can pick
+      // the same item, even while this one is waiting out a retry backoff below.
+      item.status = 'downloading';
+
+      if (item.retryCount > 0) {
+        const backoffMs = Math.min(2000 * Math.pow(2, item.retryCount - 1), 30_000);
+        logger.log(`[DownloadManager] Retry ${item.retryCount} for "${item.song.title}" — waiting ${Math.round(backoffMs / 1000)}s`);
+        await new Promise<void>(resolve => setTimeout(resolve, backoffMs));
+        if (this.isPaused || this.pendingClear || !this.queue.includes(item)) {
+          item.status = 'pending';
+          return;
+        }
+      }
+
+      this.currentDownload = item;
+      this.activeLastProgressMs.set(item.id, Date.now());
+      await this.downloadSong(item);
+    }
+  }
+
+  /**
    * Electron / web download: streams audio through the JS fetch API.
    */
   private async downloadSongJS(
@@ -1296,8 +1362,11 @@ class DownloadManagerService {
   ): Promise<void> {
     // Keep the AbortController alive for the entire fetch + body read so the
     // stuck check can cancel both the initial request and a stalled read loop.
+    // Tracked per-item (not just the single global field) so concurrent downloads
+    // can each be aborted independently if one specific transfer stalls.
     const controller = new AbortController();
     this.currentAbortController = controller;
+    this.activeAbortControllers.set(item.id, controller);
 
     try {
       const response = await fetch(streamUrl, { signal: controller.signal });
@@ -1326,6 +1395,7 @@ class DownloadManagerService {
         if (hasContentLength) {
           item.progress = Math.round((receivedBytes / contentLength) * 100);
         }
+        this.activeLastProgressMs.set(item.id, Date.now());
         this.emit({ type: 'download-progress', item, progress: this.getProgress() });
         this.pushDownloadNotification(receivedBytes, !hasContentLength);
       }
@@ -1362,6 +1432,8 @@ class DownloadManagerService {
       await this.downloadCoverArt(item, serverUrl, username, password);
     } finally {
       this.currentAbortController = null;
+      this.activeAbortControllers.delete(item.id);
+      this.activeLastProgressMs.delete(item.id);
     }
   }
 
@@ -1521,6 +1593,21 @@ class DownloadManagerService {
       // lastProgressMs goes stale but the download isn't stuck — skip the check
       // to avoid aborting a download that will resume normally when refocused.
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+
+      // Concurrent JS downloads (Electron/web worker pool): abort exactly the stalled
+      // item without disturbing other downloads still making progress.
+      const now = Date.now();
+      for (const [itemId, lastProgress] of this.activeLastProgressMs) {
+        if (now - lastProgress <= DownloadManagerService.STUCK_THRESHOLD_MS) continue;
+        logger.warn('[DownloadManager] Stuck concurrent download detected — aborting item', itemId);
+        this.activeAbortControllers.get(itemId)?.abort();
+        this.activeLastProgressMs.delete(itemId);
+      }
+
+      // Legacy single-download check (Android native fallback path) — skip entirely
+      // once any concurrent JS download is active, since lastProgressMs/currentAbortController
+      // are no longer being kept fresh per-chunk in that mode (the per-item map above owns it).
+      if (this.activeAbortControllers.size > 0) return;
 
       const stale = Date.now() - this.lastProgressMs;
       if (stale > DownloadManagerService.STUCK_THRESHOLD_MS) {
@@ -1709,11 +1796,11 @@ class DownloadManagerService {
         BackgroundDownload.cancelBatch().catch(() => {});
       }
 
-      // Drop everything except the currently-downloading item so the UI shows
-      // just the one song that is still in flight.
+      // Drop everything except items still actively in flight (there may be more than
+      // one with concurrent downloads) so the UI shows just those until they finish.
       this.autoClearTimeouts.forEach(timeout => clearTimeout(timeout));
       this.autoClearTimeouts.clear();
-      this.queue = this.currentDownload ? [this.currentDownload] : [];
+      this.queue = this.queue.filter(i => i.status === 'downloading');
       this.pendingClear = true;
       this.sessionTotal     = this.queue.length;
       this.sessionCompleted = 0;
@@ -1757,17 +1844,19 @@ class DownloadManagerService {
     const totalSongs     = this.sessionTotal;
     const completedSongs = this.sessionCompleted;
     const failedSongs    = this.sessionFailed;
-    // pending = everything not yet done (includes the currently-downloading item)
+    // pending = everything not yet done (includes any currently-downloading items)
     const pendingSongs   = Math.max(0, totalSongs - completedSongs - failedSongs);
+
+    // All items currently downloading — one with single-song modes, potentially several
+    // with concurrent JS downloads or a native batch mid-flight.
+    const currentDownloads = this.queue.filter(i => i.status === 'downloading');
 
     let overallProgress = 0;
     if (totalSongs > 0) {
-      // Only credit in-flight progress for the song that is currently downloading.
-      // A completed song is already counted in completedSongs × 100; adding its
-      // progress a second time makes overallProgress exceed 100%.
-      const downloadingProgress = this.currentDownload?.status === 'downloading'
-        ? (this.currentDownload.progress ?? 0)
-        : 0;
+      // Sum in-flight progress across every currently-downloading item. A completed
+      // song is already counted in completedSongs × 100; adding its progress again
+      // would make overallProgress exceed 100%, so only 'downloading' items count here.
+      const downloadingProgress = currentDownloads.reduce((sum, i) => sum + (i.progress ?? 0), 0);
       overallProgress = Math.min(100, Math.round((completedSongs * 100 + downloadingProgress) / totalSongs));
     }
 
@@ -1776,7 +1865,8 @@ class DownloadManagerService {
       completedSongs,
       failedSongs,
       pendingSongs,
-      currentSong: this.currentDownload || undefined,
+      currentSong: currentDownloads[0] || undefined,
+      currentDownloads,
       overallProgress,
       isPaused: this.isPaused,
       isDownloading: this.isDownloading,
@@ -1958,6 +2048,15 @@ class DownloadManagerService {
 
   async clearAllNativeData(): Promise<void> {
     if (NativeDownloader) await NativeDownloader.clearAllNativeData();
+  }
+
+  /**
+   * Push the current "Concurrent downloads" setting to native storage (iOS UserDefaults)
+   * so it's picked up next time the background URLSession is created (app launch) —
+   * call whenever the setting changes in Settings. No-op on Electron/web/Android.
+   */
+  public syncMaxConcurrentDownloads(): void {
+    BackgroundDownload?.setMaxConcurrentDownloads({ count: getMaxConcurrentDownloads() }).catch(() => {});
   }
 }
 

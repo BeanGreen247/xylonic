@@ -18,6 +18,7 @@ public class BackgroundDownloadPlugin: CAPPlugin, CAPBridgedPlugin, URLSessionDo
         CAPPluginMethod(name: "readCompletionLog",  returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearCompletionLog", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "probeConnection",    returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setMaxConcurrentDownloads", returnType: CAPPluginReturnPromise),
     ]
 
     public static let sessionIdentifier = "xylonic.background.download"
@@ -28,12 +29,31 @@ public class BackgroundDownloadPlugin: CAPPlugin, CAPBridgedPlugin, URLSessionDo
     private let serialQueue = DispatchQueue(label: "xylonic.bgdownload.serial", qos: .utility)
     private var lastProgressNotifyTime: Date = .distantPast
 
+    private static let maxConcurrentKey = "xylonic_max_concurrent_downloads"
+    private static let maxConcurrentDefault = 3
+    private static let maxConcurrentLimit = 8
+
     public override func load() {
+        // httpMaximumConnectionsPerHost caps how many of the enqueued URLSessionDownloadTasks
+        // are actively transferring at once; the rest queue automatically at the OS level —
+        // this is fixed for the lifetime of the session, so a value changed via
+        // setMaxConcurrentDownloads() only takes effect on the next app launch.
+        let saved = UserDefaults.standard.integer(forKey: Self.maxConcurrentKey)
+        let maxConcurrent = saved > 0 ? min(saved, Self.maxConcurrentLimit) : Self.maxConcurrentDefault
+
         let config = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
         config.sessionSendsLaunchEvents = true
         config.isDiscretionary = false
+        config.httpMaximumConnectionsPerHost = maxConcurrent
         urlSession = URLSession(configuration: config, delegate: self, delegateQueue: nil)
-        trace("load() — background URLSession created, identifier=\(Self.sessionIdentifier)")
+        trace("load() — background URLSession created, identifier=\(Self.sessionIdentifier), maxConcurrent=\(maxConcurrent)")
+    }
+
+    @objc func setMaxConcurrentDownloads(_ call: CAPPluginCall) {
+        let count = call.getInt("count") ?? Self.maxConcurrentDefault
+        let clamped = max(1, min(count, Self.maxConcurrentLimit))
+        UserDefaults.standard.set(clamped, forKey: Self.maxConcurrentKey)
+        call.resolve()
     }
 
     // Routes diagnostic messages through the Capacitor event bridge (visible via CDP/JS

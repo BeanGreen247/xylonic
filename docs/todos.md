@@ -1,6 +1,7 @@
 # Todos
 
 ## In Progress
+- [ ] **Android concurrent downloads** — `DownloadService.java` still downloads one song at a time (`Executors.newSingleThreadExecutor()`); making it match the new Electron/iOS concurrency cap needs a careful rework since its notification/wakelock/cancellation state currently assumes exactly one active transfer. Not started — no device available to test against this session.
 - [ ] **iOS downloads still broken (Aug 5)** — batch-download queue fix + `CAPBridgedPlugin` registration migration both shipped, but a download still failed on the latest installed build. Plugin registration itself is confirmed fixed via CDP; the remaining bug is in the download flow itself. Next session: reconnect `pymobiledevice3 webinspector cdp` (see `IOS_SETUP.md`), re-test `BackgroundDownload.startBatch`, and watch the `xyDebugTrace` event stream (already wired into `BackgroundDownloadPlugin.swift`) to see how far native code actually gets.
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)

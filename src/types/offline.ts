@@ -178,7 +178,8 @@ export interface DownloadProgress {
   completedSongs: number;        // Successfully downloaded
   failedSongs: number;           // Failed downloads
   pendingSongs: number;          // Waiting in queue
-  currentSong?: DownloadQueueItem; // Currently downloading song
+  currentSong?: DownloadQueueItem; // Currently downloading song (first of currentDownloads, kept for back-compat)
+  currentDownloads: DownloadQueueItem[]; // All songs currently downloading (concurrent downloads)
   overallProgress: number;       // 0-100 overall progress percentage
   isPaused: boolean;             // Queue paused?
   isDownloading: boolean;        // Any active download?

@@ -177,17 +177,18 @@ This combination (`idevicesyslog` for native logs + the CDP bridge for JS-side s
 
 ## Native Plugin Status
 
-The web layer (React/TypeScript) runs on iOS immediately. These features need native Swift plugins that are planned but not yet written:
+The web layer (React/TypeScript) runs on iOS immediately. Native Swift plugin status:
 
 | Feature | Android plugin | iOS status |
 |---|---|---|
+| Background downloads | `NativeDownloaderPlugin.java` | Written (`BackgroundDownloadPlugin.swift`, `URLSession` background tasks) — **currently broken end-to-end, actively being debugged** (see `docs/todos.md` → In Progress). Plugin registration was fixed Aug 5 (`CAPBridgedPlugin` migration) but downloads still fail for a separate, not-yet-found reason. |
+| Background keep-alive | — (Android uses a foreground service) | Written (`BackgroundKeepAlivePlugin.swift`, silent `AVAudioEngine` loop) — registration fixed alongside the downloads plugin above, functional status not yet re-verified |
 | Lock-screen controls | `MediaControlPlugin.java` | Planned — `MPNowPlayingInfoCenter` |
 | Background audio | `MusicService.java` | Planned — `AVAudioSession` + Info.plist |
-| Background downloads | `NativeDownloaderPlugin.java` | Planned — `URLSession` background tasks |
 | Download notifications | `DownloadNotificationPlugin.java` | Planned — `UNUserNotificationCenter` |
 | LAN remote discovery | `RemoteDiscoveryPlugin.java` | Planned — `Network.framework` |
 
-Until those are ported, Xylonic runs as a full-featured web app inside WKWebView. Playback, library browsing, offline downloads, search, and most UI features work. Background audio and lock-screen controls require the native plugins.
+Until the "Planned" rows are ported, those specific features are unavailable on iOS. Playback, library browsing, search, and most UI features work fully. See the "Debugging on Linux" section above for the tooling used to diagnose native plugin issues without a Mac.
 
 ---
 

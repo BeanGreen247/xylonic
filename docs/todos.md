@@ -1,10 +1,10 @@
 # Todos
 
 ## In Progress
+- [ ] **iOS downloads still broken (Aug 5)** — batch-download queue fix + `CAPBridgedPlugin` registration migration both shipped, but a download still failed on the latest installed build. Plugin registration itself is confirmed fixed via CDP; the remaining bug is in the download flow itself. Next session: reconnect `pymobiledevice3 webinspector cdp` (see `IOS_SETUP.md`), re-test `BackgroundDownload.startBatch`, and watch the `xyDebugTrace` event stream (already wired into `BackgroundDownloadPlugin.swift`) to see how far native code actually gets.
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
 - [ ] **iOS auto-offline on cellular** — needs device test on cellular data (was on WiFi during testing)
-- [ ] **iOS background downloads — device test** — new IPA includes `probeConnection` local-network permission fix + throttled progress events + ATS config; sideload and verify: (1) local-network dialog appears on first download, (2) downloads complete, (3) downloads continue when app is backgrounded, (4) orphan recovery on cold-start
 
 ## Backlog
 - [ ] Replace `npm test` — no test runner configured after removing react-scripts; add Vitest if needed
@@ -18,6 +18,9 @@
 
 ## Done (this cycle, cont.)
 
+- [x] iOS `CAPBridgedPlugin` registration migration (Aug 5): found via live CDP debugging that every custom native iOS plugin (not just downloads) was throwing "not implemented" at runtime because `BackgroundDownloadPlugin`/`BackgroundKeepAlivePlugin` used the old pre-Capacitor-7 Objective-C `CAP_PLUGIN` macro pattern, incompatible with Capacitor 8's SPM-oriented bridge; migrated both to `CAPBridgedPlugin` with explicit `identifier`/`jsName`/`pluginMethods`, deleted the obsolete `.m` files, updated `ios.yml` — real fix, confirmed via device testing, but downloads still fail for a separate reason (see In Progress)
+- [x] iOS native batch download queue (Aug 5): `startBatch`/`cancelBatch` added to `BackgroundDownloadPlugin.swift`; `downloadBatchNativeIOS()` added to `downloadManagerService.ts`, mirroring Android's existing batch pattern; removes dependency on a JS `setTimeout` chain between songs
+- [x] Electron desktop download progress UI (Aug 5): dock/taskbar progress bar, tray icon + tooltip, macOS dock badge; filled in previously no-op `showDownloadNotification`/`hideDownloadNotification` bridge methods
 - [x] iOS local-network permission probe (Aug 2): `probeConnection()` method added to `BackgroundDownloadPlugin`; fires a foreground `URLSession.shared` HEAD request before first background download; iOS 14+ background sessions bypass the local-network permission dialog — foreground probe triggers it; `iosNetworkProbed` flag (reset each JS session) prevents repeat probes
 - [x] Android CI APK never uploaded (Aug 2): root `.gitignore` had stale non-anchored `app/` pattern (meant for Electron) matching `android/app/` — entire `:app` Gradle module source missing from git; Gradle built 121 library tasks but produced no APK; fixed by anchoring pattern to `/app/` and committing `android/app/` source; `android/.gitignore` excludes generated `capacitor.build.gradle`
 - [x] Android CI APK upload path (Aug 2): added dynamic `find`-based `Locate debug APK` step + `APK_PATH` env var; `if-no-files-found: error` on upload step surfaces path issues immediately instead of silently skipping

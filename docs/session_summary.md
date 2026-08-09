@@ -1,11 +1,29 @@
 # Session Summary
 
-## Current Focus (August 2, 2026)
-iOS download permission fix (local-network probe), Android CI APK path fix (gitignore + dynamic locate step), and iOS/Android CI artifact verification.
+## Current Focus (August 5, 2026)
+iOS downloads are still broken on the latest installed build. This session found and fixed two real bugs (native batch download queue, and a project-wide Capacitor 8 plugin-registration incompatibility affecting every custom iOS plugin) but a download failed again after installing the build with both fixes — there is at least one more bug. Next session should pick up with live CDP debugging (tooling already documented in `IOS_SETUP.md`) rather than re-diagnosing from scratch.
 
 ---
 
-## What Changed This Session (August 2, 2026)
+## What Changed This Session (August 5, 2026)
+
+### iOS: native batch download queue
+`BackgroundDownloadPlugin.swift` gained `startBatch`/`cancelBatch`, enqueuing every pending song's `URLSessionDownloadTask` on the background `URLSession` up front — mirrors Android's existing `NativeDownloader.startBatch` pattern. `downloadManagerService.ts` gained `downloadBatchNativeIOS()` and a three-way dispatch in `processQueue()` (Android batch / iOS batch / single-song fallback), removing the dependency on a JS `setTimeout` chain firing reliably between songs while the app is backgrounded. This was the originally-suspected bug (WKWebView JS timers throttling in the background) — real, and fixed, but not sufficient on its own; see below.
+
+### Electron: desktop download progress UI
+Filled in `showDownloadNotification`/`hideDownloadNotification` in `electronBridge.ts` (previously no-ops) — dock/taskbar progress bar, tray icon with live tooltip, macOS dock badge. New `set-download-progress`/`clear-download-progress` IPC handlers in `public/electron.js`. Independent of the iOS work; ships fine on its own.
+
+### iOS: found and fixed a project-wide plugin registration bug
+Extensive live-device debugging (see "Debugging on Linux" section of `IOS_SETUP.md` for the tooling — `idevicesyslog` + `pymobiledevice3 webinspector cdp`) revealed that **every** custom native Swift plugin in the project — not just downloads — was throwing `"X" plugin is not implemented on ios` at runtime, including methods that predate this session (`probeConnection`, `readCompletionLog`, `BackgroundKeepAlive.arm`). Root cause: `BackgroundDownloadPlugin.swift` and `BackgroundKeepAlivePlugin.swift` used the old pre-Capacitor-7 Objective-C `CAP_PLUGIN` macro registration pattern (separate `.m` files), which doesn't reliably register under Capacitor 8's SPM-oriented bridge (confirmed via Capacitor's own docs — the current pattern requires `CAPBridgedPlugin` conformance with explicit `identifier`/`jsName`/`pluginMethods` declared in Swift). Migrated both plugins, deleted the obsolete `.m` files, updated `ios.yml`.
+
+**This means iOS background downloads (and the audio keep-alive trick) likely never actually worked on a real device before this session, regardless of any of the earlier "iOS background downloads working" implementation notes** — those were never verified against a real plugin call actually reaching native code.
+
+### Still broken
+After installing the build containing both fixes above, the user reported a download still failed. The plugin-registration fix is verified correct (confirmed via CDP that plugin methods no longer throw "not implemented" for at least some calls), so whatever's left is a bug in the download flow itself, not registration. Diagnostic tracing (`xyDebugTrace` Capacitor event, in `BackgroundDownloadPlugin.swift`) is already in place for the next session to pick up with live CDP debugging.
+
+---
+
+## What Changed Previously (August 2, 2026)
 
 ### iOS: local-network permission probe
 `BackgroundDownloadPlugin.swift` / `.m` — new `probeConnection(url:)` method fires a foreground `URLSession.shared` HEAD request before the first background download. iOS 14+ background URL sessions are handled by `nsurlsessiond` (a system daemon) which bypasses the local-network permission prompt entirely — the OS never asks. The foreground probe triggers the dialog while the app is in the foreground. `BackgroundDownloadPlugin.m` registers the new method. TypeScript interface gets `probeConnection` signature. `downloadManagerService.ts` gets `iosNetworkProbed` flag (reset each JS session) and calls the probe at the start of `downloadSongNativeIOS` once per session.

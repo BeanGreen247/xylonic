@@ -95,6 +95,7 @@ jobs:
         run: |
           cp scripts/ios-native/BackgroundDownloadPlugin.swift ios/App/App/
           cp scripts/ios-native/BackgroundKeepAlive.swift     ios/App/App/
+          cp scripts/ios-native/MainViewController.swift      ios/App/App/
           cp scripts/ios-native/AppDelegate.swift             ios/App/App/
 
       - name: Register native plugins in Xcode project
@@ -110,6 +111,7 @@ jobs:
             %w[
               BackgroundDownloadPlugin.swift
               BackgroundKeepAlive.swift
+              MainViewController.swift
             ].each do |name|
               next if app_group.children.any? { |c| c.respond_to?(:path) && c.path == name }
               ref = app_group.new_reference(name)
@@ -117,6 +119,17 @@ jobs:
             end
             project.save
           RUBY
+
+      - name: Point Main.storyboard at MainViewController
+        run: |
+          # Capacitor 8 requires custom native plugins to be explicitly registered via
+          # bridge?.registerPluginInstance(...) inside capacitorDidLoad() — CAPBridgedPlugin
+          # conformance alone does not register them. MainViewController.swift does this;
+          # repoint the storyboard's root view controller at it instead of the stock
+          # CAPBridgeViewController. See https://capacitorjs.com/docs/ios/custom-code
+          STORYBOARD="ios/App/App/Base.lproj/Main.storyboard"
+          sed -i 's/customClass="CAPBridgeViewController" customModule="Capacitor"/customClass="MainViewController"/' "$STORYBOARD"
+          grep -q 'customClass="MainViewController"' "$STORYBOARD" || { echo "Failed to repoint Main.storyboard"; exit 1; }
 
       - name: Inject custom app icon
         run: |

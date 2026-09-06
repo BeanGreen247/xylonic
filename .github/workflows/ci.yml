@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  checks:
+    name: lint · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Not a gate yet: ~59 pre-existing errors, mostly TS 4.9 not understanding
+      # moduleResolution "bundler". Clears with the WS-PERF TypeScript 5.x bump,
+      # then drop continue-on-error.
+      - name: Typecheck (non-blocking)
+        run: npm run typecheck
+        continue-on-error: true

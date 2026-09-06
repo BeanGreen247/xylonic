@@ -13,7 +13,21 @@ shipped (build doesn't type-check).
   `@testing-library/{react,jest-dom,user-event}`, `jsdom`.
 - Import-chain strategy: `vi.mock('../utils/logger', …)` + `vi.mock` the
   platform-touching deps so service tests don't drag in `@capacitor/*`.
-- Suites (21 tests): `src/services/subsonicApi.test.ts` (8), `src/services/credentialsService.test.ts` (8), `src/utils/cfgParser.test.ts` (5).
+- Suites (**61 tests, 8 files**): `subsonicApi` (8), `credentialsService` (8),
+  `cfgParser` (5), `offlineCacheService` (7 — totalSize: no double-count on
+  re-register, replace-on-quality-change, sum, decrement-on-remove, never-negative),
+  `downloadManagerService` (5 — queue dedup), `cacheHelpers` (16 — hash
+  determinism + trailing-slash normalization, userId, formatBytes,
+  content-type→ext), `fallbackBridge` (7 — interface contract), `searchCacheService`
+  (5 — main-thread fallback filter correctness + 20/20/50 caps).
+- Patterns: god-objects → mock `getBridge` with a minimal in-memory fake,
+  `vi.resetModules()` + dynamic import per test, `pauseQueue()` to stop
+  `processQueue`; `searchCacheService` → inject a synthetic `searchIndex` +
+  null `worker` to hit the fallback branch without IndexedDB (jsdom has none);
+  debounce tests → `vi.useFakeTimers()` + `advanceTimersByTimeAsync`.
+- Also added: `electronBridge` pass-through contract (7), `offlineCacheService`
+  debounced-save (2), and `.github/workflows/ci.yml` (lint + test + build gate on
+  push/PR to main; typecheck non-blocking until TS 5.x). 70 tests, 9 files.
 - **Regression fix**: `44aebfd`'s `any`→`unknown` on `customThemes` in
   `cfgParser.ts` / `colorConfigManager.ts` broke `tsc` (11 errors, invisible to
   the esbuild build). Reverted to `any` + `eslint-disable`. `tsc --noEmit`

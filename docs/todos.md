@@ -19,15 +19,17 @@
       (b) one-time `prettier --write` + commit; (c) wire `lint` + `format:check`
       into CI as required checks; (d) Vite `define`/transform to strip
       `logger.log`/`info` in prod bundles.
-- [ ] **WS-TEST phase 1b** — harness up (Vitest 3 + jsdom + RTL), `npm test`
-      green (21 tests: `subsonicApi` auth/pagination/offline-guard,
-      `credentialsService`, `cfgParser`). Remaining: `offlineCacheService` size
-      accounting + debounced flush + orphan register; `downloadManagerService`
-      queue dedup + idempotent `songDownloaded`/`songFailed` + `reconcileOrphans`
-      + batch-hijack; `PlayerContext` Fisher-Yates queue / repeat / boundaries
-      (RTL, heavy mocking); `searchCacheService`/`searchWorker` fallback;
-      `src/platform/` bridge contract tests; mock Subsonic server (MSW); wire
-      `test` + `typecheck` into CI as required checks; coverage floor.
+- [ ] **WS-TEST phase 1b** — harness + `.github/workflows/ci.yml` (lint+test+build
+      gate; typecheck non-blocking). `npm test` green (**70 tests, 9 files**:
+      `subsonicApi`, `credentialsService`, `cfgParser`, `offlineCacheService`
+      (totalSize accounting + debounced save), `downloadManagerService` queue
+      dedup, `cacheHelpers`, `fallbackBridge` + `electronBridge` contracts,
+      `searchCacheService` fallback). Remaining: idempotent
+      `songDownloaded`/`songFailed` (simulate the native listener) +
+      `reconcileOrphans` + batch-hijack; `PlayerContext` Fisher-Yates queue /
+      repeat / boundaries (RTL, heavy mocking); `capacitorBridge` contract; mock
+      Subsonic server (MSW); flip `typecheck` to blocking after the TS 5.x bump;
+      coverage floor (40%→60% on `src/services`/`src/context`).
 - [ ] **WS-SEC phase 2 — remove plaintext-at-rest** — `credentialsService` +
       `useCredentials()` landed and every app-code `localStorage.getItem('password')`
       now routes through `credentialsService.getCached()` (see Done). Still to do:

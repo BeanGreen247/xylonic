@@ -132,8 +132,15 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (Capacitor.isNativePlatform()) {
       // Use native network plugin for accurate cellular detection on Android/iOS.
       // navigator.connection is not supported in WKWebView on iOS.
-      Network.getStatus().then(s => setIsCellular(s.connectionType === 'cellular')).catch(() => {});
+      // navigator.onLine and the window online/offline events are unreliable in
+      // WKWebView, so the native plugin is the authoritative connectivity signal
+      // on iOS/Android — drive both isOnline and isCellular from it.
+      Network.getStatus().then(s => {
+        setIsOnline(s.connected);
+        setIsCellular(s.connectionType === 'cellular');
+      }).catch(() => {});
       networkListenerHandle = Network.addListener('networkStatusChange', s => {
+        setIsOnline(s.connected);
         setIsCellular(s.connectionType === 'cellular');
       });
     } else {
@@ -216,6 +223,10 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
     // attempt sync regardless of stale context state; failures are retried
     // next time connectivity is confirmed.
     if (wasOffline && !newConfig.enabled) {
+      // Re-verify connectivity: isOnline may be a stale false (e.g. launched with
+      // no connection) and would otherwise force library views down the cache-only
+      // path even though the user just explicitly asked to go online.
+      checkConnectivity().catch(() => {});
       if (getPendingChangesCount() > 0) {
         logger.log('[OfflineMode] Syncing pending liked songs changes...');
         try {

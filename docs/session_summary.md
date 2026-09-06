@@ -1,6 +1,35 @@
 # Session Summary
 
-## Current Focus (August 5, 2026)
+## Current Focus (September 6, 2026)
+User-reported iOS bug: switching from offline mode back to online mode leaves a library view stuck on "Loading…" indefinitely (everything else — background downloads, offline playback — works). Diagnosed as a three-part bug and fixed in the shared frontend layer; awaiting an iOS device test. The Aug 5 iOS-downloads investigation is still open and unchanged — pick that up separately via CDP debugging.
+
+---
+
+## What Changed This Session (September 6, 2026)
+
+### iOS: infinite "Loading…" on offline → online switch
+Root-cause chain, all in the shared Vite/React layer:
+
+1. **Stale `isOnline` on iOS.** `OfflineModeContext` only updated `isOnline` from `navigator.onLine` + the `window` `online`/`offline` events. The `@capacitor/network` listener it registers (added Jul 31 for cellular detection) only ever called `setIsCellular` — never `setIsOnline`. WKWebView is unreliable about `navigator.onLine` and those events, so after launching with no connection `isOnline` was frozen at `false`.
+2. **`toggleOfflineMode()` never re-checked connectivity.** Going offline→online flipped `config.enabled` but didn't touch `isOnline` or call `checkConnectivity()`. Result: `offlineModeEnabled === false` while `isOnline === false`. `ArtistList` gates on `offlineModeEnabled || !isOnline`; the grids go straight to the network path.
+3. **No axios timeout anywhere in the app.** `src/index.tsx` set a response interceptor but never `axios.defaults.timeout`. The first WKWebView XHR after the transition hangs (WebView network stack not recovered even though native `URLSession` downloads work — different stack), the promise never settles, and the component's `loading` state is never cleared. The interceptor only reacts to `ERR_NETWORK`/`Network Error`, which a hung (never-resolving) socket never emits.
+
+Fixes:
+- `src/index.tsx` — `axios.defaults.timeout = 15000`; interceptor now also fires `app:connectivity-error` on `err.code === 'ECONNABORTED'` (the timeout) so `App.tsx` re-runs `checkConnectivity()`.
+- `src/context/OfflineModeContext.tsx` — native branch now calls `setIsOnline(s.connected)` from both `Network.getStatus()` and the `networkStatusChange` handler, alongside the existing `setIsCellular`.
+- `src/context/OfflineModeContext.tsx` — `toggleOfflineMode()` calls `checkConnectivity().catch(() => {})` when `wasOffline && !newConfig.enabled`.
+
+Build verified clean (`npm run build`, ~25 s, zero errors). **Not yet tested on an iOS device.**
+
+Android was almost certainly never affected (its WebView fires `online`/`offline` reliably and recovers its network stack immediately, so the same XHR resolves), but it gets the same hardening for free.
+
+### Noted but not changed
+- The `if (!cacheInitialized) return;` lines in `ArtistList`/`AllSongsGrid`/`AllAlbumsGrid` carry a comment claiming they "keep the spinner until cache is ready" — but the `finally` blocks clear `loading` anyway, so the comment is misleading. Harmless; left alone.
+- `checkConnectivity()` pings `https://www.google.com/favicon.ico` (also untimed) — pinging the user's own Subsonic server `ping.view` would be more appropriate. Left alone.
+
+---
+
+## Previous Focus (August 5, 2026)
 iOS downloads are still broken on the latest installed build. This session found and fixed two real bugs (native batch download queue, and a project-wide Capacitor 8 plugin-registration incompatibility affecting every custom iOS plugin) but a download failed again after installing the build with both fixes — there is at least one more bug. Next session should pick up with live CDP debugging (tooling already documented in `IOS_SETUP.md`) rather than re-diagnosing from scratch.
 
 ---

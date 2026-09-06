@@ -8,12 +8,18 @@ import App from './App';
 import { initPerformanceMode } from './services/performanceModeService';
 import { initPowerSaverMode } from './services/powerSaverService';
 
+// Bound every request so a hung socket (common in WKWebView right after an
+// offline→online transition) rejects instead of leaving a view spinning forever.
+axios.defaults.timeout = 15000;
+
 // Fire a global event on any axios network-level failure so App.tsx can offer
 // offline mode regardless of which library component triggered the request.
 axios.interceptors.response.use(
   r => r,
   err => {
-    if (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error') {
+    // ECONNABORTED = the timeout above fired on a hung request; treat it like a
+    // network failure so App.tsx re-checks connectivity and offers offline mode.
+    if (err?.code === 'ERR_NETWORK' || err?.code === 'ECONNABORTED' || err?.message === 'Network Error') {
       window.dispatchEvent(new CustomEvent('app:connectivity-error'));
     }
     return Promise.reject(err);

@@ -6,6 +6,7 @@
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
 - [ ] **iOS auto-offline on cellular** — needs device test on cellular data (was on WiFi during testing)
+- [ ] **iOS infinite "Loading…" on offline→online (Sep 6)** — fix shipped (axios timeout + native `Network` drives `isOnline` + `toggleOfflineMode` re-checks connectivity); needs an iOS device test to confirm the stuck spinner is gone
 
 ## Backlog
 - [ ] Replace `npm test` — no test runner configured after removing react-scripts; add Vitest if needed
@@ -19,6 +20,7 @@
 
 ## Done (this cycle, cont.)
 
+- [x] iOS infinite "Loading…" on offline→online switch (Sep 6): three-part fix in the shared layer — (1) `axios.defaults.timeout = 15000` in `src/index.tsx` so a hung WKWebView XHR rejects instead of leaving a view spinning (interceptor also treats `ECONNABORTED` as a connectivity error); (2) `OfflineModeContext` native branch now drives `isOnline` from `Network` plugin `status.connected` (previously only `isCellular` was updated on native, so `isOnline` stayed a stale `false` on iOS); (3) `toggleOfflineMode()` calls `checkConnectivity()` on the offline→online transition. Builds clean; iOS device test still pending.
 - [x] iOS `CAPBridgedPlugin` registration migration (Aug 5): found via live CDP debugging that every custom native iOS plugin (not just downloads) was throwing "not implemented" at runtime because `BackgroundDownloadPlugin`/`BackgroundKeepAlivePlugin` used the old pre-Capacitor-7 Objective-C `CAP_PLUGIN` macro pattern, incompatible with Capacitor 8's SPM-oriented bridge; migrated both to `CAPBridgedPlugin` with explicit `identifier`/`jsName`/`pluginMethods`, deleted the obsolete `.m` files, updated `ios.yml` — real fix, confirmed via device testing, but downloads still fail for a separate reason (see In Progress)
 - [x] iOS native batch download queue (Aug 5): `startBatch`/`cancelBatch` added to `BackgroundDownloadPlugin.swift`; `downloadBatchNativeIOS()` added to `downloadManagerService.ts`, mirroring Android's existing batch pattern; removes dependency on a JS `setTimeout` chain between songs
 - [x] Electron desktop download progress UI (Aug 5): dock/taskbar progress bar, tray icon + tooltip, macOS dock badge; filled in previously no-op `showDownloadNotification`/`hideDownloadNotification` bridge methods

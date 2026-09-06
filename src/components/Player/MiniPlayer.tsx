@@ -3,6 +3,7 @@ import AlbumArt from '../common/AlbumArt';
 import { getCoverArtUrl } from '../../services/subsonicApi';
 import { getBridge } from '../../platform/bridge';
 import './MiniPlayer.css';
+import { credentialsService } from '../../services/credentialsService';
 
 const bridge = getBridge();
 
@@ -86,9 +87,7 @@ const MiniPlayer: React.FC = () => {
     // Only recalculate when the song's coverArt ID changes
     const coverArtUrl = useMemo(() => {
         if (!currentSong?.coverArt) return null;
-        const serverUrl = localStorage.getItem('serverUrl');
-        const username = localStorage.getItem('username');
-        const password = localStorage.getItem('password');
+        const { serverUrl, username, password } = credentialsService.getCached();
         if (!serverUrl || !username || !password) return null;
         return getCoverArtUrl(serverUrl, username, password, currentSong.coverArt, 500);
     }, [currentSong?.coverArt]);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getAllSongs, getStreamUrl } from '../../services/subsonicApi';
 import { usePlayback } from '../../hooks/usePlayback';
+import { credentialsService } from '../../services/credentialsService';
 
 const ShuffleAllButton: React.FC = () => {
     const { playPlaylist } = usePlayback();
@@ -10,9 +11,7 @@ const ShuffleAllButton: React.FC = () => {
         setShuffling(true);
         
         try {
-            const serverUrl = localStorage.getItem('serverUrl') || '';
-            const username = localStorage.getItem('username') || '';
-            const password = localStorage.getItem('password') || '';
+            const { serverUrl, username, password } = credentialsService.getCached();
 
             // getAllSongs now returns the songs array directly, not a response object
             const rawSongs = await getAllSongs(serverUrl, username, password);

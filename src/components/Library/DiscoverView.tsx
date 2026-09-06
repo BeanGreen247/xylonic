@@ -4,6 +4,7 @@ import { useOfflineMode } from '../../context/OfflineModeContext';
 import { usePlayback } from '../../hooks/usePlayback';
 import AlbumArt from '../common/AlbumArt';
 import './DiscoverView.css';
+import { credentialsService } from '../../services/credentialsService';
 
 interface DiscoverViewProps {
   onAlbumClick: (albumId: string, albumName: string, artistName: string, artistId?: string) => void;
@@ -121,9 +122,7 @@ const DiscoverView: React.FC<DiscoverViewProps> = ({ onAlbumClick, onArtistClick
   const fetchSection = useCallback(async (type: AlbumListType) => {
     setSections(prev => ({ ...prev, [type]: { ...prev[type], loading: true, error: null } }));
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username  = localStorage.getItem('username')  || '';
-      const password  = localStorage.getItem('password')  || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
       const albums = await getAlbumList2(serverUrl, username, password, type, SECTION_SIZE);
       if (!UNCACHED_SECTIONS.includes(type)) {
         SECTION_CACHE.set(type, { albums, fetchedAt: Date.now(), serverUrl });
@@ -158,9 +157,7 @@ const DiscoverView: React.FC<DiscoverViewProps> = ({ onAlbumClick, onArtistClick
 
     setPlayingRandom(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username  = localStorage.getItem('username')  || '';
-      const password  = localStorage.getItem('password')  || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
 
       const results = await Promise.all(
         randomAlbums.map(a => getAlbum(serverUrl, username, password, a.id))

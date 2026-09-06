@@ -1,6 +1,65 @@
 # Session Summary
 
-## Current Focus (September 6, 2026)
+## Current Focus (September 6, 2026 — WS-SEC phase 1)
+Started executing `docs/ROADMAP.md`. User asked to "implement all of it"; scoped
+down to WS-SEC (credentials) phase 1 since the roadmap gates the full plaintext
+removal behind WS-TEST, and JKS rotation / history purge / `webSecurity:true` are
+either the user's job or need a 4-target desktop device pass. Landed the single
+credential-path foundation + isolated hardening; build clean; web login flow
+screenshot-verified on the Vite dev server (user logs in manually).
+
+---
+
+## What Changed This Session (September 6, 2026 — WS-SEC)
+
+### New: `src/services/credentialsService.ts` + `src/hooks/useCredentials.ts`
+One authoritative accessor for `{serverUrl, username, password}`:
+- `getCached()` — synchronous best-effort read from a module-level cache that is
+  hydrated from `localStorage` at import (preserves the exact timing the ~30
+  existing call sites had when they read `localStorage` directly).
+- `get()` — async; prefers the encrypted backend (`secureCredentialService` →
+  Electron `safeStorage`) for the password, refreshes the cache.
+- `set()` / `clear()` — keep the encrypted store, the sync cache, and legacy
+  `localStorage` in step. `hydrate()` runs once at boot from `AuthContext`.
+- `useCredentials()` — `useSyncExternalStore` over the `auth-changed`/`logout`
+  events `AuthContext` already dispatches.
+
+### Migrated every `localStorage.getItem('password')` in app code → `getCached()`
+App.tsx, MainApp.tsx, all `components/Library/*` list+grid views, MiniPlayer,
+CachePreloadDialog, SearchContext, useScrobbler, useSongList, likedSongsService,
+apiErrorHandler, downloadManagerService (2 sites), subsonicApi (`search()`),
+`utils/storage.ts` (`getFromStorage()` now delegates — migrates its 10 consumers
+incl. PlayerContext for free). Mechanical block-level transform (scratchpad
+script) + hand edits for the irregular ones. `AuthContext.login/logout` now go
+through `credentialsService.set/clear`. **Plaintext `localStorage` is still
+written** as the sync hydration source — removing plaintext-at-rest needs the
+WS-TEST harness + a guaranteed secure-hydrate-before-first-read, deferred.
+
+### Isolated hardening
+- `subsonicApi.generateAuthParams` + 2 cover-art fetches in
+  `downloadManagerService`: salt now `crypto.getRandomValues` 16-byte hex, was
+  `Math.random().toString(36)`.
+- `subsonicApi.search()`: removed the `console.log` of `localStorage` (password
+  included) and the duplicated inline auth-param block.
+- `public/electron.js`: `setWindowOpenHandler` → default-deny on both windows
+  (mini-player had none); production-only CSP via `onHeadersReceived`
+  (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`,
+  `frame-ancestors 'none'`, no `unsafe-eval`; `'unsafe-inline'` still allowed for
+  script/style, dev skipped). `index.html` meta-CSP deferred.
+
+Build: `npm run build` clean (~26 s). Web dev server login page renders, no JS
+errors (lone 404 is the favicon; "Secure storage not available" is expected on
+web/fallbackBridge).
+
+### Not done (tracked)
+- Full plaintext-at-rest removal (WS-TEST-gated).
+- `xylonic://` protocol + `webSecurity:true` (4-target desktop pass).
+- JKS rotation + `git filter-repo` history purge (user).
+- `npm audit` CI gate; Capacitor `Preferences`-group Keychain/Keystore backend.
+
+---
+
+## Previous Focus (September 6, 2026)
 User-reported iOS bug: switching from offline mode back to online mode leaves a library view stuck on "Loading…" indefinitely (everything else — background downloads, offline playback — works). Diagnosed as a three-part bug and fixed in the shared frontend layer; awaiting an iOS device test. The Aug 5 iOS-downloads investigation is still open and unchanged — pick that up separately via CDP debugging.
 
 ---

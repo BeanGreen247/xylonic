@@ -17,6 +17,7 @@ import DownloadQualityPicker from './DownloadQualityPicker';
 import SongContextMenu, { ContextMenuSong } from '../common/SongContextMenu';
 import AddToPlaylistDialog from '../common/AddToPlaylistDialog';
 import './SongList.css';
+import { credentialsService } from '../../services/credentialsService';
 
 const SONG_ITEM_HEIGHT = 56;
 
@@ -174,9 +175,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
         return;
       }
       
-      const serverUrl = localStorage.getItem('serverUrl');
-      const username = localStorage.getItem('username');
-      const password = localStorage.getItem('password');
+      const { serverUrl, username, password } = credentialsService.getCached();
       
       if (!serverUrl || !username || !password) {
         setError('Missing server credentials. Please log in again.');
@@ -250,9 +249,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
   };
 
   const handlePlaySong = (index: number) => {
-    const serverUrl = localStorage.getItem('serverUrl') || '';
-    const username = localStorage.getItem('username') || '';
-    const password = localStorage.getItem('password') || '';
+    const { serverUrl, username, password } = credentialsService.getCached();
 
     // Use filteredSongs for playback (only cached songs in offline mode)
     const songsWithUrls = filteredSongs.map((song) => ({
@@ -286,9 +283,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
   };
 
   const buildSongUrl = (songId: string) => {
-    const serverUrl = localStorage.getItem('serverUrl') || '';
-    const username  = localStorage.getItem('username')  || '';
-    const password  = localStorage.getItem('password')  || '';
+    const { serverUrl, username, password } = credentialsService.getCached();
     return getStreamUrl(serverUrl, username, password, songId, bitrate ?? undefined);
   };
 
@@ -338,9 +333,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
   };
 
   const handleShuffleAlbum = () => {
-    const serverUrl = localStorage.getItem('serverUrl') || '';
-    const username = localStorage.getItem('username') || '';
-    const password = localStorage.getItem('password') || '';
+    const { serverUrl, username, password } = credentialsService.getCached();
 
     // Use filteredSongs for playback (only cached songs in offline mode)
     const songsWithUrls = filteredSongs.map((song) => ({

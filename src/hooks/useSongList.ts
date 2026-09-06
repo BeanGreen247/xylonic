@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAllSongs, getStreamUrl, getCoverArtUrl } from '../services/subsonicApi';
+import { credentialsService } from '../services/credentialsService';
 
 interface Song {
     id: string;
@@ -18,9 +19,7 @@ export const useSongList = () => {
     useEffect(() => {
         const fetchSongs = async () => {
             try {
-                const serverUrl = localStorage.getItem('serverUrl') || '';
-                const username = localStorage.getItem('username') || '';
-                const password = localStorage.getItem('password') || '';
+                const { serverUrl, username, password } = credentialsService.getCached();
 
                 // getAllSongs now returns the songs array directly, not a response object
                 const rawSongs = await getAllSongs(serverUrl, username, password);

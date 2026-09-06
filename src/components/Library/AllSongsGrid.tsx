@@ -15,6 +15,7 @@ import DownloadQualityPicker from './DownloadQualityPicker';
 import DownloadManagerWindow from './DownloadManagerWindow';
 import SongContextMenu, { ContextMenuSong } from '../common/SongContextMenu';
 import AddToPlaylistDialog from '../common/AddToPlaylistDialog';
+import { credentialsService } from '../../services/credentialsService';
 
 const PAGE_SIZE = 50;
 
@@ -92,9 +93,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
         return;
       }
 
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
 
       const offset = (currentPage - 1) * PAGE_SIZE;
       const data = await searchSongsPaginated(serverUrl, username, password, '', offset, PAGE_SIZE);
@@ -124,9 +123,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
     setConfirmShuffle(false);
     setIsShufflingAll(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
 
       if (offlineModeEnabled) {
         const cacheIndex = offlineCacheService.getCacheIndex();
@@ -170,9 +167,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
   const handleConfirmDownloadAll = async () => {
     setIsBulkDownloading(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
       const allSongs = await getAllSongs(serverUrl, username, password);
       const albumGroups = new Map<string, { albumName: string; artistName: string; artistId?: string; songs: any[] }>();
       for (const song of allSongs) {
@@ -195,9 +190,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
   };
 
   const handlePlaySong = (index: number) => {
-    const serverUrl = localStorage.getItem('serverUrl') || '';
-    const username = localStorage.getItem('username') || '';
-    const password = localStorage.getItem('password') || '';
+    const { serverUrl, username, password } = credentialsService.getCached();
 
     const playlist = songs.map(s => ({
       id: s.id,
@@ -224,9 +217,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
   };
 
   const buildSongUrl = (songId: string) => {
-    const serverUrl = localStorage.getItem('serverUrl') || '';
-    const username  = localStorage.getItem('username')  || '';
-    const password  = localStorage.getItem('password')  || '';
+    const { serverUrl, username, password } = credentialsService.getCached();
     return getStreamUrl(serverUrl, username, password, songId, bitrate ?? undefined);
   };
 

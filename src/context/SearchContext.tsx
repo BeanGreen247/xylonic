@@ -4,6 +4,7 @@ import { search, getArtists, getArtist, getAlbum } from '../services/subsonicApi
 import { searchCacheService } from '../services/searchCacheService';
 import { imageCacheService } from '../services/imageCacheService';
 import { logger } from '../utils/logger';
+import { credentialsService } from '../services/credentialsService';
 
 interface SearchContextType {
   isSearching: boolean;
@@ -98,9 +99,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const buildSearchIndex = useCallback(async () => {
     setIsIndexing(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl');
-      const username = localStorage.getItem('username');
-      const password = localStorage.getItem('password');
+      const { serverUrl, username, password } = credentialsService.getCached();
 
       if (!serverUrl || !username || !password) {
         logger.warn('[SearchContext] Cannot build index - missing credentials');

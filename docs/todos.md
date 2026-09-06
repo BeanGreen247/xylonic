@@ -1,6 +1,21 @@
 # Todos
 
+> Strategic plan: see `docs/ROADMAP.md` (all-axes-to-9+, plus Android TV).
+> When a roadmap workstream starts, break its tasks into this list.
+
 ## In Progress
+- [ ] **WS-SEC phase 2 — remove plaintext-at-rest** — `credentialsService` +
+      `useCredentials()` landed and every app-code `localStorage.getItem('password')`
+      now routes through `credentialsService.getCached()` (see Done). Still to do:
+      (a) guarantee the secure backend hydrates the cache *before* the first
+      read so plaintext `localStorage` can be dropped — needs WS-TEST coverage
+      first; (b) Capacitor `Preferences`-group Keychain/Keystore backend (mobile
+      currently falls through to the cache like web); (c) `xylonic://` protocol +
+      re-enable `webSecurity: true` on both `BrowserWindow`s (needs a 4-target
+      desktop device pass); (d) `index.html` meta-CSP for Capacitor; (e) tighten
+      the Electron CSP off `'unsafe-inline'` once `xylonic://` exists; (f) JKS
+      rotation + `git filter-repo` history purge — **user**; (g) `npm audit`
+      CI gate.
 - [ ] **Android concurrent downloads** — `DownloadService.java` still downloads one song at a time (`Executors.newSingleThreadExecutor()`); making it match the new Electron/iOS concurrency cap needs a careful rework since its notification/wakelock/cancellation state currently assumes exactly one active transfer. Not started — no device available to test against this session.
 - [ ] **iOS downloads still broken (Aug 5)** — batch-download queue fix + `CAPBridgedPlugin` registration migration both shipped, but a download still failed on the latest installed build. Plugin registration itself is confirmed fixed via CDP; the remaining bug is in the download flow itself. Next session: reconnect `pymobiledevice3 webinspector cdp` (see `IOS_SETUP.md`), re-test `BackgroundDownload.startBatch`, and watch the `xyDebugTrace` event stream (already wired into `BackgroundDownloadPlugin.swift`) to see how far native code actually gets.
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
@@ -19,6 +34,23 @@
 - [ ] Compress search index in IndexedDB — `CompressionStream('deflate')` (Chromium built-in) would give 3–5× smaller IDB storage for large libraries; write path stores `ArrayBuffer`; read path handles both compressed v2.0 and legacy v1.0 records for migration
 
 ## Done (this cycle, cont.)
+
+- [x] **WS-SEC phase 1 — single credential path** (Sep 6): new
+      `src/services/credentialsService.ts` (`get`/`getCached`/`set`/`clear`/`hydrate`)
+      + `src/hooks/useCredentials.ts`; wraps the existing `secureCredentialService`
+      (Electron `safeStorage`) with a synchronous `localStorage`-hydrated cache so
+      the ~30 existing call sites keep their timing. Every
+      `localStorage.getItem('password')` in app code migrated to
+      `credentialsService.getCached()` (App/MainApp, all `Library/*` views,
+      MiniPlayer, CachePreloadDialog, SearchContext, useScrobbler, useSongList,
+      likedSongsService, apiErrorHandler, downloadManagerService, subsonicApi,
+      `utils/storage.getFromStorage`). `AuthContext.login/logout` route through
+      `set`/`clear`. Isolated hardening: `crypto.getRandomValues` salt in
+      `subsonicApi` + `downloadManagerService` cover-art fetches; removed the
+      password `console.log` in `subsonicApi.search()`; Electron
+      `setWindowOpenHandler` default-deny on both windows; production-only
+      `onHeadersReceived` CSP. Build clean; web login page screenshot-verified.
+      Plaintext-at-rest removal is phase 2 (see In Progress).
 
 - [x] iOS infinite "Loading…" on offline→online switch (Sep 6): three-part fix in the shared layer — (1) `axios.defaults.timeout = 15000` in `src/index.tsx` so a hung WKWebView XHR rejects instead of leaving a view spinning (interceptor also treats `ECONNABORTED` as a connectivity error); (2) `OfflineModeContext` native branch now drives `isOnline` from `Network` plugin `status.connected` (previously only `isCellular` was updated on native, so `isOnline` stayed a stale `false` on iOS); (3) `toggleOfflineMode()` calls `checkConnectivity()` on the offline→online transition. Builds clean; iOS device test still pending.
 - [x] iOS `CAPBridgedPlugin` registration migration (Aug 5): found via live CDP debugging that every custom native iOS plugin (not just downloads) was throwing "not implemented" at runtime because `BackgroundDownloadPlugin`/`BackgroundKeepAlivePlugin` used the old pre-Capacitor-7 Objective-C `CAP_PLUGIN` macro pattern, incompatible with Capacitor 8's SPM-oriented bridge; migrated both to `CAPBridgedPlugin` with explicit `identifier`/`jsName`/`pluginMethods`, deleted the obsolete `.m` files, updated `ios.yml` — real fix, confirmed via device testing, but downloads still fail for a separate reason (see In Progress)

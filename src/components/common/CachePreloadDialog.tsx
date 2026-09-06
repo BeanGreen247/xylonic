@@ -5,6 +5,7 @@ import { searchCacheService } from '../../services/searchCacheService';
 import { precacheStateService } from '../../services/precacheStateService';
 import { networkStatsService } from '../../services/networkStatsService';
 import './CachePreloadDialog.css';
+import { credentialsService } from '../../services/credentialsService';
 
 interface CachePreloadDialogProps {
   onComplete: () => void;
@@ -112,9 +113,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
       if (cancelled) return;
       setCurrentPhase('artists');
       try {
-        const serverUrl = localStorage.getItem('serverUrl');
-        const username  = localStorage.getItem('username');
-        const password  = localStorage.getItem('password');
+        const { serverUrl, username, password } = credentialsService.getCached();
 
         if (!serverUrl || !username || !password) {
           console.warn('Missing credentials for pre-caching');

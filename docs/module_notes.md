@@ -27,7 +27,9 @@
 - `metadataCache.ts` — module-level in-memory TTL cache (30-min default) for Subsonic API metadata responses; `get<T>(key)` / `set(key, data, ttlMs?)` / `invalidate(prefix?)`; covers artists list, artist albums, album songs, paginated all-albums pages; `invalidate()` called in `AuthContext.login()` and `AuthContext.logout()`.
 - `likedSongsService.ts` — starred songs cache with 30s background poll and offline queue.
 - `remoteDiscoveryService.ts` — LAN UDP (7766) discovery + HTTP (7767) command server.
-- `subsonicApi.ts` — Subsonic API client, MD5 salted token auth.
+- `subsonicApi.ts` — Subsonic API client, MD5 token auth; salt from `crypto.getRandomValues` (16-byte hex).
+- `credentialsService.ts` — **single authoritative credential path (WS-SEC)**. `getCached()` = synchronous `{serverUrl,username,password}` from a module-level cache hydrated from `localStorage` at import (preserves legacy call-site timing); `get()` = async, prefers the encrypted backend (`secureCredentialService` → Electron `safeStorage`); `set()`/`clear()` keep encrypted store + cache + legacy `localStorage` in step; `hydrate()` runs once from `AuthContext` at boot. All app code reads credentials via `getCached()` — do **not** add new `localStorage.getItem('password')`. Plaintext `localStorage` is still the sync hydration source (phase-2 removal is WS-TEST-gated). React consumers: `hooks/useCredentials.ts`.
+- `secureCredentialService.ts` — lower-level encrypted store used *by* `credentialsService`; `saveCredentials`/`getDecryptedPassword`/`deleteCredentials`/`migratePlaintextCredentials`. Not called directly from components anymore.
 
 ## Key Components
 

@@ -4,6 +4,7 @@
 
 import { getStarred, starSong, unstarSong } from './subsonicApi';
 import { offlineCacheService } from './offlineCacheService';
+import { credentialsService } from './credentialsService';
 
 export interface LikedSong {
   id: string;
@@ -79,15 +80,13 @@ const isOfflineMode = (): boolean => {
  * Get credentials from localStorage
  */
 const getCredentials = () => {
-  const serverUrl = localStorage.getItem('serverUrl');
-  const username = localStorage.getItem('username');
-  const password = localStorage.getItem('password');
-  
+  const { serverUrl, username, password } = credentialsService.getCached();
+
   if (!serverUrl || !username || !password) {
     console.error('[LikedSongs] Missing credentials');
     return null;
   }
-  
+
   return { serverUrl, username, password };
 };
 

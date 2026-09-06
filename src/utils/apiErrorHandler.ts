@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext';
+import { credentialsService } from '../services/credentialsService';
 
 export const handleApiError = (error: any, requestReauth: () => void) => {
     // Check if it's an auth error
@@ -9,10 +10,8 @@ export const handleApiError = (error: any, requestReauth: () => void) => {
     }
 
     // Check for missing credentials
-    const serverUrl = localStorage.getItem('serverUrl');
-    const username = localStorage.getItem('username');
-    const password = localStorage.getItem('password');
-    
+    const { serverUrl, username, password } = credentialsService.getCached();
+
     if (!serverUrl || !username || !password) {
         console.error('Missing credentials detected, requesting reauth');
         requestReauth();

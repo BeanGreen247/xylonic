@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { usePlayer, usePlayerTime } from '../context/PlayerContext';
 import { useAuth } from '../context/AuthContext';
 import { serverUpdateNowPlaying, serverScrobble } from '../services/subsonicApi';
+import { credentialsService } from '../services/credentialsService';
 
 // Scrobbling is delegated entirely to the server via the Subsonic /scrobble
 // endpoint. The server forwards plays to Last.fm, ListenBrainz, etc. based
@@ -19,7 +20,7 @@ export function useScrobbler() {
     if (!currentSong || !username || !serverUrl) return;
     scrobbledIdRef.current  = null;
     startTimestampRef.current = Math.floor(Date.now() / 1000);
-    const password = localStorage.getItem('password') || '';
+    const { password } = credentialsService.getCached();
     serverUpdateNowPlaying(serverUrl, username, password, currentSong.id);
   }, [currentSong?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -32,7 +33,7 @@ export function useScrobbler() {
     const threshold = Math.min(duration * 0.5, 240);
     if (currentTime >= threshold) {
       scrobbledIdRef.current = currentSong.id;
-      const password = localStorage.getItem('password') || '';
+      const { password } = credentialsService.getCached();
       serverScrobble(serverUrl, username, password, currentSong.id, startTimestampRef.current);
     }
   }, [currentTime]); // eslint-disable-line react-hooks/exhaustive-deps

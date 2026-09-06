@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { initializeStarredCache } from '../services/likedSongsService';
 import { saveConnection } from '../services/connectionHistoryService';
-import { saveCredentials, isSecureStorageAvailable, migratePlaintextCredentials } from '../services/secureCredentialService';
+import { migratePlaintextCredentials } from '../services/secureCredentialService';
+import { credentialsService } from '../services/credentialsService';
 import { metadataCache } from '../services/metadataCache';
 
 interface AuthContextType {
@@ -57,10 +58,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     setIsLoading(false);
 
-    // Attempt to migrate plaintext credentials to encrypted storage
-    migratePlaintextCredentials().catch((error) => {
-      console.error('Failed to migrate credentials:', error);
-    });
+    // Migrate any plaintext credentials into the encrypted backend, then refresh
+    // the credentialsService cache from it.
+    migratePlaintextCredentials()
+      .catch((error) => console.error('Failed to migrate credentials:', error))
+      .finally(() => { credentialsService.hydrate().catch(() => {}); });
   }, []);
 
   const login = async (server: string, user: string, password: string, offlineMode: boolean = false) => {
@@ -69,36 +71,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     // Store authentication state
     localStorage.setItem('auth', 'true');
-    localStorage.setItem('serverUrl', server);
-    localStorage.setItem('username', user);
-    localStorage.setItem('password', password); // Keep plaintext for compatibility
     localStorage.setItem('offlineMode', offlineMode.toString());
-    
-    // ALSO try to save credentials securely (encrypted) for future use
-    const secureStorageAvailable = await isSecureStorageAvailable();
-    if (secureStorageAvailable) {
-      const saved = await saveCredentials(server, user, password);
-      if (saved) {
-        console.log('AuthContext: Credentials saved securely (encrypted) - also keeping plaintext for compatibility');
-      } else {
-        console.warn('AuthContext: Failed to save securely, using plaintext only');
-      }
-    } else {
-      console.warn('AuthContext: Secure storage not available, using plaintext only');
-    }
-    
+
+    // Single authoritative credential path: writes the encrypted backend where
+    // available and keeps the sync cache (+ legacy localStorage) in step.
+    await credentialsService.set({ serverUrl: server, username: user, password });
+
     // Save to connection history (doesn't store password)
     saveConnection(server, user);
-    
-    // Verify storage
-    console.log('AuthContext: Credentials stored', {
-        auth: localStorage.getItem('auth'),
-        serverUrl: localStorage.getItem('serverUrl'),
-        username: localStorage.getItem('username'),
-        offlineMode: localStorage.getItem('offlineMode'),
-        hasPassword: !!localStorage.getItem('password')
-    });
-    
+
     setIsAuthenticated(true);
     setUsername(user);
     setServerUrl(server);
@@ -119,8 +100,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Only remove auth-related keys, keep themes intact
     localStorage.removeItem('auth');
     localStorage.removeItem('serverUrl');
-    localStorage.removeItem('password');
     localStorage.removeItem('offlineMode');
+    credentialsService.clear().catch(() => {});
     // Cache keys are now user+server specific, so they won't conflict between users
     // Keep 'username' so themes can still load!
     // Keep any other user data

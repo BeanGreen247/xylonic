@@ -372,11 +372,12 @@ function createWindow() {
 
     // Force external links to open in system browser
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+      // Default-deny: only hand real web URLs to the system browser, block
+      // everything else (no in-app popups, no file://, no custom schemes).
       if (url.startsWith('http://') || url.startsWith('https://')) {
         shell.openExternal(url);
-        return { action: 'deny' };
       }
-      return { action: 'allow' };
+      return { action: 'deny' };
     });
 
     // Network monitoring for bitrate display in title
@@ -494,6 +495,13 @@ function createMiniPlayer() {
         },
         autoHideMenuBar: true,
         icon: getIconPath(),
+    });
+
+    miniPlayerWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            shell.openExternal(url);
+        }
+        return { action: 'deny' };
     });
 
     // Load with mini player flag
@@ -970,6 +978,34 @@ app.whenReady().then(() => {
             return new Response(null, { status: 404 });
         }
     });
+
+    // Content-Security-Policy (WS-SEC, partial). Production only for now: the
+    // strict form (no 'unsafe-inline' on script-src, a xylonic:// scheme for
+    // cached media, and webSecurity:true) is gated on the custom-protocol work
+    // and a 4-target desktop pass — see docs/ROADMAP.md WS-SEC. Dev is skipped
+    // so the Vite dev server (inline scripts / eval) keeps working.
+    if (!isDev) {
+        const csp = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob: https: http:",
+            "media-src 'self' blob: data: https: http:",
+            "connect-src 'self' https: http:",
+            "font-src 'self' data:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "frame-ancestors 'none'",
+        ].join('; ');
+        session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+            callback({
+                responseHeaders: {
+                    ...details.responseHeaders,
+                    'Content-Security-Policy': [csp],
+                },
+            });
+        });
+    }
 
     // HTTPS enforcement - allow most sources, only warn about public HTTP
     session.defaultSession.webRequest.onBeforeRequest((details, callback) => {

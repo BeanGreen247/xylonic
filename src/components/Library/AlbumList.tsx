@@ -16,6 +16,7 @@ import { useImageCache } from '../../context/ImageCacheContext';
 import DownloadQualityPicker from './DownloadQualityPicker';
 import DownloadManagerWindow from './DownloadManagerWindow';
 import './AlbumList.css';
+import { credentialsService } from '../../services/credentialsService';
 
 interface Album {
   id: string;
@@ -140,9 +141,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
         return;
       }
       
-      const serverUrl = localStorage.getItem('serverUrl');
-      const username = localStorage.getItem('username');
-      const password = localStorage.getItem('password');
+      const { serverUrl, username, password } = credentialsService.getCached();
       
       if (!serverUrl || !username || !password) {
         setError('Missing server credentials. Please log in again.');
@@ -252,9 +251,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
     );
   }
 
-  const serverUrl = localStorage.getItem('serverUrl') || '';
-  const username = localStorage.getItem('username') || '';
-  const password = localStorage.getItem('password') || '';
+  const { serverUrl, username, password } = credentialsService.getCached();
   const totalSongs = filteredAlbums.reduce((sum, album) => sum + (album.songCount || 0), 0);
 
   const downloadBtnState: 'download-all' | 'download-missing' | 'hidden' =
@@ -284,9 +281,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   const handleConfirmDownloadAll = async () => {
     setIsBulkDownloading(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
       for (const album of filteredAlbums) {
         const albumResponse = await getAlbum(serverUrl, username, password, album.id);
         const albumData = albumResponse.data['subsonic-response']?.album;

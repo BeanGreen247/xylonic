@@ -4,9 +4,17 @@ import { logger } from '../utils/logger';
 import { SearchResult3, SubsonicSearchResponse } from '../types/subsonic';
 import { offlineCacheService } from './offlineCacheService';
 import { networkStatsService } from './networkStatsService';
+import { credentialsService } from './credentialsService';
 
 const API_VERSION = '1.16.1';
 const CLIENT_NAME = 'SubsonicMusicApp';
+
+// Cryptographically-random hex salt (Subsonic requires ≥6 chars; use 16 bytes).
+const randomSalt = (): string => {
+    const bytes = new Uint8Array(16);
+    (globalThis.crypto || (window as any).crypto).getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+};
 
 // Check if offline mode is enabled and block network requests
 const checkOfflineMode = () => {
@@ -18,7 +26,7 @@ const checkOfflineMode = () => {
 
 // Generate authentication parameters
 const generateAuthParams = (username: string, password: string) => {
-    const salt = Math.random().toString(36).substring(7);
+    const salt = randomSalt();
     const token = md5(password + salt);  // Token = md5(password + salt)
     
     return {
@@ -314,46 +322,22 @@ export const search = async (query: string): Promise<SearchResult3> => {
   checkOfflineMode();
   networkStatsService.recordMetadataFetch();
   try {
-    // Debug: Check what's in localStorage
-    console.log('All localStorage keys:', Object.keys(localStorage));
-    console.log('auth key:', localStorage.getItem('auth'));
-    console.log('serverUrl key:', localStorage.getItem('serverUrl'));
-    console.log('username key:', localStorage.getItem('username'));
-    console.log('password key:', localStorage.getItem('password'));
+    const { serverUrl, username, password } = credentialsService.getCached();
 
-    // Try multiple storage formats (your app might use different keys)
-    let serverUrl, username, password;
-
-    // Format 1: Everything in 'auth' key
-    const authData = localStorage.getItem('auth');
-    if (authData) {
-      const parsed = JSON.parse(authData);
-      serverUrl = parsed.serverUrl;
-      username = parsed.username;
-      password = parsed.password;
-    }
-
-    // Format 2: Separate keys (fallback)
     if (!serverUrl || !username || !password) {
-      serverUrl = localStorage.getItem('serverUrl');
-      username = localStorage.getItem('username');
-      password = localStorage.getItem('password');
-    }
-    
-    if (!serverUrl || !username || !password) {
-      console.error('Missing credentials. serverUrl:', serverUrl, 'username:', username, 'password:', !!password);
+      logger.error('[Search] Missing credentials');
       throw new Error('Missing credentials');
     }
 
-    const salt = Math.random().toString(36).substring(7);
+    const salt = randomSalt();
     const token = md5(password + salt);
 
     const params = new URLSearchParams({
       u: username,
       t: token,
       s: salt,
-      v: '1.16.1',
-      c: 'SubsonicMusicApp',
+      v: API_VERSION,
+      c: CLIENT_NAME,
       f: 'json',
       query: query,
       artistCount: '20',

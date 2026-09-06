@@ -46,6 +46,7 @@ import { isPerformanceModeEnabled } from './services/performanceModeService';
 import { getBridge } from './platform/bridge';
 import LikedSongsView from './components/Library/LikedSongsView';
 import './styles/index.css';
+import { credentialsService } from './services/credentialsService';
 
 type View = 'artists' | 'albums' | 'songs';
 
@@ -259,9 +260,7 @@ const AppContent: React.FC = () => {
       try {
         console.log('Checking server for new content...');
         
-        const serverUrl = localStorage.getItem('serverUrl');
-        const username = localStorage.getItem('username');
-        const password = localStorage.getItem('password');
+        const { serverUrl, username, password } = credentialsService.getCached();
 
         if (!serverUrl || !username || !password) return;
 
@@ -331,9 +330,7 @@ const AppContent: React.FC = () => {
     const check = async () => {
       setMissingChecked(true);
       try {
-        const serverUrlVal = localStorage.getItem('serverUrl') || '';
-        const usernameVal = localStorage.getItem('username') || '';
-        const passwordVal = localStorage.getItem('password') || '';
+        const { serverUrl: serverUrlVal, username: usernameVal, password: passwordVal } = credentialsService.getCached();
         const serverCount = await getSongCount(serverUrlVal, usernameVal, passwordVal);
         const cacheIndex = offlineCacheService.getCacheIndex();
         const cachedCount = Object.keys(cacheIndex?.songs || {}).length;
@@ -358,9 +355,7 @@ const AppContent: React.FC = () => {
   const handleDownloadMissing = useCallback(async () => {
     setIsQueueingMissing(true);
     try {
-      const serverUrlVal = localStorage.getItem('serverUrl') || '';
-      const usernameVal = localStorage.getItem('username') || '';
-      const passwordVal = localStorage.getItem('password') || '';
+      const { serverUrl: serverUrlVal, username: usernameVal, password: passwordVal } = credentialsService.getCached();
       const allSongs = await getAllSongs(serverUrlVal, usernameVal, passwordVal);
       const albumGroups = new Map<string, { albumName: string; artistName: string; artistId?: string; songs: any[] }>();
       for (const song of allSongs) {

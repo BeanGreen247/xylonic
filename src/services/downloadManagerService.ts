@@ -21,6 +21,14 @@ import { getBridge } from '../platform/bridge';
 import { Capacitor, registerPlugin, PluginListenerHandle } from '@capacitor/core';
 import md5 from 'md5';
 import { getMaxConcurrentDownloads } from '../utils/settingsManager';
+import { credentialsService } from './credentialsService';
+
+// Cryptographically-random hex salt for Subsonic auth params (16 bytes).
+const randomSalt = (): string => {
+  const bytes = new Uint8Array(16);
+  (globalThis.crypto || (window as any).crypto).getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+};
 
 interface NativeDownloaderPlugin {
   startDownload(opts: {
@@ -528,9 +536,7 @@ class DownloadManagerService {
   private async processQueue(): Promise<void> {
     if (this.isDownloading || this.isPaused || this.pendingClear) return;
 
-    const serverUrl = localStorage.getItem('serverUrl');
-    const username  = localStorage.getItem('username');
-    const password  = localStorage.getItem('password');
+    const { serverUrl, username, password } = credentialsService.getCached();
     if (!serverUrl || !username || !password) {
       logger.log('[DownloadManager] processQueue deferred — not authenticated');
       return;
@@ -1115,9 +1121,7 @@ class DownloadManagerService {
     this.emit({ type: 'download-started', item, progress: this.getProgress() });
 
     try {
-      const serverUrl = localStorage.getItem('serverUrl');
-      const username  = localStorage.getItem('username');
-      const password  = localStorage.getItem('password');
+      const { serverUrl, username, password } = credentialsService.getCached();
 
       if (!serverUrl || !username || !password) {
         throw new Error('Missing authentication credentials');
@@ -1463,7 +1467,7 @@ class DownloadManagerService {
 
       if (!alreadyClaimed && !offlineCacheService.isCoverArtCached(item.song.coverArt)) {
         try {
-          const salt  = Math.random().toString(36).substring(7);
+          const salt  = randomSalt();
           const token = md5(password + salt);
           const url   = `${serverUrl}/rest/getCoverArt.view?id=${item.song.coverArt}&u=${username}&t=${token}&s=${salt}&v=1.16.1&c=SubsonicMusicApp&f=json&size=500`;
           const res   = await fetch(url);
@@ -1507,7 +1511,7 @@ class DownloadManagerService {
       if (!alreadyClaimed && !offlineCacheService.isCoverArtCached(item.artistCoverArtId)) {
         let artistArtCached = false;
         try {
-          const salt  = Math.random().toString(36).substring(7);
+          const salt  = randomSalt();
           const token = md5(password + salt);
           const url   = `${serverUrl}/rest/getCoverArt.view?id=${item.artistCoverArtId}&u=${username}&t=${token}&s=${salt}&v=1.16.1&c=SubsonicMusicApp&f=json&size=500`;
           const res   = await fetch(url);

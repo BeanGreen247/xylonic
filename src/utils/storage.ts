@@ -1,3 +1,5 @@
+import { credentialsService } from '../services/credentialsService';
+
 // Save credentials
 export const saveToStorage = (username: string, password: string, serverUrl: string): void => {
     try {
@@ -10,18 +12,11 @@ export const saveToStorage = (username: string, password: string, serverUrl: str
     }
 };
 
-// Get credentials as object
+// Get credentials as object — delegates to the single authoritative
+// credentialsService (WS-SEC); still synchronous for existing call sites.
 export const getFromStorage = () => {
-    try {
-        // Read from individual keys that AuthContext uses
-        const username = localStorage.getItem('username') || '';
-        const password = localStorage.getItem('password') || '';
-        const serverUrl = localStorage.getItem('serverUrl') || '';
-        return { username, password, serverUrl };
-    } catch (error) {
-        console.error('Failed to get from storage:', error);
-        return { username: '', password: '', serverUrl: '' };
-    }
+    const { username, password, serverUrl } = credentialsService.getCached();
+    return { username, password, serverUrl };
 };
 
 // Clear all storage

@@ -18,6 +18,7 @@ import DownloadQualityPicker from './DownloadQualityPicker';
 import DownloadManagerWindow from './DownloadManagerWindow';
 import './ArtistList.css';
 import { logger } from '../../utils/logger';
+import { credentialsService } from '../../services/credentialsService';
 
 interface Artist {
   id: string;
@@ -232,9 +233,7 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
         return;
       }
       
-      const serverUrl = localStorage.getItem('serverUrl');
-      const username = localStorage.getItem('username');
-      const password = localStorage.getItem('password');
+      const { serverUrl, username, password } = credentialsService.getCached();
       
       if (!serverUrl || !username || !password) {
         setError('Missing server credentials. Please log in again.');
@@ -335,9 +334,7 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
           coverArt: metadata.coverArtId,
         }));
       } else {
-        const serverUrl = localStorage.getItem('serverUrl') || '';
-        const username = localStorage.getItem('username') || '';
-        const password = localStorage.getItem('password') || '';
+        const { serverUrl, username, password } = credentialsService.getCached();
         const rawSongs = await getAllSongs(serverUrl, username, password);
         songs = rawSongs.map((song: any) => ({
           id: song.id,
@@ -371,9 +368,7 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
   const handleConfirmDownloadAll = async () => {
     setIsBulkDownloading(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
       const allSongs = await getAllSongs(serverUrl, username, password);
       // Build artist ID → ar-xxx cover art ID lookup from the already-loaded artist list
       const artistCoverArtById = new Map(artists.map(a => [a.id, a.coverArt]));

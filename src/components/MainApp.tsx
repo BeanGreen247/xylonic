@@ -20,6 +20,7 @@ import LibraryViewToggle, { TopLevelView } from './Library/LibraryViewToggle';
 import DownloadQualityPicker from './Library/DownloadQualityPicker';
 import DownloadManagerWindow from './Library/DownloadManagerWindow';
 import PlaybackControls from './Player/PlaybackControls';
+import { credentialsService } from '../services/credentialsService';
 
 type DrillView = 'artistAlbums' | 'songList';
 
@@ -77,9 +78,7 @@ const MainApp: React.FC = () => {
     const check = async () => {
       setMissingChecked(true);
       try {
-        const serverUrl = localStorage.getItem('serverUrl') || '';
-        const user = localStorage.getItem('username') || '';
-        const pass = localStorage.getItem('password') || '';
+        const { serverUrl, username: user, password: pass } = credentialsService.getCached();
         const searchIdx = searchCacheService.getSearchIndex();
         const serverCount = searchIdx ? searchIdx.songs.length : await getSongCount(serverUrl, user, pass);
         const cacheIndex = offlineCacheService.getCacheIndex();
@@ -100,9 +99,7 @@ const MainApp: React.FC = () => {
   const handleDownloadMissing = useCallback(async () => {
     setIsQueueingMissing(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const user = localStorage.getItem('username') || '';
-      const pass = localStorage.getItem('password') || '';
+      const { serverUrl, username: user, password: pass } = credentialsService.getCached();
 
       const allSongs = await getAllSongs(serverUrl, user, pass);
       const albumGroups = new Map<string, { albumName: string; artistName: string; artistId?: string; songs: any[] }>();

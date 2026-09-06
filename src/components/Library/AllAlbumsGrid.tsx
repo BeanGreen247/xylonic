@@ -14,6 +14,7 @@ import LibraryViewToggle, { TopLevelView } from './LibraryViewToggle';
 import Pagination from '../common/Pagination';
 import DownloadQualityPicker from './DownloadQualityPicker';
 import DownloadManagerWindow from './DownloadManagerWindow';
+import { credentialsService } from '../../services/credentialsService';
 
 const PAGE_SIZE = 50;
 
@@ -88,9 +89,7 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
           coverArt: metadata.coverArtId,
         }));
       } else {
-        const serverUrl = localStorage.getItem('serverUrl') || '';
-        const username = localStorage.getItem('username') || '';
-        const password = localStorage.getItem('password') || '';
+        const { serverUrl, username, password } = credentialsService.getCached();
         const rawSongs = await getAllSongs(serverUrl, username, password);
         songs = rawSongs.map((song: any) => ({
           id: song.id,
@@ -124,9 +123,7 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
   const handleConfirmDownloadAll = async () => {
     setIsBulkDownloading(true);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
       const allSongs = await getAllSongs(serverUrl, username, password);
       const albumGroups = new Map<string, { albumName: string; artistName: string; artistId?: string; songs: any[] }>();
       for (const song of allSongs) {
@@ -181,9 +178,7 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
         return;
       }
 
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
 
       const pageCacheKey = `albumsPage_${serverUrl}_${currentPage}`;
       const cachedPage = metadataCache.get<Album[]>(pageCacheKey);

@@ -14,6 +14,7 @@ import { logger } from '../../utils/logger';
 import SongContextMenu, { ContextMenuSong } from '../common/SongContextMenu';
 import AddToPlaylistDialog from '../common/AddToPlaylistDialog';
 import { downloadManager } from '../../services/downloadManagerService';
+import { credentialsService } from '../../services/credentialsService';
 
 interface Song {
   id: string;
@@ -51,9 +52,7 @@ const LikedSongsView: React.FC<LikedSongsViewProps> = ({ topView = 'likedSongs',
     setLoading(true);
     setError(null);
     try {
-      const serverUrl = localStorage.getItem('serverUrl') || '';
-      const username = localStorage.getItem('username') || '';
-      const password = localStorage.getItem('password') || '';
+      const { serverUrl, username, password } = credentialsService.getCached();
 
       if (offlineModeEnabled) {
         if (!cacheInitialized) return;
@@ -125,9 +124,7 @@ const LikedSongsView: React.FC<LikedSongsViewProps> = ({ topView = 'likedSongs',
   }, [loadSongs]);
 
   const buildPlaylist = (): PlayerSong[] => {
-    const serverUrl = localStorage.getItem('serverUrl') || '';
-    const username = localStorage.getItem('username') || '';
-    const password = localStorage.getItem('password') || '';
+    const { serverUrl, username, password } = credentialsService.getCached();
     return songs.map(s => ({
       id: s.id,
       title: s.title,
@@ -171,9 +168,7 @@ const LikedSongsView: React.FC<LikedSongsViewProps> = ({ topView = 'likedSongs',
   const handleContextMenu = (e: React.MouseEvent, song: Song) => {
     e.preventDefault();
     e.stopPropagation();
-    const serverUrl = localStorage.getItem('serverUrl') || '';
-    const username  = localStorage.getItem('username')  || '';
-    const password  = localStorage.getItem('password')  || '';
+    const { serverUrl, username, password } = credentialsService.getCached();
     setContextMenu({
       song: { id: song.id, title: song.title, artist: song.artist, album: song.album, albumId: song.albumId, url: getStreamUrl(serverUrl, username, password, song.id, bitrate ?? undefined), duration: song.duration, coverArt: song.coverArt },
       x: e.clientX,

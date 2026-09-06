@@ -1,11 +1,37 @@
 # Session Summary
 
 ## Current Focus (September 6, 2026 — WS-QUAL phase 1a)
-After WS-SEC phase 1 was committed (`4a2dc47`), started WS-QUAL. Done: the full
-`console.*` → `logger.*` sweep + dead-cache-file deletion. Not done: ESLint +
-Prettier config (needs `npm install`, deferred so the user can run it), the empty-
-`catch {}` sweep, `any` reduction, and the Vite production log-strip. WS-TEST
-(Vitest harness) is the other half of phase 1 and also needs `npm install`.
+Working WS-QUAL in roadmap order. Committed: console→logger sweep + dead-file
+deletion (`be0c11a`). This increment (uncommitted): ESLint flat config + Prettier
+config + scripts/devDeps, and the roadmap-named silent-`catch {}` starting points.
+Still open in WS-QUAL: run/tune lint (needs `npm install`), the remaining ~114
+silent catches, `any` reduction (< 30; type `src/types/subsonic.ts`), Vite prod
+log-strip, CI wiring. WS-TEST (phase 1b) not started — also needs `npm install`.
+
+### This increment
+- `eslint.config.mjs` — ESLint 9 flat, `typescript-eslint` 8 recommended (no
+  type-checked rules, for speed). `no-console: error` (logger.ts exempt);
+  `no-empty` (allowEmptyCatch:false), `no-explicit-any`, `exhaustive-deps` = warn.
+  `eslint-config-prettier` last.
+- `.prettierrc.json` (singleQuote, semi, printWidth 100, tabWidth 2, trailingComma
+  all) + `.prettierignore`. **No `prettier --write` run** — that's a whole-repo
+  reformat the user should do + commit as its own change.
+- `package.json` — `lint`/`lint:fix`/`format`/`format:check` scripts; devDeps
+  `eslint`, `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`,
+  `globals`, `prettier`, `eslint-config-prettier` (versions are best-guess majors,
+  verify on install).
+- Silent catches → `logger.error`: `MainApp.tsx` (missing-songs check,
+  queue-missing) and `App.tsx` (the duplicated missing-songs check + queue-missing
+  — note App.tsx and MainApp.tsx still carry near-identical copies of this logic,
+  a known landmine, left as-is).
+
+Build clean each step (`npm run build`). `npm install` + `npm run lint` were run
+(user asked): lint **passes, 0 errors** after 3 fixes (`{}` type →
+`Record<string, never>` in `global.d.ts` + `remoteDiscoveryService.ts`; one
+`let`→`const` in `cfgParser.ts`). 268 warnings: 146 `no-explicit-any`, 55
+`no-unused-vars`, 37 `no-empty`, 29 `react-hooks/exhaustive-deps` — the
+warn-now-error-later backlog. `npm audit`: 24 vulns (3 critical / 13 high / 8
+moderate) reported at install — that's a WS-SEC "Should" item, untriaged.
 
 ### What changed
 - **`console.*` → `logger.*`** — 193 calls across 35 files (script in scratchpad,

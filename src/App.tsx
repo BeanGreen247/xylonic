@@ -343,8 +343,8 @@ const AppContent: React.FC = () => {
         } else if (missing === 0 && cachedCount > 0) {
           setMissingSongsCount(0); // Signal: all downloaded
         }
-      } catch {
-        // non-critical
+      } catch (e) {
+        logger.error('[App] missing-songs check failed', e);
       }
     };
 
@@ -380,8 +380,8 @@ const AppContent: React.FC = () => {
       }
       setShowMissingBanner(false);
       setShowDownloadManagerGlobal(true);
-    } catch {
-      // silently ignore
+    } catch (e) {
+      logger.error('[App] queue-missing-downloads failed', e);
     } finally {
       setIsQueueingMissing(false);
     }

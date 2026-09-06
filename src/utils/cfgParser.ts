@@ -36,7 +36,7 @@ export const parseCfg = (content: string): AllSettings => {
   let currentThemeSlot = '';
   
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim();
+    const line = lines[i].trim();
     
     // Skip empty lines and comments
     if (!line || line.startsWith('#') || line.startsWith(';')) continue;

@@ -89,8 +89,8 @@ const MainApp: React.FC = () => {
           setMissingSongsCount(missing);
           setShowMissingBanner(true);
         }
-      } catch {
-        // non-critical — silently ignore
+      } catch (e) {
+        logger.error('[MainApp] missing-songs check failed', e);
       }
     };
 
@@ -128,8 +128,8 @@ const MainApp: React.FC = () => {
 
       setShowMissingBanner(false);
       setShowDownloadManager(true);
-    } catch {
-      // silently ignore
+    } catch (e) {
+      logger.error('[MainApp] queue-missing-downloads failed', e);
     } finally {
       setIsQueueingMissing(false);
     }

@@ -1,0 +1,11 @@
+dist
+build
+node_modules
+android
+ios
+releases
+public
+coverage
+*.min.*
+*.v1.*
+*.v2.*

@@ -51,7 +51,7 @@ interface RemoteDiscoveryPlugin {
   addListener(event: 'devicePairingChanged', handler: (d: { id: string; pairedWith: string | null }) => void): Promise<{ remove(): void }>;
   addListener(event: 'remoteCommand',        handler: (d: { action: string; data: string }) => void): Promise<{ remove(): void }>;
   addListener(event: 'pairingEstablished',   handler: (d: { controllerId: string; controllerName: string }) => void): Promise<{ remove(): void }>;
-  addListener(event: 'pairingCleared',       handler: (d: {}) => void): Promise<{ remove(): void }>;
+  addListener(event: 'pairingCleared',       handler: (d: Record<string, never>) => void): Promise<{ remove(): void }>;
   addListener(event: 'playerStateUpdate',    handler: (d: RemotePlayerState) => void): Promise<{ remove(): void }>;
 }
 

@@ -80,7 +80,7 @@ interface Window {
     onRemoteDevicePairingChanged: (callback: (info: { id: string; pairedWith?: string | null; controllingId?: string | null }) => void) => () => void;
     onRemoteCommand: (callback: (cmd: { action: string; data: any }) => void) => () => void;
     onRemotePairingEstablished: (callback: (info: { controllerId: string; controllerName: string }) => void) => () => void;
-    onRemotePairingCleared: (callback: (info: {}) => void) => () => void;
+    onRemotePairingCleared: (callback: (info: Record<string, never>) => void) => () => void;
     onRemotePlayerStateUpdate: (callback: (state: any) => void) => () => void;
     onCacheRebuildTrigger: (callback: () => void) => () => void;
   };

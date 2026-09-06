@@ -4,14 +4,17 @@
 > When a roadmap workstream starts, break its tasks into this list.
 
 ## In Progress
-- [ ] **WS-QUAL phase 1a cont.** — `console.*`→`logger.*` sweep + dead-file
-      deletion done (see Done). Remaining: (a) ESLint + `typescript-eslint` +
-      Prettier config, `lint`/`format`/`format:check` scripts, CI required checks
-      (needs `npm install` — user); (b) empty-`catch {}` / silent-ignore sweep →
-      `logger.error('[area]', e)` + retry affordances; (c) `any` reduction to
-      < 30 (type `src/types/subsonic.ts` response surface — biggest source is
-      `response.data['subsonic-response']`); (d) Vite `define`/transform to strip
-      `logger.log`/`info` calls in production bundles.
+- [ ] **WS-QUAL phase 1a cont.** — console sweep, dead-file deletion, ESLint/Prettier
+      config + scripts, and the roadmap-named silent-`catch {}` starting points all
+      done (see Done). `npm run lint` now passes (0 errors, 268 warnings). Remaining: (a) burn down the
+      268 warnings — 146 `no-explicit-any` (the WS-QUAL `any`-reduction task; type
+      `src/types/subsonic.ts` `response.data['subsonic-response']` first), 55
+      `no-unused-vars` (mostly unused `catch (error)` bindings), 37 `no-empty`
+      (the silent-`catch {}` sweep → `logger.error` + retry affordances, ties
+      WS-UX), 29 `react-hooks/exhaustive-deps`; then flip each rule warn→error;
+      (b) one-time `prettier --write` + commit; (c) wire `lint` + `format:check`
+      into CI as required checks; (d) Vite `define`/transform to strip
+      `logger.log`/`info` in prod bundles.
 - [ ] **WS-TEST phase 1b** — not started. Vitest + RTL + jsdom, real `npm test`,
       then the core race/correctness suites (offlineCacheService size accounting,
       downloadManagerService dedup/idempotency/orphans, PlayerContext queue,
@@ -48,6 +51,13 @@
 
 ## Done (this cycle, cont.)
 
+- [x] **WS-QUAL — ESLint/Prettier config + `catch {}` sweep start** (Sep 6):
+      `eslint.config.mjs` (flat, ESLint 9 + typescript-eslint 8; `no-console` error,
+      `no-empty`/`no-explicit-any`/`exhaustive-deps` warn; logger.ts exempt),
+      `.prettierrc.json` + `.prettierignore`, `lint`/`lint:fix`/`format`/`format:check`
+      scripts + devDeps. Not run (needs `npm install`); not in CI yet; no
+      `prettier --write` reformat done. Silent catches in `MainApp.tsx` +
+      `App.tsx` (missing-songs check, queue-missing) now `logger.error`.
 - [x] **WS-QUAL — `console.*`→`logger.*` sweep** (Sep 6): 193 `console.log/error/warn/info`
       calls across 35 `src/` files funnelled through `utils/logger`. `logger.error`/`warn`
       changed to always emit to console (were gated on `loggingEnabled`, which

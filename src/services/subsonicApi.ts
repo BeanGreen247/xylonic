@@ -113,36 +113,49 @@ export const getAlbum = async (serverUrl: string, username: string, password: st
 };
 
 // Get all songs using search3 pagination — one request per 500 songs instead of
-// one request per album. For a 2000-song library: ~4 requests vs ~150+.
+// one request per album. Probes page 0 serially (small libraries finish in one
+// request); once a full page comes back, remaining pages are fetched in batches
+// of PAGE_CONCURRENCY so a 25k-song library is ~13 round-trips of latency, not 50.
 export const getAllSongs = async (serverUrl: string, username: string, password: string) => {
     checkOfflineMode();
-    const allSongs: any[] = [];
     const PAGE_SIZE = 500;
-    let offset = 0;
+    const PAGE_CONCURRENCY = 4;
 
-    while (true) {
-        const authParams = generateAuthParams(username, password);
+    const fetchPage = async (songOffset: number): Promise<any[]> => {
         const url = buildApiUrl(serverUrl, 'search3.view', {
-            ...authParams,
+            ...generateAuthParams(username, password),
             query: '',
             songCount: PAGE_SIZE.toString(),
-            songOffset: offset.toString(),
+            songOffset: songOffset.toString(),
             albumCount: '0',
             artistCount: '0',
         });
-
         const response = await axios.get(url);
         const data = response.data['subsonic-response'];
-
         if (data?.status === 'failed') {
             throw new Error(data.error?.message || 'Failed to fetch songs');
         }
+        return data?.searchResult3?.song || [];
+    };
 
-        const page: any[] = data?.searchResult3?.song || [];
-        allSongs.push(...page);
+    const allSongs: any[] = [];
 
-        if (page.length < PAGE_SIZE) break;
-        offset += PAGE_SIZE;
+    const first = await fetchPage(0);
+    allSongs.push(...first);
+    if (first.length < PAGE_SIZE) return allSongs;
+
+    let offset = PAGE_SIZE;
+    for (;;) {
+        const batch = await Promise.all(
+            Array.from({ length: PAGE_CONCURRENCY }, (_, i) => fetchPage(offset + i * PAGE_SIZE)),
+        );
+        let reachedEnd = false;
+        for (const page of batch) {
+            allSongs.push(...page);
+            if (page.length < PAGE_SIZE) reachedEnd = true;
+        }
+        if (reachedEnd) break;
+        offset += PAGE_CONCURRENCY * PAGE_SIZE;
     }
 
     return allSongs;

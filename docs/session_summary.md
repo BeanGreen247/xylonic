@@ -1,6 +1,23 @@
 # Session Summary
 
-## Current Focus (September 6, 2026 — WS-ARCH first slice)
+## Current Focus (September 6, 2026 — WS-ARCH / WS-PERF in progress)
+
+**RESUME HERE (next session):** last uncommitted change is the `getAllSongs`
+concurrency (`subsonicApi.ts` + test + CHANGELOG + ROADMAP box) — user commits it
+as `perf(subsonic): fetch getAllSongs pages in concurrent batches of 4`. Then
+continue **WS-ARCH: split `downloadManagerService` (2064)** → `downloadQueue` /
+`downloadTransport` / `downloadReconciler` (the reconciler unblocks the
+idempotent-`songDownloaded`/`songFailed` + orphan-recovery tests). Order for the
+rest: finish `downloadManagerService`, then `PlayerContext` hooks
+(`useMediaSession` / `usePlaybackEngine` / `useQueue`), then `electron.js` →
+`ipc/*` (user smoke-tests — no Electron on Linux), `SettingsView` split,
+`react-router` + `LayoutModeContext`. Then WS-PERF proper, WS-UX, WS-FEAT/DOCS,
+and WS-SEC-leftovers + WS-TV last. 100 tests green, `npm run lint` 0 errors, CI
+workflow live. iPhone 15 Pro Max available for on-device iOS verification.
+
+---
+
+## Focus (September 6, 2026 — WS-ARCH first slice)
 Working the roadmap in order (security + Android TV deferred to last, per user).
 WS-QUAL core + WS-TEST baseline (76 tests, CI) committed through `3b3a393`.
 **Now WS-ARCH**, starting with the lowest-risk cut: extracted `PlayerContext`'s
@@ -26,6 +43,15 @@ preserved. 86 tests total, build + lint clean. This doubles as the WS-TEST
 4. `SettingsView` (1226) → one component per section.
 5. `react-router` + `LayoutModeContext`.
 6. Split `ARCHITECTURE.md`; ADRs.
+
+### WS-PERF started (interleaved)
+- `getAllSongs` (`subsonicApi.ts`): serial pagination → probe page 0, then batches
+  of 4 concurrent `search3` requests; stop on first short page. Order + `failed`
+  handling + offline guard preserved. 100 tests total.
+- User confirmed (this session): they have a **physical iPhone 15 Pro Max 256GB**
+  + the CDP on-device debug workflow — proceed with iOS-affecting refactors
+  without blocking on Linux-side verification; verify together on-device later.
+  (Memory: `reference_ios_debug_device`.)
 
 ### Earlier this session (superseded focus below)
 

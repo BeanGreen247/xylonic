@@ -12,6 +12,12 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **`getAllSongs` fetches pages concurrently (WS-PERF)** — was a fully serial
+  `while` loop (one 500-song page after another — ~50 round-trips of latency for a
+  25k library). Now probes page 0 serially (small libraries finish in one
+  request), then fetches the rest in batches of 4 concurrent requests, stopping
+  on the first short page. Order preserved, `failed`-status + offline-mode guard
+  unchanged. Used by the missing-songs check and "Download Missing". +tests.
 - **Shared `data:` URL helpers (WS-ARCH cleanup)** — `blobToDataUrl` /
   `bytesToBase64` (stack-safe, chunked) / `chunksToDataUrl` extracted to
   `src/utils/dataUrl.ts` + 5 tests. Replaces 3 copies of the

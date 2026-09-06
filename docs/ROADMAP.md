@@ -247,9 +247,11 @@ ADRs exist for every major decision.
       next/prev/shuffle. Persist `{ids:[], idx}` + a song-by-id store in IDB;
       debounce writes (500 ms); validate + repair on load. Fixes multi-MB
       main-thread stalls and partial-write corruption on 25k "play all".
-- [ ] **`getAllSongs` parallelism** — fetch page 1, read `searchResult3` total,
-      fire remaining pages with concurrency 4 (used by missing-songs check +
-      "Download Missing" — currently ~50 serial round-trips on big libraries).
+- [x] **`getAllSongs` parallelism** (2026-09-06) — probe page 0 serially, then
+      fetch the rest in batches of 4 concurrent `search3` requests, stop on first
+      short page. (Subsonic `search3` returns no reliable total, so probe-then-
+      batch rather than reading a total up front.) Order + `failed` + offline
+      guard preserved; covered by `subsonicApi.test.ts`.
 - [ ] **Production log stripping** — Vite `define` drops `logger.debug/log`;
       confirm no `console.*` survives (WS-QUAL).
 - [ ] **FontAwesome subset** — stop importing all of `@fortawesome/fontawesome-free`.

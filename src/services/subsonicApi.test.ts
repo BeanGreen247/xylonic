@@ -53,28 +53,45 @@ describe('getStreamUrl auth params', () => {
 });
 
 describe('getAllSongs pagination', () => {
-  const page = (n: number) =>
-    Promise.resolve({ data: { 'subsonic-response': { status: 'ok', searchResult3: { song: Array.from({ length: n }, (_, i) => ({ id: String(i) })) } } } });
+  const pageData = (n: number) => ({
+    data: { 'subsonic-response': { status: 'ok', searchResult3: { song: Array.from({ length: n }, (_, i) => ({ id: String(i) })) } } },
+  });
+  // axios mock keyed by the songOffset in the requested URL
+  const byOffset = (map: Record<number, number>, dflt = 0) =>
+    axiosGet.mockImplementation((url: string) => {
+      const off = Number(params(url).get('songOffset'));
+      return Promise.resolve(pageData(off in map ? map[off] : dflt));
+    });
 
-  it('stops after the first short (< 500) page', async () => {
-    axiosGet.mockResolvedValueOnce(await page(500)).mockResolvedValueOnce(await page(120));
+  it('does a single request for a library smaller than one page', async () => {
+    byOffset({ 0: 120 });
     const songs = await getAllSongs('s', 'u', 'p');
-    expect(axiosGet).toHaveBeenCalledTimes(2);
-    expect(songs).toHaveLength(620);
+    expect(axiosGet).toHaveBeenCalledTimes(1);
+    expect(songs).toHaveLength(120);
   });
 
-  it('terminates on an empty final page', async () => {
-    axiosGet.mockResolvedValueOnce(await page(500)).mockResolvedValueOnce(await page(0));
+  it('probes page 0, then fetches the rest in a concurrent batch of 4', async () => {
+    byOffset({ 0: 500, 500: 500, 1000: 500, 1500: 500, 2000: 120 });
     const songs = await getAllSongs('s', 'u', 'p');
-    expect(axiosGet).toHaveBeenCalledTimes(2);
-    expect(songs).toHaveLength(500);
+    // 1 probe + one batch of 4
+    expect(axiosGet).toHaveBeenCalledTimes(5);
+    expect(songs).toHaveLength(500 + 500 + 500 + 500 + 120);
+    const offsets = axiosGet.mock.calls.map((c: unknown[]) => Number(params(c[0] as string).get('songOffset')));
+    expect(offsets[0]).toBe(0);
+    expect(offsets.slice(1).sort((a, b) => a - b)).toEqual([500, 1000, 1500, 2000]);
   });
 
-  it('advances songOffset by 500 between pages', async () => {
-    axiosGet.mockResolvedValueOnce(await page(500)).mockResolvedValueOnce(await page(1));
-    await getAllSongs('s', 'u', 'p');
-    expect(params(axiosGet.mock.calls[0][0]).get('songOffset')).toBe('0');
-    expect(params(axiosGet.mock.calls[1][0]).get('songOffset')).toBe('500');
+  it('keeps going for multiple batches until a short page appears', async () => {
+    byOffset({ 0: 500, 500: 500, 1000: 500, 1500: 500, 2000: 500, 2500: 500, 3000: 500, 3500: 500, 4000: 30 });
+    const songs = await getAllSongs('s', 'u', 'p');
+    expect(songs).toHaveLength(8 * 500 + 30);
+    expect(axiosGet).toHaveBeenCalledTimes(9); // probe + 2 batches of 4
+  });
+
+  it('returns just the probe page when it is already short', async () => {
+    byOffset({ 0: 300 });
+    expect(await getAllSongs('s', 'u', 'p')).toHaveLength(300);
+    expect(axiosGet).toHaveBeenCalledTimes(1);
   });
 
   it('throws when the server reports failed', async () => {

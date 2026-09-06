@@ -1,10 +1,28 @@
 # Session Summary
 
-## Current Focus (September 6, 2026 — WS-TEST phase 1b start)
+## Current Focus (September 6, 2026 — WS-ARCH first slice)
 Working the roadmap in order (security + Android TV deferred to last, per user).
-WS-QUAL core is committed (`44aebfd` and earlier). Now WS-TEST: Vitest harness up,
-`npm test` green with 21 tests. Also fixed a `tsc` regression that `44aebfd`
-shipped (build doesn't type-check).
+WS-QUAL core + WS-TEST baseline (76 tests, CI) committed through `3b3a393`.
+**Now WS-ARCH**, starting with the lowest-risk cut: extracted `PlayerContext`'s
+pure queue math into `src/context/playerQueue.ts` (`buildShuffleQueue`,
+`computeNextIndex`) + 10 unit tests; `PlayerContext` wired to it, behaviour
+preserved. 86 tests total, build + lint clean. This doubles as the WS-TEST
+"PlayerContext queue" coverage and is step 1 of the four-way `PlayerContext` split.
+
+### WS-ARCH plan (one god-object per commit, safest first)
+1. `PlayerContext` (1555) → `playerQueue.ts` (done, 10 tests) + `playerPersistence.ts`
+   (done, 8 tests, in-app verified) → then `useQueue` (state) / `usePlaybackEngine`
+   (audio element / src swap / gapless) / `useMediaSession`. `PlayerProvider`
+   composes; `usePlayer()` API unchanged. 94 tests total.
+2. `downloadManagerService` (2064) → `downloadQueue` / `downloadTransport` /
+   `downloadReconciler` (the last unblocks the idempotent-events + orphan tests).
+3. `public/electron.js` (2196) → `public/ipc/*` by domain — **unverifiable in this
+   env (no Electron run); needs the user to smoke-test after**.
+4. `SettingsView` (1226) → one component per section.
+5. `react-router` + `LayoutModeContext`.
+6. Split `ARCHITECTURE.md`; ADRs.
+
+### Earlier this session (superseded focus below)
 
 ### This increment
 - `vitest.config.ts` (jsdom, globals, `@` alias, coverage → `src/services`/`src/context`),

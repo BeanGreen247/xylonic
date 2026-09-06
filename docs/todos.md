@@ -31,6 +31,22 @@
       into `downloadReconciler` — full batch-flow test proved too timing-brittle);
       mock Subsonic server (MSW); flip `typecheck` to blocking after the TS 5.x
       bump; coverage floor (40%→60%) once the splits make big modules unit-testable.
+- [ ] **WS-ARCH — god-object splits** (one per commit, safest first, build+test
+      verified each time). Done: (1) `PlayerContext` queue math → pure
+      `src/context/playerQueue.ts` (`buildShuffleQueue`/`computeNextIndex`, 10
+      tests); (2) `PlayerContext` persistence → `src/context/playerPersistence.ts`
+      (8 tests, in-app verified). Steps toward the `usePlaybackEngine` / `useQueue`
+      / `useMediaSession` / `usePlayerPersistence` split. Remaining: compose the
+      remaining `PlayerContext` pieces into hooks (playback engine — audio element
+      / src swap / gapless; media session; queue state); split
+      `downloadManagerService` (2064) → `downloadQueue` /
+      `downloadTransport` / `downloadReconciler`; split `public/electron.js`
+      (2196) → `public/ipc/*` (unverifiable here — Electron doesn't run in this
+      env; needs the user to smoke-test); split `SettingsView` (1226) per section;
+      add `react-router` (memory history on native, replaces the
+      `topView/drillView/...` machine + custom back-stack); `LayoutModeContext`
+      (`compact|medium|expanded|tv`); provider `useMemo` audit; split
+      `ARCHITECTURE.md`; ADRs in `docs/decisions/`.
 - [ ] **WS-SEC phase 2 — remove plaintext-at-rest** — `credentialsService` +
       `useCredentials()` landed and every app-code `localStorage.getItem('password')`
       now routes through `credentialsService.getCached()` (see Done). Still to do:

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { logger } from '../utils/logger';
+import { buildShuffleQueue as buildShuffleQueuePure, computeNextIndex } from './playerQueue';
 import { isSongLiked, toggleLike as toggleLikeSong } from '../services/likedSongsService';
 import { offlineCacheService } from '../services/offlineCacheService';
 import { useOfflineMode } from './OfflineModeContext';
@@ -14,46 +15,20 @@ import { remoteDiscoveryService } from '../services/remoteDiscoveryService';
 import { isPerformanceModeEnabled } from '../services/performanceModeService';
 import { isPowerSaverEnabled }       from '../services/powerSaverService';
 
-const getQueueKey   = () => `queue_${localStorage.getItem('username') || 'guest'}`;
-const getIndexKey   = () => `queue_idx_${localStorage.getItem('username') || 'guest'}`;
-const getShuffleKey = () => `shuffle_pref_${localStorage.getItem('username') || 'guest'}`;
+import {
+    saveIndex,
+    loadIndex,
+    saveShuffle,
+    loadShuffle,
+    saveRepeat,
+    loadRepeat,
+    saveQueue as persistQueue,
+    loadQueue as persistLoadQueue,
+    clearPlayerPersistence,
+} from './playerPersistence';
 
-const saveQueue = (songs: Song[]) => {
-    try { localStorage.setItem(getQueueKey(), JSON.stringify(songs)); } catch {}
-};
-
-const saveIndex = (idx: number) => {
-    try { localStorage.setItem(getIndexKey(), String(idx)); } catch {}
-};
-
-const saveShuffle = (v: boolean) => {
-    try { localStorage.setItem(getShuffleKey(), String(v)); } catch {}
-};
-
-const loadQueue = (): Song[] => {
-    try {
-        const raw = localStorage.getItem(getQueueKey());
-        return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-};
-
-const loadIndex = (): number => {
-    try {
-        const raw = localStorage.getItem(getIndexKey());
-        return raw !== null ? parseInt(raw, 10) : 0;
-    } catch { return 0; }
-};
-
-const loadShuffle = (): boolean => {
-    try { return localStorage.getItem(getShuffleKey()) === 'true'; } catch { return false; }
-};
-
-const getRepeatKey = () => `repeat_pref_${localStorage.getItem('username') || 'guest'}`;
-const saveRepeat   = (v: 'off' | 'all' | 'one') => { try { localStorage.setItem(getRepeatKey(), v); } catch {} };
-const loadRepeat   = (): 'off' | 'all' | 'one' => {
-    try { const v = localStorage.getItem(getRepeatKey()); if (v === 'all' || v === 'one') return v; } catch {}
-    return 'off';
-};
+const saveQueue = (songs: Song[]) => persistQueue(songs);
+const loadQueue = (): Song[] => persistLoadQueue<Song>();
 
 interface Song {
     id: string;
@@ -390,7 +365,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             setCurrentTime(0);
             setDuration(0);
             setIsLiked(false);
-            try { localStorage.removeItem(getQueueKey()); localStorage.removeItem(getIndexKey()); localStorage.removeItem(getShuffleKey()); localStorage.removeItem(getRepeatKey()); } catch {}
+            clearPlayerPersistence();
         };
 
         window.addEventListener('logout', handleLogout);
@@ -488,12 +463,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
     // Rebuild Fisher-Yates shuffle queue whenever shuffle is enabled or playlist length changes
     const buildShuffleQueue = useCallback((length: number, currentIdx: number) => {
-        const indices = Array.from({ length }, (_, i) => i).filter(i => i !== currentIdx);
-        for (let i = indices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [indices[i], indices[j]] = [indices[j], indices[i]];
-        }
-        shuffleQueueRef.current = indices;
+        shuffleQueueRef.current = buildShuffleQueuePure(length, currentIdx);
         shuffleQueueIndexRef.current = 0;
     }, []);
 
@@ -514,9 +484,18 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
         logger.log(`Current index: ${currentIdx}, Playlist length: ${currentPlaylist.length}, Repeat: ${currentRepeat}`);
 
-        let nextIndex: number;
+        const result = computeNextIndex({
+            currentIndex: currentIdx,
+            playlistLength: currentPlaylist.length,
+            repeat: currentRepeat,
+            shuffle: currentShuffle,
+            shuffleQueue: shuffleQueueRef.current,
+            shuffleQueuePos: shuffleQueueIndexRef.current,
+        });
 
-        if (currentRepeat === 'one') {
+        if (result.action === 'noop') return;
+
+        if (result.action === 'replay') {
             logger.log('Repeat one: replaying current song');
             if (audioRef.current) {
                 audioRef.current.currentTime = 0;
@@ -525,21 +504,11 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             return;
         }
 
-        if (currentShuffle) {
-            if (shuffleQueueIndexRef.current >= shuffleQueueRef.current.length) {
-                buildShuffleQueue(currentPlaylist.length, currentIdx);
-            }
-            nextIndex = shuffleQueueRef.current[shuffleQueueIndexRef.current++];
-            logger.log(`Shuffle: next index ${nextIndex} (queue pos ${shuffleQueueIndexRef.current - 1}/${shuffleQueueRef.current.length})`);
-        } else {
-            nextIndex = currentIdx + 1;
-            logger.log(`Sequential: next index ${nextIndex}`);
-
-            if (nextIndex >= currentPlaylist.length) {
-                logger.log('Reached end of queue, wrapping to index 0');
-                nextIndex = 0;
-            }
-        }
+        // 'advance' — persist any rebuilt shuffle queue / cursor back to the refs
+        shuffleQueueRef.current = result.shuffleQueue;
+        shuffleQueueIndexRef.current = result.shuffleQueuePos;
+        const nextIndex = result.nextIndex;
+        logger.log(`Next index ${nextIndex} (shuffle=${currentShuffle})`);
 
         setCurrentIndex(nextIndex);
         playSong(currentPlaylist[nextIndex]);

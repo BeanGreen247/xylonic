@@ -11,6 +11,27 @@ All notable changes to Xylonic are documented here.
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
+### Changed
+- **`PlayerContext` persistence extracted (WS-ARCH, slice 2)** — the per-user
+  queue / index / shuffle / repeat `localStorage` helpers moved verbatim into
+  `src/context/playerPersistence.ts` (`saveQueue`/`loadQueue` (generic),
+  `saveIndex`/`loadIndex`, `saveShuffle`/`loadShuffle`, `saveRepeat`/`loadRepeat`,
+  `clearPlayerPersistence`). Keys and semantics unchanged; a `tryStorage` wrapper
+  replaces the scattered bare `try/catch {}`. 8 unit tests (round-trips, per-user
+  namespacing, guest fallback, corrupt-payload, unknown-repeat coercion, clear).
+  Verified in-app: a 10-track queue + index + shuffle state still survive reload.
+- **`PlayerContext` queue math extracted (WS-ARCH, slice 1)** — Fisher-Yates
+  shuffle-queue build + "what plays next" index logic pulled out of
+  `PlayerContext.tsx` into a pure, React-free `src/context/playerQueue.ts`
+  (`buildShuffleQueue`, `computeNextIndex`). `PlayerContext` keeps ref/state
+  ownership and just routes through it. **Behaviour preserved exactly**, including
+  the quirk that sequential playback wraps to index 0 at the end even with
+  repeat off (flagged in a comment; a fix is a separate behaviour change).
+  Now unit-tested (10 tests: permutation correctness / every-song-once-per-cycle,
+  cursor advance, rebuild-on-exhaust, repeat-one replay, empty-playlist no-op,
+  end wrap). This is step 1 of the eventual `usePlaybackEngine` / `useQueue` /
+  `useMediaSession` / `usePlayerPersistence` split.
+
 ### Added
 - **Test harness (WS-TEST, phase 1b start)** — Vitest 3 + jsdom + Testing Library; `vitest.config.ts` (separate from `vite.config.ts` to avoid `@vitejs/plugin-legacy`), `src/test/setup.ts`. Scripts: `test`, `test:watch`, `test:coverage`, `typecheck` (`tsc --noEmit`). **`.github/workflows/ci.yml`** runs `lint` + `test` + `build` on push/PR to `main` (real gates); `typecheck` runs non-blocking until the TS 5.x bump clears the ~59 pre-existing `moduleResolution` errors. Suites (**70 tests, green**): `subsonicApi` (auth-param shape — 32-char hex salt, `t = md5(pw+salt)`, fresh salt per call; `getAllSongs` pagination termination + `songOffset` stepping + `failed` handling; offline-mode network guard), `credentialsService` (sync-cache hydration, `set`/`clear`/`get` + encrypted-backend delegation), `cfgParser` (parse / round-trip), `offlineCacheService` (**`totalSize` no double-count on re-register**, size replacement on quality change, sum across songs, decrement on remove, never-negative, `isCached`), `downloadManagerService` (queue dedup — same song not re-queued while pending, cached songs skipped, `addAlbumToQueue` filters cached + already-queued, `getProgress` invariants), `cacheHelpers` (hash determinism + trailing-slash normalization + audio/cover-art non-collision, `generateUserId`, `formatBytes`, content-type→extension), `fallbackBridge` (interface contract — read shapes, unsubscribe fns, no throws), `searchCacheService` (main-thread fallback: match by artist/album/album-artist/song title/song artist/song album, case-insensitive, 20/20/50 caps), `electronBridge` + `capacitorBridge` (pass-through / Preferences-backed contracts), `offlineCacheService` debounced-save (rapid registers coalesce to one `writeUserCacheIndex` after 500ms; `flushAll()` forces immediate). **76 tests, 10 files.** Coverage reporting is on (`--coverage`) but no threshold gate yet — aggregate is ~10% (targeted unit tests of a few large modules); a floor waits until `PlayerContext`/`downloadManagerService` are split (WS-ARCH) into unit-testable pieces. Still out: `PlayerContext` Fisher-Yates queue, idempotent native `songDownloaded`/`songFailed` (guard is a one-liner; the full-batch-flow test was too timing-brittle — revisit when `downloadManagerService` splits into `downloadReconciler`), a mock Subsonic server.
 

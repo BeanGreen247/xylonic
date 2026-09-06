@@ -20,16 +20,17 @@
       into CI as required checks; (d) Vite `define`/transform to strip
       `logger.log`/`info` in prod bundles.
 - [ ] **WS-TEST phase 1b** — harness + `.github/workflows/ci.yml` (lint+test+build
-      gate; typecheck non-blocking). `npm test` green (**70 tests, 9 files**:
+      gate; typecheck non-blocking). `npm test` green (**76 tests, 10 files**:
       `subsonicApi`, `credentialsService`, `cfgParser`, `offlineCacheService`
       (totalSize accounting + debounced save), `downloadManagerService` queue
-      dedup, `cacheHelpers`, `fallbackBridge` + `electronBridge` contracts,
-      `searchCacheService` fallback). Remaining: idempotent
-      `songDownloaded`/`songFailed` (simulate the native listener) +
-      `reconcileOrphans` + batch-hijack; `PlayerContext` Fisher-Yates queue /
-      repeat / boundaries (RTL, heavy mocking); `capacitorBridge` contract; mock
-      Subsonic server (MSW); flip `typecheck` to blocking after the TS 5.x bump;
-      coverage floor (40%→60% on `src/services`/`src/context`).
+      dedup, `cacheHelpers`, `fallbackBridge` + `electronBridge` + `capacitorBridge`
+      contracts, `searchCacheService` fallback). Remaining, most now best done
+      *with* WS-ARCH: `PlayerContext` Fisher-Yates queue / repeat / boundaries
+      (do when it splits into `useQueue`); idempotent `songDownloaded`/`songFailed`
+      + `reconcileOrphans` + batch-hijack (do when `downloadManagerService` splits
+      into `downloadReconciler` — full batch-flow test proved too timing-brittle);
+      mock Subsonic server (MSW); flip `typecheck` to blocking after the TS 5.x
+      bump; coverage floor (40%→60%) once the splits make big modules unit-testable.
 - [ ] **WS-SEC phase 2 — remove plaintext-at-rest** — `credentialsService` +
       `useCredentials()` landed and every app-code `localStorage.getItem('password')`
       now routes through `credentialsService.getCached()` (see Done). Still to do:

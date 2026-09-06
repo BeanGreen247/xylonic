@@ -25,9 +25,19 @@ shipped (build doesn't type-check).
   `processQueue`; `searchCacheService` → inject a synthetic `searchIndex` +
   null `worker` to hit the fallback branch without IndexedDB (jsdom has none);
   debounce tests → `vi.useFakeTimers()` + `advanceTimersByTimeAsync`.
-- Also added: `electronBridge` pass-through contract (7), `offlineCacheService`
-  debounced-save (2), and `.github/workflows/ci.yml` (lint + test + build gate on
-  push/PR to main; typecheck non-blocking until TS 5.x). 70 tests, 9 files.
+- Also added: `electronBridge` (7) + `capacitorBridge` (6) contracts,
+  `offlineCacheService` debounced-save (2), `.github/workflows/ci.yml` (lint +
+  test + build gate; typecheck non-blocking until TS 5.x). **76 tests, 10 files.**
+- Coverage (`--coverage`) reports ~10% aggregate — targeted unit tests of a few
+  large modules don't move the number; no threshold gate until WS-ARCH splits
+  `PlayerContext`/`downloadManagerService` into unit-testable pieces. A
+  full-flow `downloadBatchNative` idempotency test was attempted and dropped
+  (fake-timer + nested-await deadlock, 20s timeouts) — the guard is a one-liner,
+  revisit via `downloadReconciler` in WS-ARCH.
+- **WS-TEST is a working harness with the high-value regression tests + CI, not
+  its full DoD** (60% coverage / PlayerContext queue / MSW outstanding). Enough
+  baseline behavioural pinning to start WS-ARCH carefully; note the pinning is
+  partial when splitting `PlayerContext` / `downloadManagerService`.
 - **Regression fix**: `44aebfd`'s `any`→`unknown` on `customThemes` in
   `cfgParser.ts` / `colorConfigManager.ts` broke `tsc` (11 errors, invisible to
   the esbuild build). Reverted to `any` + `eslint-disable`. `tsc --noEmit`

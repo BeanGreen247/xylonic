@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getArtist, getAlbum, getCoverArtUrl } from '../../services/subsonicApi';
+import { getArtist, getAlbum } from '../../services/subsonicApi';
 import { metadataCache } from '../../services/metadataCache';
 import { usePlayback } from '../../hooks/usePlayback';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import { offlineCacheService } from '../../services/offlineCacheService';
 import { downloadManager } from '../../services/downloadManagerService';
 import { logger } from '../../utils/logger';
-import { Song } from '../../types';
 import { CachedSongMetadata, DownloadQuality } from '../../types/offline';
 import { getDefaultDownloadQuality } from '../../utils/settingsManager';
 import AlbumArt from '../common/AlbumArt';

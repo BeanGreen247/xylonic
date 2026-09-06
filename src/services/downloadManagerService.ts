@@ -6,14 +6,11 @@
 import {
   DownloadQuality,
   DownloadQueueItem,
-  DownloadStatus,
   DownloadProgress,
   AlbumDownloadRequest,
   DownloadEvent,
-  DownloadEventType,
   DownloadableSong
 } from '../types/offline';
-import { Song } from '../types';
 import { getStreamUrl } from './subsonicApi';
 import { offlineCacheService } from './offlineCacheService';
 import { logger } from '../utils/logger';

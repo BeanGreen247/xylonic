@@ -6,12 +6,15 @@
 ## In Progress
 - [ ] **WS-QUAL phase 1a cont.** — console sweep, dead-file deletion, ESLint/Prettier
       config + scripts, and the roadmap-named silent-`catch {}` starting points all
-      done (see Done). `npm run lint` now passes (0 errors, 268 warnings). Remaining: (a) burn down the
-      268 warnings — 146 `no-explicit-any` (the WS-QUAL `any`-reduction task; type
-      `src/types/subsonic.ts` `response.data['subsonic-response']` first), 55
-      `no-unused-vars` (mostly unused `catch (error)` bindings), 37 `no-empty`
-      (the silent-`catch {}` sweep → `logger.error` + retry affordances, ties
-      WS-UX), 29 `react-hooks/exhaustive-deps`; then flip each rule warn→error;
+      done (see Done). `npm run lint` passes (0 errors, **256 warnings** after removing 12 unused
+      imports). Remaining: (a) burn down the warnings — 146 `no-explicit-any`
+      (the WS-QUAL `any`-reduction task; type `src/types/subsonic.ts`
+      `response.data['subsonic-response']` first), ~43 `no-unused-vars` (unused
+      `catch` bindings + dead local vars/handlers — several may flag incomplete
+      wiring, check per-site), 37 `no-empty` (silent-`catch {}` sweep →
+      `logger.error` + retry affordances; the PlayerContext/downloadManagerService
+      ones fold into WS-ARCH), 29 `react-hooks/exhaustive-deps`; then flip each
+      rule warn→error;
       (b) one-time `prettier --write` + commit; (c) wire `lint` + `format:check`
       into CI as required checks; (d) Vite `define`/transform to strip
       `logger.log`/`info` in prod bundles.

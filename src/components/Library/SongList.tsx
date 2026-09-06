@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { List, RowComponentProps } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { getAlbum, getArtist, getStreamUrl } from '../../services/subsonicApi';

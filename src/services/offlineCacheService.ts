@@ -11,8 +11,6 @@ import {
   OfflineModeConfig,
   DownloadableSong,
   AudioFileRegistry,
-  AudioFileReference,
-  CoverArtFileReference,
   UserMetadata
 } from '../types/offline';
 import { 

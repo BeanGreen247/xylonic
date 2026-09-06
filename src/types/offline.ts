@@ -2,7 +2,6 @@
  * Offline Mode & Download Manager Types
  */
 
-import { Song } from './index';
 
 /**
  * Audio quality options for downloads

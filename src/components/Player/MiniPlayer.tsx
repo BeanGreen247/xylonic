@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import AlbumArt from '../common/AlbumArt';
 import { getCoverArtUrl } from '../../services/subsonicApi';
 import { getBridge } from '../../platform/bridge';
 import './MiniPlayer.css';

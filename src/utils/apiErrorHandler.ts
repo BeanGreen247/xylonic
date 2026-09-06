@@ -1,4 +1,3 @@
-import { useAuth } from '../context/AuthContext';
 import { credentialsService } from '../services/credentialsService';
 import { logger } from './logger';
 

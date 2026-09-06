@@ -26,7 +26,7 @@ import SongList from './components/Library/SongList';
 import AllAlbumsGrid from './components/Library/AllAlbumsGrid';
 import AllSongsGrid from './components/Library/AllSongsGrid';
 import DiscoverView from './components/Library/DiscoverView';
-import LibraryViewToggle, { TopLevelView } from './components/Library/LibraryViewToggle';
+import { TopLevelView } from './components/Library/LibraryViewToggle';
 import DownloadQualityPicker from './components/Library/DownloadQualityPicker';
 import DownloadManagerWindow from './components/Library/DownloadManagerWindow';
 import PlaybackControls from './components/Player/PlaybackControls';

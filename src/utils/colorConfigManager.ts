@@ -4,7 +4,8 @@ import { getBridge } from '../platform/bridge';
 
 interface UserColorConfig {
   theme: string;
-  customThemes: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customThemes: Record<string, any>;
 }
 
 export const readUserColorConfig = async (username: string): Promise<UserColorConfig | null> => {

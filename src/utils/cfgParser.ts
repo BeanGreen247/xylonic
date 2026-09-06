@@ -2,7 +2,9 @@ import { logger } from './logger';
 
 interface UserSettings {
   theme: string;
-  customThemes: Record<string, unknown>;
+  // Raw theme blobs parsed from the on-disk .cfg; shape is loose by design.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customThemes: Record<string, any>;
 }
 
 interface AllSettings {

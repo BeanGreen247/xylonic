@@ -19,11 +19,15 @@
       (b) one-time `prettier --write` + commit; (c) wire `lint` + `format:check`
       into CI as required checks; (d) Vite `define`/transform to strip
       `logger.log`/`info` in prod bundles.
-- [ ] **WS-TEST phase 1b** — not started. Vitest + RTL + jsdom, real `npm test`,
-      then the core race/correctness suites (offlineCacheService size accounting,
-      downloadManagerService dedup/idempotency/orphans, PlayerContext queue,
-      subsonicApi auth/pagination, searchWorker fallback) + `src/platform/` bridge
-      contract tests + a mock Subsonic server. Needs `npm install` — user.
+- [ ] **WS-TEST phase 1b** — harness up (Vitest 3 + jsdom + RTL), `npm test`
+      green (21 tests: `subsonicApi` auth/pagination/offline-guard,
+      `credentialsService`, `cfgParser`). Remaining: `offlineCacheService` size
+      accounting + debounced flush + orphan register; `downloadManagerService`
+      queue dedup + idempotent `songDownloaded`/`songFailed` + `reconcileOrphans`
+      + batch-hijack; `PlayerContext` Fisher-Yates queue / repeat / boundaries
+      (RTL, heavy mocking); `searchCacheService`/`searchWorker` fallback;
+      `src/platform/` bridge contract tests; mock Subsonic server (MSW); wire
+      `test` + `typecheck` into CI as required checks; coverage floor.
 - [ ] **WS-SEC phase 2 — remove plaintext-at-rest** — `credentialsService` +
       `useCredentials()` landed and every app-code `localStorage.getItem('password')`
       now routes through `credentialsService.getCached()` (see Done). Still to do:

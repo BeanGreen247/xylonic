@@ -1,6 +1,39 @@
 # Session Summary
 
-## Current Focus (September 6, 2026 — WS-QUAL phase 1a)
+## Current Focus (September 6, 2026 — WS-TEST phase 1b start)
+Working the roadmap in order (security + Android TV deferred to last, per user).
+WS-QUAL core is committed (`44aebfd` and earlier). Now WS-TEST: Vitest harness up,
+`npm test` green with 21 tests. Also fixed a `tsc` regression that `44aebfd`
+shipped (build doesn't type-check).
+
+### This increment
+- `vitest.config.ts` (jsdom, globals, `@` alias, coverage → `src/services`/`src/context`),
+  `src/test/setup.ts` (`@testing-library/jest-dom/vitest`). Scripts: `test`,
+  `test:watch`, `test:coverage`, `typecheck`. Deps: `vitest`, `@vitest/coverage-v8`,
+  `@testing-library/{react,jest-dom,user-event}`, `jsdom`.
+- Import-chain strategy: `vi.mock('../utils/logger', …)` + `vi.mock` the
+  platform-touching deps so service tests don't drag in `@capacitor/*`.
+- Suites (21 tests): `src/services/subsonicApi.test.ts` (8), `src/services/credentialsService.test.ts` (8), `src/utils/cfgParser.test.ts` (5).
+- **Regression fix**: `44aebfd`'s `any`→`unknown` on `customThemes` in
+  `cfgParser.ts` / `colorConfigManager.ts` broke `tsc` (11 errors, invisible to
+  the esbuild build). Reverted to `any` + `eslint-disable`. `tsc --noEmit`
+  baseline is now back to ~59 pre-existing errors (mostly `moduleResolution:
+  bundler` unsupported on TS 4.9 — clears with the WS-PERF TS 5.x bump — plus
+  `HistoryEntry`/`CompressionStream` lib gaps).
+
+### Next (WS-TEST)
+- `offlineCacheService` size accounting (no double-count on re-register), debounced
+  save flush, orphan register.
+- `downloadManagerService` queue dedup, idempotent `songDownloaded`/`songFailed`,
+  `reconcileOrphans`, batch-hijack.
+- `PlayerContext` Fisher-Yates queue / repeat / boundaries (needs RTL + heavy
+  context mocking).
+- `searchCacheService`/`searchWorker` fallback; `src/platform/` bridge contract
+  tests; mock Subsonic server (MSW); wire `test` + `typecheck` into CI.
+
+---
+
+## Previous Focus (September 6, 2026 — WS-QUAL phase 1a)
 Working WS-QUAL in roadmap order. Committed: console→logger sweep + dead-file
 deletion (`be0c11a`). This increment (uncommitted): ESLint flat config + Prettier
 config + scripts/devDeps, and the roadmap-named silent-`catch {}` starting points.

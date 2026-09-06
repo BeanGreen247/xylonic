@@ -20,7 +20,7 @@ const writeToFile = async (message: string, level: string) => {
 };
 
 // Format log message with timestamp
-const formatMessage = (...args: any[]): string => {
+const formatMessage = (...args: unknown[]): string => {
   const timestamp = new Date().toISOString();
   const message = args.map(arg => 
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
@@ -30,7 +30,7 @@ const formatMessage = (...args: any[]): string => {
 
 // Enhanced logger with file support (disabled by default)
 export const logger = {
-  log: (...args: any[]) => {
+  log: (...args: unknown[]) => {
     if (!loggingEnabled) return;
     const message = formatMessage(...args);
     console.log(message);
@@ -38,17 +38,17 @@ export const logger = {
   },
   // error/warn always reach the console (low volume, must stay visible for
   // debugging); the file sink still only runs when logging is enabled.
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     const message = formatMessage(...args);
     console.error(message);
     writeToFile(message, 'ERROR');
   },
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     const message = formatMessage(...args);
     console.warn(message);
     writeToFile(message, 'WARN');
   },
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (!loggingEnabled) return;
     const message = formatMessage(...args);
     console.info(message);

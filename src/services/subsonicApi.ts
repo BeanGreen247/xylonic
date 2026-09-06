@@ -12,7 +12,7 @@ const CLIENT_NAME = 'SubsonicMusicApp';
 // Cryptographically-random hex salt (Subsonic requires ≥6 chars; use 16 bytes).
 const randomSalt = (): string => {
     const bytes = new Uint8Array(16);
-    (globalThis.crypto || (window as any).crypto).getRandomValues(bytes);
+    globalThis.crypto.getRandomValues(bytes);
     return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 };
 

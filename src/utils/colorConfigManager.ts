@@ -4,7 +4,7 @@ import { getBridge } from '../platform/bridge';
 
 interface UserColorConfig {
   theme: string;
-  customThemes: Record<string, any>;
+  customThemes: Record<string, unknown>;
 }
 
 export const readUserColorConfig = async (username: string): Promise<UserColorConfig | null> => {

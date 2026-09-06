@@ -1,9 +1,10 @@
 import { credentialsService } from '../services/credentialsService';
 import { logger } from './logger';
 
-export const handleApiError = (error: any, requestReauth: () => void) => {
+export const handleApiError = (error: unknown, requestReauth: () => void) => {
+    const status = (error as { response?: { status?: number } })?.response?.status;
     // Check if it's an auth error
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    if (status === 401 || status === 403) {
         logger.error('Authentication error detected, requesting reauth');
         requestReauth();
         return;

@@ -43,7 +43,9 @@ export interface WebMemoryStats {
 }
 
 export function getWebMemoryStats(): WebMemoryStats | null {
-  const mem = (performance as any).memory;
+  const mem = (performance as Performance & {
+    memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number };
+  }).memory;
   if (!mem) return null;
   return {
     usedBytes:  mem.usedJSHeapSize,

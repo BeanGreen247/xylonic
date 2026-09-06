@@ -2,7 +2,7 @@ import { logger } from './logger';
 
 interface UserSettings {
   theme: string;
-  customThemes: Record<string, any>;
+  customThemes: Record<string, unknown>;
 }
 
 interface AllSettings {

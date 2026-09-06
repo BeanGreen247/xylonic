@@ -35,10 +35,14 @@
       verified each time). Done: (1) `PlayerContext` queue math → pure
       `src/context/playerQueue.ts` (`buildShuffleQueue`/`computeNextIndex`, 10
       tests); (2) `PlayerContext` persistence → `src/context/playerPersistence.ts`
-      (8 tests, in-app verified). Steps toward the `usePlaybackEngine` / `useQueue`
-      / `useMediaSession` / `usePlayerPersistence` split. Remaining: compose the
+      (8 tests, in-app verified); (3) shared `data:` URL helpers →
+      `src/utils/dataUrl.ts` (5 tests, dedupes 5 copies in PlayerContext +
+      capacitorBridge). Steps toward the `usePlaybackEngine` / `useQueue` /
+      `useMediaSession` / `usePlayerPersistence` split. Remaining: compose the
       remaining `PlayerContext` pieces into hooks (playback engine — audio element
-      / src swap / gapless; media session; queue state); split
+      / src swap / gapless; media session — large, needs Electron-MPRIS +
+      Android-notif + iOS-Control-Center verification the model can't fully do;
+      queue state); split
       `downloadManagerService` (2064) → `downloadQueue` /
       `downloadTransport` / `downloadReconciler`; split `public/electron.js`
       (2196) → `public/ipc/*` (unverifiable here — Electron doesn't run in this

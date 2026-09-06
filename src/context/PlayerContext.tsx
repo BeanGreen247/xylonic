@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { logger } from '../utils/logger';
 import { buildShuffleQueue as buildShuffleQueuePure, computeNextIndex } from './playerQueue';
+import { blobToDataUrl, chunksToDataUrl } from '../utils/dataUrl';
 import { isSongLiked, toggleLike as toggleLikeSong } from '../services/likedSongsService';
 import { offlineCacheService } from '../services/offlineCacheService';
 import { useOfflineMode } from './OfflineModeContext';
@@ -894,20 +895,8 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                             if (value) chunks.push(value);
                         }
 
-                        const totalLen = chunks.reduce((s, c) => s + c.length, 0);
-                        const bytes = new Uint8Array(totalLen);
-                        let pos = 0;
-                        for (const c of chunks) { bytes.set(c, pos); pos += c.length; }
-
-                        // Chunked String.fromCharCode avoids stack overflow on large images
-                        let binary = '';
-                        const step = 8192;
-                        for (let i = 0; i < bytes.length; i += step) {
-                            binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + step, bytes.length)));
-                        }
-
                         const mime = (response.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
-                        const dataUrl = `data:${mime};base64,${btoa(binary)}`;
+                        const dataUrl = chunksToDataUrl(chunks, mime);
 
                         if (navigator.mediaSession.metadata?.title !== currentSong.title) return;
                         navigator.mediaSession.metadata = new MediaMetadata({
@@ -936,12 +925,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                     try {
                         const idbEntry = await imageCacheService.getFromIndexedDB(currentSong.coverArt!);
                         if (idbEntry) {
-                            artSrc = await new Promise<string | null>((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload  = () => resolve(reader.result as string);
-                                reader.onerror = () => resolve(null);
-                                reader.readAsDataURL(idbEntry.blob);
-                            });
+                            artSrc = await blobToDataUrl(idbEntry.blob);
                         }
                     } catch { /* fall through to Subsonic fetch */ }
                 }
@@ -952,13 +936,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                     if (username && password && serverUrl) {
                         const remoteUrl = getCoverArtUrl(serverUrl, username, password, currentSong.coverArt!, 512);
                         const response = await fetch(remoteUrl, { signal: controller.signal });
-                        const blob = await response.blob();
-                        artSrc = await new Promise<string | null>((resolve) => {
-                            const reader = new FileReader();
-                            reader.onload  = () => resolve(reader.result as string);
-                            reader.onerror = () => resolve(null);
-                            reader.readAsDataURL(blob);
-                        });
+                        artSrc = await blobToDataUrl(await response.blob());
                     }
                 }
 
@@ -1026,12 +1004,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                     try {
                         const idbEntry = await imageCacheService.getFromIndexedDB(currentSong.coverArt);
                         if (idbEntry) {
-                            artworkUrl = await new Promise<string | null>((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload  = () => resolve(reader.result as string);
-                                reader.onerror = () => resolve(null);
-                                reader.readAsDataURL(idbEntry.blob);
-                            });
+                            artworkUrl = await blobToDataUrl(idbEntry.blob);
                         }
                     } catch { /* fall through to server URL */ }
                 }

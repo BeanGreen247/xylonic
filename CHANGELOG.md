@@ -12,6 +12,13 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **Shared `data:` URL helpers (WS-ARCH cleanup)** — `blobToDataUrl` /
+  `bytesToBase64` (stack-safe, chunked) / `chunksToDataUrl` extracted to
+  `src/utils/dataUrl.ts` + 5 tests. Replaces 3 copies of the
+  `new FileReader()…readAsDataURL` promise dance and 2 hand-rolled chunked-base64
+  loops across `PlayerContext` (media-session + foreground-service artwork) and
+  `capacitorBridge`. Behaviour preserved (verified in-app: `navigator.mediaSession`
+  metadata + artwork still populate).
 - **`PlayerContext` persistence extracted (WS-ARCH, slice 2)** — the per-user
   queue / index / shuffle / repeat `localStorage` helpers moved verbatim into
   `src/context/playerPersistence.ts` (`saveQueue`/`loadQueue` (generic),

@@ -10,10 +10,15 @@ preserved. 86 tests total, build + lint clean. This doubles as the WS-TEST
 "PlayerContext queue" coverage and is step 1 of the four-way `PlayerContext` split.
 
 ### WS-ARCH plan (one god-object per commit, safest first)
-1. `PlayerContext` (1555) → `playerQueue.ts` (done, 10 tests) + `playerPersistence.ts`
-   (done, 8 tests, in-app verified) → then `useQueue` (state) / `usePlaybackEngine`
-   (audio element / src swap / gapless) / `useMediaSession`. `PlayerProvider`
-   composes; `usePlayer()` API unchanged. 94 tests total.
+1. `PlayerContext` (1555) → `playerQueue.ts` (10 tests) + `playerPersistence.ts`
+   (8 tests, in-app verified) + `utils/dataUrl.ts` (5 tests — dedup of the
+   FileReader→dataURL / chunked-base64 copies) all done → then `useQueue` (state)
+   / `usePlaybackEngine` (audio element / src swap / gapless) / `useMediaSession`
+   (large; needs 3-platform manual verification). `PlayerProvider` composes;
+   `usePlayer()` API unchanged. 99 tests total.
+- NOTE: lint now surfaces ~17 "Unused eslint-disable directive" warnings — these
+  are dead `// eslint-disable-line react-hooks/exhaustive-deps` comments; cleaning
+  them is the WS-QUAL exhaustive-deps audit, deferred (risky bulk edit, low value).
 2. `downloadManagerService` (2064) → `downloadQueue` / `downloadTransport` /
    `downloadReconciler` (the last unblocks the idempotent-events + orphan tests).
 3. `public/electron.js` (2196) → `public/ipc/*` by domain — **unverifiable in this

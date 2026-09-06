@@ -3,6 +3,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 import type { PlatformBridge } from './bridge';
 import { logger } from '../utils/logger';
+import { bytesToBase64 } from '../utils/dataUrl';
 
 interface DownloadNotificationPlugin {
   showProgress(opts: { title: string; text: string; progress: number; ongoing: boolean; indeterminate?: boolean }): Promise<void>;
@@ -24,12 +25,7 @@ const DATA = Directory.Data;
 const CACHE_BASE = 'permanent_cache';
 
 function toBase64(buffer: number[]): string {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
+  return bytesToBase64(new Uint8Array(buffer));
 }
 
 async function ensureDir(path: string): Promise<void> {

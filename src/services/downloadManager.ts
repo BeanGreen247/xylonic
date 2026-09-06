@@ -1,6 +1,7 @@
 import { getStreamUrl } from './subsonicApi';
 import { localStorageService } from './localStorageService';
 import { getFromStorage } from '../utils/storage';
+import { logger } from '../utils/logger';
 
 export interface DownloadTask {
     id: string;
@@ -38,13 +39,13 @@ class DownloadManager {
         
         // Check if already downloaded
         if (localStorageService.isSongDownloaded(songId, options.bitrate || 0)) {
-            console.log('Song already downloaded:', title);
+            logger.log('Song already downloaded:', title);
             return;
         }
 
         // Check if already in tasks
         if (this.tasks.has(taskId)) {
-            console.log('Download already in progress:', title);
+            logger.log('Download already in progress:', title);
             return;
         }
 
@@ -132,9 +133,9 @@ class DownloadManager {
             task.progress = 100;
             options.onProgress?.(100);
             
-            console.log('Download completed:', task.title);
+            logger.log('Download completed:', task.title);
         } catch (error) {
-            console.error('Download failed:', error);
+            logger.error('Download failed:', error);
             task.status = 'failed';
             task.error = (error as Error).message;
         } finally {

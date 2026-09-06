@@ -158,7 +158,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
         return;
       }
 
-      console.log('Fetching albums for artist:', artistId);
+      logger.log('Fetching albums for artist:', artistId);
 
       const response = await getArtist(serverUrl, username, password, artistId);
       const subsonicResponse = response.data['subsonic-response'];
@@ -175,9 +175,9 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
       setAlbums(albumsList);
       if (coverArt) setArtistCoverArtId(coverArt);
 
-      console.log(`Loaded ${albumsList.length} albums`);
+      logger.log(`Loaded ${albumsList.length} albums`);
     } catch (error) {
-      console.error('Failed to load albums', error);
+      logger.error('Failed to load albums', error);
       setError((error as Error).message || 'Failed to load albums');
     } finally {
       setLoading(false);

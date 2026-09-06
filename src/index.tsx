@@ -7,6 +7,7 @@ import './styles/index.css';
 import App from './App';
 import { initPerformanceMode } from './services/performanceModeService';
 import { initPowerSaverMode } from './services/powerSaverService';
+import { logger } from './utils/logger';
 
 // Bound every request so a hung socket (common in WKWebView right after an
 // offline→online transition) rejects instead of leaving a view spinning forever.
@@ -32,7 +33,7 @@ initPowerSaverMode();
 
 if (Capacitor.getPlatform() === 'ios') {
   document.body.classList.add('ios-platform');
-  console.log(`[Xylonic] iOS viewport ${window.innerWidth}×${window.innerHeight} dpr=${window.devicePixelRatio}`);
+  logger.log(`[Xylonic] iOS viewport ${window.innerWidth}×${window.innerHeight} dpr=${window.devicePixelRatio}`);
 
   // WKWebView respects maximum-scale=1 in the viewport meta (unlike Safari browser),
   // but gesture events can still fire before the meta is parsed. Belt-and-suspenders:

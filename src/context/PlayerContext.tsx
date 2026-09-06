@@ -420,8 +420,8 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         }
         isGoingBackRef.current = false;
 
-        console.log('[PLAYER] Playing song:', song.title, 'by', song.artist);
-        console.log('[PLAYER] Stream URL:', song.url);
+        logger.log('[PLAYER] Playing song:', song.title, 'by', song.artist);
+        logger.log('[PLAYER] Stream URL:', song.url);
         logger.log('Playing song:', song.title);
         setCurrentSong(song);
         setIsLoading(true);
@@ -443,7 +443,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                         const normalizedPath = cachedPath.replace(/\\/g, '/');
                         sourceUrl = `file:///${normalizedPath}`;
                     }
-                    console.log('[PLAYER] Using cached song:', sourceUrl);
+                    logger.log('[PLAYER] Using cached song:', sourceUrl);
                     logger.log('Using cached song:', sourceUrl);
                 } else {
                     logger.warn('Cache path not found for cached song, falling back to stream');
@@ -765,17 +765,17 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         let cancelled = false;
         const checkLikedStatus = async () => {
             if (currentSong) {
-                console.log('[Player] Song changed, checking liked status for:', currentSong.id, currentSong.title);
+                logger.log('[Player] Song changed, checking liked status for:', currentSong.id, currentSong.title);
                 try {
                     const liked = await isSongLiked(currentSong.id);
-                    console.log(`[Player] Song "${currentSong.title}" (${currentSong.id}) liked status:`, liked);
+                    logger.log(`[Player] Song "${currentSong.title}" (${currentSong.id}) liked status:`, liked);
                     if (!cancelled) setIsLiked(liked);
                 } catch (error) {
-                    console.error('[Player] Failed to check liked status:', error);
+                    logger.error('[Player] Failed to check liked status:', error);
                     if (!cancelled) setIsLiked(false);
                 }
             } else {
-                console.log('[Player] No current song, setting liked to false');
+                logger.log('[Player] No current song, setting liked to false');
                 setIsLiked(false);
             }
         };

@@ -1,4 +1,5 @@
 import { Song } from '../types';
+import { logger } from '../utils/logger';
 
 export interface HistoryEntry extends Song {
   playedAt: number;
@@ -28,7 +29,7 @@ export const addToHistory = (song: Song): void => {
     if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
     localStorage.setItem(getKey(), JSON.stringify(history));
   } catch (e) {
-    console.error('[History] Failed to save:', e);
+    logger.error('[History] Failed to save:', e);
   }
 };
 

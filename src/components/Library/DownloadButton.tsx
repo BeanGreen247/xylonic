@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { downloadManager } from '../../services/downloadManager';
 import { getFromStorage } from '../../utils/storage';
+import { logger } from '../../utils/logger';
 
 interface Song {
     id: string;
@@ -38,9 +39,9 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ song }) => {
                     onProgress: (prog: number) => setProgress(prog),
                 }
             );
-            console.log('Download completed:', song.title);
+            logger.log('Download completed:', song.title);
         } catch (error) {
-            console.error('Download failed:', error);
+            logger.error('Download failed:', error);
         } finally {
             setDownloading(false);
             setProgress(0);

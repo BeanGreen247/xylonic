@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { testConnection } from '../../services/subsonicApi';
+import { logger } from '../../utils/logger';
 
 const ReauthDialog: React.FC = () => {
     const { login } = useAuth();
@@ -25,19 +26,19 @@ const ReauthDialog: React.FC = () => {
                 return;
             }
 
-            console.log('Testing connection for reauth...');
+            logger.log('Testing connection for reauth...');
             
             const response = await testConnection(serverUrl, username, password);
 
             if (response.data['subsonic-response']?.status === 'ok') {
                 setLoggingIn(true);
-                console.log('Reauth successful, logging in...');
+                logger.log('Reauth successful, logging in...');
                 login(serverUrl, username, password);
             } else {
                 setError(response.data['subsonic-response']?.error?.message || 'Authentication failed');
             }
         } catch (error) {
-            console.error('Reauth error:', error);
+            logger.error('Reauth error:', error);
             setError('Failed to connect to server. Please check your credentials.');
         } finally {
             setTesting(false);

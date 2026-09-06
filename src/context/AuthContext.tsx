@@ -4,6 +4,7 @@ import { saveConnection } from '../services/connectionHistoryService';
 import { migratePlaintextCredentials } from '../services/secureCredentialService';
 import { credentialsService } from '../services/credentialsService';
 import { metadataCache } from '../services/metadataCache';
+import { logger } from '../utils/logger';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -52,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Always initialize: loads pending offline changes from localStorage even
       // when starting in offline mode so they survive app restarts.
       initializeStarredCache().catch((error) => {
-        console.error('Failed to initialize starred cache on load:', error);
+        logger.error('Failed to initialize starred cache on load:', error);
       });
     }
 
@@ -61,13 +62,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Migrate any plaintext credentials into the encrypted backend, then refresh
     // the credentialsService cache from it.
     migratePlaintextCredentials()
-      .catch((error) => console.error('Failed to migrate credentials:', error))
+      .catch((error) => logger.error('Failed to migrate credentials:', error))
       .finally(() => { credentialsService.hydrate().catch(() => {}); });
   }, []);
 
   const login = async (server: string, user: string, password: string, offlineMode: boolean = false) => {
     metadataCache.invalidate();
-    console.log('AuthContext: Logging in', { serverUrl: server, user, offlineMode });
+    logger.log('AuthContext: Logging in', { serverUrl: server, user, offlineMode });
     
     // Store authentication state
     localStorage.setItem('auth', 'true');
@@ -86,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsOfflineMode(offlineMode);
 
     initializeStarredCache().catch((error) => {
-      console.error('Failed to initialize starred cache:', error);
+      logger.error('Failed to initialize starred cache:', error);
     });
 
     // Notify listeners that auth/user changed

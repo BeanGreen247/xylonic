@@ -21,7 +21,7 @@ export const ImageCacheProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    console.log('%cIMAGE CACHE useEffect FIRED!', 'background: blue; color: white; font-size: 16px;');
+    logger.log('%cIMAGE CACHE useEffect FIRED!', 'background: blue; color: white; font-size: 16px;');
     
     const initializeCache = async () => {
       const username = localStorage.getItem('username');

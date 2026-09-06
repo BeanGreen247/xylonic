@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { getAllSongs, getStreamUrl } from '../../services/subsonicApi';
 import { usePlayback } from '../../hooks/usePlayback';
 import { credentialsService } from '../../services/credentialsService';
+import { logger } from '../../utils/logger';
 
 const ShuffleAllButton: React.FC = () => {
     const { playPlaylist } = usePlayback();
@@ -33,13 +34,13 @@ const ShuffleAllButton: React.FC = () => {
                 bitDepth: song.bitDepth,
             }));
 
-            console.log('Starting shuffled playback...');
+            logger.log('Starting shuffled playback...');
             
             // Start playing the shuffled playlist
             playPlaylist(songs, 0);
             
         } catch (error) {
-            console.error('Failed to shuffle all songs:', error);
+            logger.error('Failed to shuffle all songs:', error);
         } finally {
             setShuffling(false);
         }

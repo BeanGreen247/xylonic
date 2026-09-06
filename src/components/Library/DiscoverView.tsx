@@ -5,6 +5,7 @@ import { usePlayback } from '../../hooks/usePlayback';
 import AlbumArt from '../common/AlbumArt';
 import './DiscoverView.css';
 import { credentialsService } from '../../services/credentialsService';
+import { logger } from '../../utils/logger';
 
 interface DiscoverViewProps {
   onAlbumClick: (albumId: string, albumName: string, artistName: string, artistId?: string) => void;
@@ -181,7 +182,7 @@ const DiscoverView: React.FC<DiscoverViewProps> = ({ onAlbumClick, onArtistClick
 
       if (songs.length > 0) playPlaylist(songs);
     } catch (err) {
-      console.error('[Discover] Failed to load random mix songs:', err);
+      logger.error('[Discover] Failed to load random mix songs:', err);
     } finally {
       setPlayingRandom(false);
     }

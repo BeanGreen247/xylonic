@@ -47,6 +47,7 @@ import { getBridge } from './platform/bridge';
 import LikedSongsView from './components/Library/LikedSongsView';
 import './styles/index.css';
 import { credentialsService } from './services/credentialsService';
+import { logger } from './utils/logger';
 
 type View = 'artists' | 'albums' | 'songs';
 
@@ -186,16 +187,16 @@ const AppContent: React.FC = () => {
       const cacheKey = getCacheKey('cachePreloaded');
       const hasPreCached = localStorage.getItem(cacheKey);
       if (!hasPreCached) {
-        console.log(`First launch detected for ${username}@${serverUrl} - showing cache preload dialog`);
+        logger.log(`First launch detected for ${username}@${serverUrl} - showing cache preload dialog`);
         setShowCachePreload(true);
       } else {
-        console.log(`Cache already exists for ${username}@${serverUrl}`);
+        logger.log(`Cache already exists for ${username}@${serverUrl}`);
       }
     }
   }, [isAuthenticated, username, serverUrl]);
 
   const handleCachePreloadComplete = () => {
-    console.log(`Cache preload complete for ${username}@${serverUrl}`);
+    logger.log(`Cache preload complete for ${username}@${serverUrl}`);
     const timestamp = Date.now();
     const cacheKey = getCacheKey('cachePreloaded');
     const timestampKey = getCacheKey('cachePreloadTimestamp');
@@ -208,7 +209,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleCachePreloadSkip = () => {
-    console.log(`Cache preload skipped for ${username}@${serverUrl}`);
+    logger.log(`Cache preload skipped for ${username}@${serverUrl}`);
     const timestamp = Date.now();
     const cacheKey = getCacheKey('cachePreloaded');
     const timestampKey = getCacheKey('cachePreloadTimestamp');
@@ -234,13 +235,13 @@ const AppContent: React.FC = () => {
 
       if (age > ONE_YEAR) {
         const daysOld = Math.round(age / (24 * 60 * 60 * 1000));
-        console.log(`[CACHE] Cache for ${username}@${serverUrl} is ${daysOld} days old - prompting user to refresh`);
+        logger.log(`[CACHE] Cache for ${username}@${serverUrl} is ${daysOld} days old - prompting user to refresh`);
         setCachePreloadReason('library-change');
         setNewContentCounts({ artists: 0, albums: 0, songs: 0 });
         setShowNewContentPrompt(true);
       } else {
         const daysRemaining = Math.round((ONE_YEAR - age) / (24 * 60 * 60 * 1000));
-        console.log(`Cache for ${username}@${serverUrl} is fresh (${daysRemaining} days until next refresh)`);
+        logger.log(`Cache for ${username}@${serverUrl} is fresh (${daysRemaining} days until next refresh)`);
       }
     };
 
@@ -258,7 +259,7 @@ const AppContent: React.FC = () => {
       if (!cacheTimestamp) return;
 
       try {
-        console.log('Checking server for new content...');
+        logger.log('Checking server for new content...');
         
         const { serverUrl, username, password } = credentialsService.getCached();
 
@@ -289,7 +290,7 @@ const AppContent: React.FC = () => {
 
         if (!stored) {
           // First check after a fresh preload — baseline just written, nothing to compare
-          console.log('No server count baseline yet - storing current counts for next launch');
+          logger.log('No server count baseline yet - storing current counts for next launch');
           return;
         }
 
@@ -297,7 +298,7 @@ const AppContent: React.FC = () => {
         const songDiff = serverSongCount - stored.songs;
 
         if (artistDiff !== 0 || songDiff !== 0) {
-          console.log(`[NEW CONTENT] Library change detected! Artists: ${artistDiff > 0 ? '+' : ''}${artistDiff}, Songs: ${songDiff > 0 ? '+' : ''}${songDiff}`);
+          logger.log(`[NEW CONTENT] Library change detected! Artists: ${artistDiff > 0 ? '+' : ''}${artistDiff}, Songs: ${songDiff > 0 ? '+' : ''}${songDiff}`);
           setNewContentCounts({
             artists: artistDiff,
             albums: 0,
@@ -305,10 +306,10 @@ const AppContent: React.FC = () => {
           });
           setShowNewContentPrompt(true);
         } else {
-          console.log('No library changes on server - cache is up to date');
+          logger.log('No library changes on server - cache is up to date');
         }
       } catch (error) {
-        console.warn('Failed to check for new content:', error);
+        logger.warn('Failed to check for new content:', error);
       }
     };
 
@@ -389,7 +390,7 @@ const AppContent: React.FC = () => {
   // Reset navigation to artists list on logout
   React.useEffect(() => {
     const handleLogout = () => {
-      console.log('Logout detected, resetting navigation to artists');
+      logger.log('Logout detected, resetting navigation to artists');
       setNavigation({ view: 'artists' });
       setShowOfflinePrompt(false);
       setShowCellularModePrompt(false);
@@ -500,7 +501,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleRefreshCache = () => {
-    console.log('User requested cache refresh for new content');
+    logger.log('User requested cache refresh for new content');
     setShowNewContentPrompt(false);
     setCachePreloadReason('library-change');
     setShowCachePreload(true);

@@ -4,6 +4,19 @@
 > When a roadmap workstream starts, break its tasks into this list.
 
 ## In Progress
+- [ ] **WS-QUAL phase 1a cont.** — `console.*`→`logger.*` sweep + dead-file
+      deletion done (see Done). Remaining: (a) ESLint + `typescript-eslint` +
+      Prettier config, `lint`/`format`/`format:check` scripts, CI required checks
+      (needs `npm install` — user); (b) empty-`catch {}` / silent-ignore sweep →
+      `logger.error('[area]', e)` + retry affordances; (c) `any` reduction to
+      < 30 (type `src/types/subsonic.ts` response surface — biggest source is
+      `response.data['subsonic-response']`); (d) Vite `define`/transform to strip
+      `logger.log`/`info` calls in production bundles.
+- [ ] **WS-TEST phase 1b** — not started. Vitest + RTL + jsdom, real `npm test`,
+      then the core race/correctness suites (offlineCacheService size accounting,
+      downloadManagerService dedup/idempotency/orphans, PlayerContext queue,
+      subsonicApi auth/pagination, searchWorker fallback) + `src/platform/` bridge
+      contract tests + a mock Subsonic server. Needs `npm install` — user.
 - [ ] **WS-SEC phase 2 — remove plaintext-at-rest** — `credentialsService` +
       `useCredentials()` landed and every app-code `localStorage.getItem('password')`
       now routes through `credentialsService.getCached()` (see Done). Still to do:
@@ -35,6 +48,13 @@
 
 ## Done (this cycle, cont.)
 
+- [x] **WS-QUAL — `console.*`→`logger.*` sweep** (Sep 6): 193 `console.log/error/warn/info`
+      calls across 35 `src/` files funnelled through `utils/logger`. `logger.error`/`warn`
+      changed to always emit to console (were gated on `loggingEnabled`, which
+      would have hidden errors in dev); `logger.log`/`info` stay gated — that is
+      the noise reduction. Deleted dead `offlineCacheService.v1.backup.ts.txt` +
+      `.v2.ts` (0 refs). Build clean. ESLint config / `catch {}` sweep / `any`
+      reduction / prod log-strip still pending (see In Progress).
 - [x] **WS-SEC phase 1 — single credential path** (Sep 6): new
       `src/services/credentialsService.ts` (`get`/`getCached`/`set`/`clear`/`hydrate`)
       + `src/hooks/useCredentials.ts`; wraps the existing `secureCredentialService`

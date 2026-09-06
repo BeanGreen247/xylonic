@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllSongs, getStreamUrl, getCoverArtUrl } from '../services/subsonicApi';
 import { credentialsService } from '../services/credentialsService';
+import { logger } from '../utils/logger';
 
 interface Song {
     id: string;
@@ -43,7 +44,7 @@ export const useSongList = () => {
 
                 setSongs(songs);
             } catch (error) {
-                console.error('Failed to fetch songs:', error);
+                logger.error('Failed to fetch songs:', error);
                 setError((error as Error).message);
             } finally {
                 setLoading(false);

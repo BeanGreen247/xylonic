@@ -36,14 +36,14 @@ export const logger = {
     console.log(message);
     writeToFile(message, 'INFO');
   },
+  // error/warn always reach the console (low volume, must stay visible for
+  // debugging); the file sink still only runs when logging is enabled.
   error: (...args: any[]) => {
-    if (!loggingEnabled) return;
     const message = formatMessage(...args);
     console.error(message);
     writeToFile(message, 'ERROR');
   },
   warn: (...args: any[]) => {
-    if (!loggingEnabled) return;
     const message = formatMessage(...args);
     console.warn(message);
     writeToFile(message, 'WARN');

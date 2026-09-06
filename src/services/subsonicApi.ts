@@ -175,13 +175,13 @@ export const getStreamUrl = (serverUrl: string, username: string, password: stri
     
     if (bitrate) {
         params.maxBitRate = bitrate.toString();
-        console.log(`[STREAM URL] Generating stream with maxBitRate=${bitrate} for song ${songId}`);
+        logger.log(`[STREAM URL] Generating stream with maxBitRate=${bitrate} for song ${songId}`);
     } else {
-        console.log(`[STREAM URL] Generating stream with NO transcoding (original quality) for song ${songId}`);
+        logger.log(`[STREAM URL] Generating stream with NO transcoding (original quality) for song ${songId}`);
     }
     
     const url = buildApiUrl(serverUrl, 'stream.view', params);
-    console.log(`[STREAM URL] ${url}`);
+    logger.log(`[STREAM URL] ${url}`);
     
     return url;
 };
@@ -355,7 +355,7 @@ export const search = async (query: string): Promise<SearchResult3> => {
 
     throw new Error('Search failed');
   } catch (error) {
-    console.error('Search error:', error);
+    logger.error('Search error:', error);
     throw error;
   }
 };

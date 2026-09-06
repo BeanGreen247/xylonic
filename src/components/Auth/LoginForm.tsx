@@ -7,6 +7,7 @@ import { getDecryptedPassword, deleteCredentials, isSecureStorageAvailable } fro
 import { offlineCacheService } from '../../services/offlineCacheService';
 import XylonicLogo from '../common/XylonicLogo';
 import './LoginForm.css';
+import { logger } from '../../utils/logger';
 
 const LoginForm: React.FC = () => {
     const { login } = useAuth();
@@ -153,11 +154,11 @@ const LoginForm: React.FC = () => {
                 return;
             }
 
-            console.log('Testing connection to:', serverUrl);
+            logger.log('Testing connection to:', serverUrl);
             
             const response = await testConnection(serverUrl, username, password);
             
-            console.log('Connection test response:', response);
+            logger.log('Connection test response:', response);
 
             if (response.data['subsonic-response']?.status === 'ok') {
                 setTestResult({
@@ -171,7 +172,7 @@ const LoginForm: React.FC = () => {
                 });
             }
         } catch (error) {
-            console.error('Connection test error:', error);
+            logger.error('Connection test error:', error);
             setTestResult({
                 success: false,
                 message: (error as Error).message || 'Failed to connect to server'
@@ -216,14 +217,14 @@ const LoginForm: React.FC = () => {
         setLoggingIn(true);
         
         try {
-            console.log('Logging in with credentials:', { serverUrl, username, offlineMode });
+            logger.log('Logging in with credentials:', { serverUrl, username, offlineMode });
             
             // Call AuthContext login
             login(serverUrl, username, password, offlineMode);
             
-            console.log('Login successful, credentials stored');
+            logger.log('Login successful, credentials stored');
         } catch (error) {
-            console.error('Login error:', error);
+            logger.error('Login error:', error);
             setTestResult({
                 success: false,
                 message: 'Login failed: ' + (error as Error).message

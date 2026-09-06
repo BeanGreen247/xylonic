@@ -1,10 +1,11 @@
 import { useAuth } from '../context/AuthContext';
 import { credentialsService } from '../services/credentialsService';
+import { logger } from './logger';
 
 export const handleApiError = (error: any, requestReauth: () => void) => {
     // Check if it's an auth error
     if (error.response?.status === 401 || error.response?.status === 403) {
-        console.error('Authentication error detected, requesting reauth');
+        logger.error('Authentication error detected, requesting reauth');
         requestReauth();
         return;
     }
@@ -13,7 +14,7 @@ export const handleApiError = (error: any, requestReauth: () => void) => {
     const { serverUrl, username, password } = credentialsService.getCached();
 
     if (!serverUrl || !username || !password) {
-        console.error('Missing credentials detected, requesting reauth');
+        logger.error('Missing credentials detected, requesting reauth');
         requestReauth();
         return;
     }

@@ -6,6 +6,7 @@ import { precacheStateService } from '../../services/precacheStateService';
 import { networkStatsService } from '../../services/networkStatsService';
 import './CachePreloadDialog.css';
 import { credentialsService } from '../../services/credentialsService';
+import { logger } from '../../utils/logger';
 
 interface CachePreloadDialogProps {
   onComplete: () => void;
@@ -82,7 +83,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
 
     const startCaching = async () => {
       if (cancelled) return;
-      console.log('[CachePreloadDialog] Starting pre-cache process');
+      logger.log('[CachePreloadDialog] Starting pre-cache process');
 
       precacheStateService.startPrecaching();
 
@@ -116,7 +117,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
         const { serverUrl, username, password } = credentialsService.getCached();
 
         if (!serverUrl || !username || !password) {
-          console.warn('Missing credentials for pre-caching');
+          logger.warn('Missing credentials for pre-caching');
           precacheStateService.completePrecaching();
           onSkipRef.current();
           return;
@@ -125,7 +126,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
         try {
           await imageCacheService.initialize(username, serverUrl);
         } catch (initError) {
-          console.error('Failed to initialize image cache:', initError);
+          logger.error('Failed to initialize image cache:', initError);
           setCurrentPhase('complete');
           await new Promise(resolve => setTimeout(resolve, 500));
           precacheStateService.completePrecaching();
@@ -234,7 +235,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
             const batchTime = ((performance.now() - batchStart) / 1000).toFixed(1);
             const batchNum = Math.ceil((i + SAFE_BATCH_SIZE) / SAFE_BATCH_SIZE);
             const totalBatches = Math.ceil(allArtists.length / SAFE_BATCH_SIZE);
-            console.log(`  [artists ${batchNum}/${totalBatches}] ${batchTime}s | ok:${successCount} fail:${failCount}`);
+            logger.log(`  [artists ${batchNum}/${totalBatches}] ${batchTime}s | ok:${successCount} fail:${failCount}`);
 
             const newCount = Math.min(i + SAFE_BATCH_SIZE, allArtists.length);
             const newPct = isLastBatch ? 100 : Math.min(99, Math.round((newCount / allArtists.length) * 100));
@@ -248,7 +249,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
               if (idbArtistBuffer.length > 0) await imageCacheService.cacheImagesBatch(idbArtistBuffer.splice(0));
             }
           }
-          console.log(`✅ Artist images: ${successCount} cached, ${failCount} failed (${((performance.now() - imagePhaseStart) / 1000).toFixed(1)}s)`);
+          logger.log(`✅ Artist images: ${successCount} cached, ${failCount} failed (${((performance.now() - imagePhaseStart) / 1000).toFixed(1)}s)`);
 
           // Phase 2: Album covers — album metadata already fetched in background
           if (cancelled) return;
@@ -301,13 +302,13 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
 
             results.forEach((result, idx) => {
               if (result.status === 'fulfilled' && result.value?.success) { albumSuccessCount++; }
-              else { albumFailCount++; if (result.status === 'rejected') console.warn(`Album fail ${batch[idx].name}:`, result.reason); }
+              else { albumFailCount++; if (result.status === 'rejected') logger.warn(`Album fail ${batch[idx].name}:`, result.reason); }
             });
 
             const batchTime = ((performance.now() - batchStart) / 1000).toFixed(1);
             const batchNum = Math.ceil((i + SAFE_BATCH_SIZE) / SAFE_BATCH_SIZE);
             const totalBatches = Math.ceil(albumsToCache.length / SAFE_BATCH_SIZE);
-            console.log(`  [albums ${batchNum}/${totalBatches}] ${batchTime}s | ok:${albumSuccessCount} fail:${albumFailCount}`);
+            logger.log(`  [albums ${batchNum}/${totalBatches}] ${batchTime}s | ok:${albumSuccessCount} fail:${albumFailCount}`);
 
             const newCount = Math.min(i + SAFE_BATCH_SIZE, albumsToCache.length);
             const newPct = isLastBatch ? 100 : Math.min(99, Math.round((newCount / albumsToCache.length) * 100));
@@ -321,7 +322,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
               if (idbAlbumBuffer.length > 0) await imageCacheService.cacheImagesBatch(idbAlbumBuffer.splice(0));
             }
           }
-          console.log(`✅ Album covers: ${albumSuccessCount} cached, ${albumFailCount} failed (${((performance.now() - albumPhaseStart) / 1000).toFixed(1)}s)`);
+          logger.log(`✅ Album covers: ${albumSuccessCount} cached, ${albumFailCount} failed (${((performance.now() - albumPhaseStart) / 1000).toFixed(1)}s)`);
 
           // Phase 3: Search index — song metadata already fetched in background
           if (cancelled) return;
@@ -333,7 +334,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
             await searchCacheService.initialize(username, serverUrl);
 
             const allSongs = await songMetaPromise;
-            console.log(`📚 ${allSongs.length} songs from ${allAlbumsData.length} albums`);
+            logger.log(`📚 ${allSongs.length} songs from ${allAlbumsData.length} albums`);
 
             setSearchProgress('Saving search index…');
             setSearchProgressPct(50);
@@ -344,12 +345,12 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
             setSearchIndexComplete(true);
             setSearchElapsed(fmtTime((performance.now() - searchPhaseStart) / 1000));
           } catch (error) {
-            console.error('Error building search index:', error);
+            logger.error('Error building search index:', error);
             setSearchIndexComplete(true);
           }
         }
       } catch (error) {
-        console.error('Error pre-caching images:', error);
+        logger.error('Error pre-caching images:', error);
       }
 
       if (cancelled) return;

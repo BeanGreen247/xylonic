@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * Pre-cache State Service
  * Prevents individual components from fetching images during bulk pre-cache
@@ -19,7 +20,7 @@ class PrecacheStateService {
    * Set pre-caching state to true (bulk pre-cache started)
    */
   startPrecaching(): void {
-    console.log('🚫 [PrecacheState] Blocking individual image requests - bulk pre-cache in progress');
+    logger.log('🚫 [PrecacheState] Blocking individual image requests - bulk pre-cache in progress');
     this.isPreCaching = true;
     this.notifyListeners();
   }
@@ -28,7 +29,7 @@ class PrecacheStateService {
    * Set pre-caching state to false (bulk pre-cache completed)
    */
   completePrecaching(): void {
-    console.log('✅ [PrecacheState] Allowing individual image requests - pre-cache complete');
+    logger.log('✅ [PrecacheState] Allowing individual image requests - pre-cache complete');
     this.isPreCaching = false;
     this.notifyListeners();
   }

@@ -188,7 +188,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       let album = metadataCache.get<any>(albumCacheKey);
 
       if (!album) {
-        console.log('Fetching songs for album:', albumId);
+        logger.log('Fetching songs for album:', albumId);
         const response = await getAlbum(serverUrl, username, password, albumId);
         const subsonicResponse = response.data['subsonic-response'];
 
@@ -239,9 +239,9 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
         setAlbumCoverArtId(album.coverArt);
       }
 
-      console.log(`Loaded ${songsList.length} songs`);
+      logger.log(`Loaded ${songsList.length} songs`);
     } catch (error) {
-      console.error('Failed to load songs', error);
+      logger.error('Failed to load songs', error);
       setError((error as Error).message || 'Failed to load songs');
     } finally {
       setLoading(false);

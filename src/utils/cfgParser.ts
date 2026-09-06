@@ -22,14 +22,14 @@ interface AllSettings {
  * ...
  */
 export const parseCfg = (content: string): AllSettings => {
-  console.log('=== CFG PARSING START ===');
-  console.log('Content length:', content.length);
-  console.log('Content:', content);
+  logger.log('=== CFG PARSING START ===');
+  logger.log('Content length:', content.length);
+  logger.log('Content:', content);
   
   const settings: AllSettings = {};
   const lines = content.split('\n');
   
-  console.log('Total lines:', lines.length);
+  logger.log('Total lines:', lines.length);
   
   let currentSection = '';
   let currentUser = '';
@@ -44,7 +44,7 @@ export const parseCfg = (content: string): AllSettings => {
     // Section header [username] or [username.themeSlot]
     if (line.startsWith('[') && line.endsWith(']')) {
       currentSection = line.slice(1, -1);
-      console.log(`Line ${i}: Section [${currentSection}]`);
+      logger.log(`Line ${i}: Section [${currentSection}]`);
       
       if (currentSection.includes('.')) {
         // [kenny.custom1]
@@ -52,7 +52,7 @@ export const parseCfg = (content: string): AllSettings => {
         currentUser = parts[0];
         currentThemeSlot = parts[1];
         
-        console.log(`  Theme section: user=${currentUser}, slot=${currentThemeSlot}`);
+        logger.log(`  Theme section: user=${currentUser}, slot=${currentThemeSlot}`);
         
         if (!settings[currentUser]) {
           settings[currentUser] = { theme: 'cyan', customThemes: {} };
@@ -65,7 +65,7 @@ export const parseCfg = (content: string): AllSettings => {
         currentUser = currentSection;
         currentThemeSlot = '';
         
-        console.log(`  User section: ${currentUser}`);
+        logger.log(`  User section: ${currentUser}`);
         
         if (!settings[currentUser]) {
           settings[currentUser] = { theme: 'cyan', customThemes: {} };
@@ -81,7 +81,7 @@ export const parseCfg = (content: string): AllSettings => {
     const key = line.substring(0, eqIndex).trim();
     const value = line.substring(eqIndex + 1).trim();
     
-    console.log(`Line ${i}: ${key}=${value} (user=${currentUser}, slot=${currentThemeSlot})`);
+    logger.log(`Line ${i}: ${key}=${value} (user=${currentUser}, slot=${currentThemeSlot})`);
     
     if (!currentUser) continue;
     
@@ -92,13 +92,13 @@ export const parseCfg = (content: string): AllSettings => {
       // User-level property
       if (key === 'theme') {
         settings[currentUser].theme = value;
-        console.log(`  Set theme for ${currentUser}: ${value}`);
+        logger.log(`  Set theme for ${currentUser}: ${value}`);
       }
     }
   }
   
-  console.log('=== CFG PARSING END ===');
-  console.log('Final settings:', JSON.stringify(settings, null, 2));
+  logger.log('=== CFG PARSING END ===');
+  logger.log('Final settings:', JSON.stringify(settings, null, 2));
   return settings;
 };
 

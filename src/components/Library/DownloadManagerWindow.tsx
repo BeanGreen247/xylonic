@@ -11,6 +11,7 @@ import { useOfflineMode } from '../../context/OfflineModeContext';
 import { formatBytes } from '../../utils/cacheHelpers';
 import { getBridge } from '../../platform/bridge';
 import './DownloadManagerWindow.css';
+import { logger } from '../../utils/logger';
 
 const isElectron = getBridge().isElectron;
 const isMobile = !isElectron;
@@ -135,7 +136,7 @@ const DownloadManagerWindow: React.FC<DownloadManagerWindowProps> = ({ isOpen, o
         setLocationMessage({ type: '', text: '' });
       }
     } catch (error) {
-      console.error('Failed to change cache location:', error);
+      logger.error('Failed to change cache location:', error);
       setLocationMessage({ 
         type: 'error', 
         text: `Failed to change cache location: ${(error as Error).message}` 

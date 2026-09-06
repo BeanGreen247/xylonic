@@ -251,7 +251,7 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
         return;
       }
 
-      console.log('Fetching artists from:', serverUrl);
+      logger.log('Fetching artists from:', serverUrl);
 
       // Use search index song count when available — avoids an extra getAlbumList2 call
       const searchIdx = searchCacheService.getSearchIndex();
@@ -289,10 +289,10 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
       if (myId !== loadIdRef.current) return;
       setArtists(artistsList);
       setTotalSongs(songCount);
-      console.log(`Loaded ${artistsList.length} artists and ${songCount} songs`);
+      logger.log(`Loaded ${artistsList.length} artists and ${songCount} songs`);
     } catch (error) {
       if (myId !== loadIdRef.current) return;
-      console.error('Failed to load artists', error);
+      logger.error('Failed to load artists', error);
       setError((error as Error).message || 'Failed to load artists');
     } finally {
       if (myId === loadIdRef.current) setLoading(false);

@@ -21,6 +21,7 @@ import DownloadQualityPicker from './Library/DownloadQualityPicker';
 import DownloadManagerWindow from './Library/DownloadManagerWindow';
 import PlaybackControls from './Player/PlaybackControls';
 import { credentialsService } from '../services/credentialsService';
+import { logger } from '../utils/logger';
 
 type DrillView = 'artistAlbums' | 'songList';
 
@@ -66,7 +67,7 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && cacheInitialized) {
       downloadManager.reconcileOrphans()
-        .catch(e => console.warn('[MainApp] reconcileOrphans error:', e))
+        .catch(e => logger.warn('[MainApp] reconcileOrphans error:', e))
         .finally(() => downloadManager.tryResumeQueue());
     }
   }, [isAuthenticated, cacheInitialized]);

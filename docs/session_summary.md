@@ -1,6 +1,37 @@
 # Session Summary
 
-## Current Focus (September 6, 2026 — WS-SEC phase 1)
+## Current Focus (September 6, 2026 — WS-QUAL phase 1a)
+After WS-SEC phase 1 was committed (`4a2dc47`), started WS-QUAL. Done: the full
+`console.*` → `logger.*` sweep + dead-cache-file deletion. Not done: ESLint +
+Prettier config (needs `npm install`, deferred so the user can run it), the empty-
+`catch {}` sweep, `any` reduction, and the Vite production log-strip. WS-TEST
+(Vitest harness) is the other half of phase 1 and also needs `npm install`.
+
+### What changed
+- **`console.*` → `logger.*`** — 193 calls across 35 files (script in scratchpad,
+  import-insertion made multi-line-import-aware after a first bad run was reverted
+  via `git checkout -- src/`). Files with an existing `./logger` import got a
+  duplicate that was then removed (`cfgParser.ts`, `settingsManager.ts`).
+- **`utils/logger.ts`** — `error`/`warn` no longer gated on `loggingEnabled`; they
+  always `console.error`/`console.warn` (the pre-sweep behaviour for those two,
+  which always hit the console). `log`/`info` stay gated — that is the actual
+  noise reduction. File sink still only runs when logging is enabled.
+- **Deleted** `src/services/offlineCacheService.v1.backup.ts.txt` and
+  `offlineCacheService.v2.ts` (0 external refs; `npm run build` clean without them).
+
+Build: `npm run build` clean (~26 s).
+
+### Deferred (still WS-QUAL / phase 1)
+- ESLint + `typescript-eslint` + Prettier config + `lint`/`format` scripts + CI
+  wiring (needs `npm install`).
+- `no-empty` / silent-`catch {}` sweep → `logger.error('[area]', e)` + retry
+  affordances (ties to WS-UX).
+- `any` reduction (< 30 target; type the Subsonic response surface).
+- Vite `define` / transform to drop `logger.log`/`info` calls entirely in prod.
+
+---
+
+## Previous Focus (September 6, 2026 — WS-SEC phase 1)
 Started executing `docs/ROADMAP.md`. User asked to "implement all of it"; scoped
 down to WS-SEC (credentials) phase 1 since the roadmap gates the full plaintext
 removal behind WS-TEST, and JKS rotation / history purge / `webSecurity:true` are

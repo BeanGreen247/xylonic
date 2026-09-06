@@ -4,6 +4,7 @@ import { getCoverArtUrl } from '../../services/subsonicApi';
 import { getBridge } from '../../platform/bridge';
 import './MiniPlayer.css';
 import { credentialsService } from '../../services/credentialsService';
+import { logger } from '../../utils/logger';
 
 const bridge = getBridge();
 
@@ -30,7 +31,7 @@ interface PlayerState {
 }
 
 const MiniPlayer: React.FC = () => {
-    console.log('[MiniPlayer] Component rendering');
+    logger.log('[MiniPlayer] Component rendering');
     
     // Theme CSS variables are automatically applied by ThemeProvider
     // No need to access theme object directly
@@ -50,7 +51,7 @@ const MiniPlayer: React.FC = () => {
 
     // Subscribe to player state updates from main window
     useEffect(() => {
-        console.log('[MiniPlayer] Mounting, requesting initial state...');
+        logger.log('[MiniPlayer] Mounting, requesting initial state...');
         
         bridge.requestPlayerState().then((state: PlayerState | null) => {
             if (state) setPlayerState(state);

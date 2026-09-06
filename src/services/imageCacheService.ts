@@ -78,19 +78,19 @@ class ImageCacheService {
 
     // If already initialized for this user, return immediately
     if (this.db && this.userId === newUserId) {
-      console.log('[ImageCache] Already initialized for this user');
+      logger.log('[ImageCache] Already initialized for this user');
       return Promise.resolve();
     }
     
     // If initialization is in progress, return the existing promise
     if (this.initializationPromise) {
-      console.log('[ImageCache] Initialization already in progress, waiting...');
+      logger.log('[ImageCache] Initialization already in progress, waiting...');
       return this.initializationPromise;
     }
 
     // If switching users, only clear memory cache (keep IndexedDB data for all users)
     if (this.db && this.userId && this.userId !== newUserId) {
-      console.log('[ImageCache] Switching from user', this.userId, 'to', newUserId);
+      logger.log('[ImageCache] Switching from user', this.userId, 'to', newUserId);
       
       // Only clear memory cache (blob URLs in RAM), keep IndexedDB data
       // IndexedDB stores images for ALL users with composite key [userId, coverArtId]
@@ -99,45 +99,45 @@ class ImageCacheService {
         URL.revokeObjectURL(blobUrl);
       });
       this.memoryCache.clear();
-      console.log('[ImageCache] Cleared memory cache for previous user (IndexedDB preserved for all users)');
+      logger.log('[ImageCache] Cleared memory cache for previous user (IndexedDB preserved for all users)');
       
       // Update userId but keep database connection (it's shared across all users)
       this.userId = newUserId;
-      console.log('[ImageCache] Switched to new user:', this.userId);
-      console.log('[ImageCache] Will now cache/retrieve images for this user from shared IndexedDB');
+      logger.log('[ImageCache] Switched to new user:', this.userId);
+      logger.log('[ImageCache] Will now cache/retrieve images for this user from shared IndexedDB');
       return Promise.resolve(); // Database already open, just switched user context
     }
 
     this.userId = newUserId;
-    console.log('[ImageCache] Starting initialization...');
-    console.log('[ImageCache] Username:', username);
-    console.log('[ImageCache] Server URL:', serverUrl);
-    console.log('[ImageCache] User ID:', this.userId);
+    logger.log('[ImageCache] Starting initialization...');
+    logger.log('[ImageCache] Username:', username);
+    logger.log('[ImageCache] Server URL:', serverUrl);
+    logger.log('[ImageCache] User ID:', this.userId);
 
     this.initializationPromise = new Promise((resolve, reject) => {
       try {
-        console.log('[ImageCache] Opening IndexedDB...');
+        logger.log('[ImageCache] Opening IndexedDB...');
         const request = indexedDB.open(this.dbName, this.dbVersion);
 
         request.onerror = () => {
-          console.error('[ImageCache] ERROR: Failed to open database:', request.error);
+          logger.error('[ImageCache] ERROR: Failed to open database:', request.error);
           this.initializationPromise = null; // Reset on error
           reject(request.error);
         };
 
         request.onsuccess = () => {
-          console.log('[ImageCache] IndexedDB opened successfully');
+          logger.log('[ImageCache] IndexedDB opened successfully');
           this.db = request.result;
-          console.log('[ImageCache] Database ready:', this.dbName);
-          console.log('[ImageCache] Store name:', this.storeName);
-          console.log('[ImageCache] Initialization COMPLETE');
+          logger.log('[ImageCache] Database ready:', this.dbName);
+          logger.log('[ImageCache] Store name:', this.storeName);
+          logger.log('[ImageCache] Initialization COMPLETE');
           this.cleanupOldImages(); // Clean up old images on init
           this.initializationPromise = null; // Clear the promise
           resolve();
         };
 
         request.onupgradeneeded = (event) => {
-          console.log('[ImageCache] 🔧 Upgrading database schema...');
+          logger.log('[ImageCache] 🔧 Upgrading database schema...');
           const db = (event.target as IDBOpenDBRequest).result;
           
           // Create object store if it doesn't exist
@@ -146,13 +146,13 @@ class ImageCacheService {
             objectStore.createIndex('userId', 'userId', { unique: false });
             objectStore.createIndex('timestamp', 'timestamp', { unique: false });
             objectStore.createIndex('coverArtId', 'coverArtId', { unique: false });
-            console.log('[ImageCache] Object store created:', this.storeName);
+            logger.log('[ImageCache] Object store created:', this.storeName);
           } else {
-            console.log('[ImageCache] INFO: Object store already exists');
+            logger.log('[ImageCache] INFO: Object store already exists');
           }
         };
       } catch (error) {
-        console.error('[ImageCache] ERROR: Exception during initialization:', error);
+        logger.error('[ImageCache] ERROR: Exception during initialization:', error);
         this.initializationPromise = null; // Reset on error
         reject(error);
       }
@@ -191,7 +191,7 @@ class ImageCacheService {
    */
   async getImage(coverArtId: string, serverFetchFn: () => string): Promise<string> {
     if (!this.db) {
-      console.warn('[ImageCache] WARNING: Database not initialized, using server fetch');
+      logger.warn('[ImageCache] WARNING: Database not initialized, using server fetch');
       return serverFetchFn();
     }
 
@@ -253,7 +253,7 @@ class ImageCacheService {
         return blobUrl;
       }
     } catch (error) {
-      console.error('[ImageCache] ERROR: Error reading from cache:', error);
+      logger.error('[ImageCache] ERROR: Error reading from cache:', error);
     }
 
     // Not in any cache — fetch through the throttled queue so we never fire
@@ -305,7 +305,7 @@ class ImageCacheService {
       }
       // Note: Images cached without blob URLs will generate them on-demand when first requested
     } catch (error) {
-      console.error(`Failed to cache image ${coverArtId}:`, error);
+      logger.error(`Failed to cache image ${coverArtId}:`, error);
       throw error;
     }
   }
@@ -316,7 +316,7 @@ class ImageCacheService {
   private getCachedImage(coverArtId: string): Promise<CachedImage | null> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
-        console.warn('[getCachedImage] WARNING: DB not initialized');
+        logger.warn('[getCachedImage] WARNING: DB not initialized');
         resolve(null);
         return;
       }
@@ -431,7 +431,7 @@ class ImageCacheService {
       await this.cacheImage(coverArtId, url, blob);
       return { status: 'ok', blob };
     } catch (error) {
-      console.error(`[ImageCache] ERROR: Failed to fetch and cache image ${coverArtId}:`, error);
+      logger.error(`[ImageCache] ERROR: Failed to fetch and cache image ${coverArtId}:`, error);
       return { status: 'error' };
     }
   }
@@ -463,7 +463,7 @@ class ImageCacheService {
         resolve();
       };
       request.onerror = () => {
-        console.error(`[ImageCache] ERROR: Error storing in IndexedDB ${coverArtId}:`, request.error);
+        logger.error(`[ImageCache] ERROR: Error storing in IndexedDB ${coverArtId}:`, request.error);
         reject(request.error);
       };
     });
@@ -549,14 +549,14 @@ class ImageCacheService {
    */
   async getFromIndexedDB(coverArtId: string): Promise<CachedImage | null> {
     if (!this.db) {
-      console.warn('[getFromIndexedDB] DB not initialized');
+      logger.warn('[getFromIndexedDB] DB not initialized');
       return null;
     }
     
     try {
       return await this.getCachedImage(coverArtId);
     } catch (error) {
-      console.error(`[getFromIndexedDB] Error fetching ${coverArtId}:`, error);
+      logger.error(`[getFromIndexedDB] Error fetching ${coverArtId}:`, error);
       return null;
     }
   }

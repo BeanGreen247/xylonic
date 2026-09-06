@@ -1,4 +1,5 @@
 import { credentialsService } from '../services/credentialsService';
+import { logger } from './logger';
 
 // Save credentials
 export const saveToStorage = (username: string, password: string, serverUrl: string): void => {
@@ -8,7 +9,7 @@ export const saveToStorage = (username: string, password: string, serverUrl: str
         localStorage.setItem('password', password);
         localStorage.setItem('serverUrl', serverUrl);
     } catch (error) {
-        console.error('Failed to save to storage:', error);
+        logger.error('Failed to save to storage:', error);
     }
 };
 
@@ -24,7 +25,7 @@ export const clearStorage = (): void => {
     try {
         localStorage.clear();
     } catch (error) {
-        console.error('Failed to clear storage:', error);
+        logger.error('Failed to clear storage:', error);
     }
 };
 
@@ -33,7 +34,7 @@ export const getItem = (key: string): string | null => {
     try {
         return localStorage.getItem(key);
     } catch (error) {
-        console.error('Failed to get item from storage:', error);
+        logger.error('Failed to get item from storage:', error);
         return null;
     }
 };
@@ -42,6 +43,6 @@ export const setItem = (key: string, value: string): void => {
     try {
         localStorage.setItem(key, value);
     } catch (error) {
-        console.error('Failed to set item in storage:', error);
+        logger.error('Failed to set item in storage:', error);
     }
 };

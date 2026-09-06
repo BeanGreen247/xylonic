@@ -139,7 +139,7 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
       }
       setShowDownloadManager(true);
     } catch (err) {
-      console.error('Download all failed:', err);
+      logger.error('Download all failed:', err);
     } finally {
       setIsBulkDownloading(false);
     }

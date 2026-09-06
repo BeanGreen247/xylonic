@@ -229,7 +229,7 @@ const HamburgerMenu: React.FC = () => {
     try {
       await getBridge().openLogFolder();
     } catch (error) {
-      console.error('Failed to open log folder:', error);
+      logger.error('Failed to open log folder:', error);
     }
     setIsOpen(false);
   };

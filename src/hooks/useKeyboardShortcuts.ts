@@ -161,29 +161,29 @@ export const useKeyboardShortcuts = () => {
             if (confirmWipe) {
               (async () => {
                 try {
-                  console.log('%cWIPING ALL CACHE (except permanent)', 'background: red; color: white; font-size: 14px; font-weight: bold; padding: 4px;');
+                  logger.log('%cWIPING ALL CACHE (except permanent)', 'background: red; color: white; font-size: 14px; font-weight: bold; padding: 4px;');
                   
                   // Clear image cache
                   await imageCacheService.clearCache();
-                  console.log('%cImage cache cleared', 'color: green; font-weight: bold');
+                  logger.log('%cImage cache cleared', 'color: green; font-weight: bold');
                   
                   // Clear search cache
                   await searchCacheService.clearCache();
-                  console.log('%cSearch cache cleared', 'color: green; font-weight: bold');
+                  logger.log('%cSearch cache cleared', 'color: green; font-weight: bold');
                   
                   // Clear pre-cache timestamp to trigger re-indexing on next launch
                   localStorage.removeItem('cachePreloaded');
                   localStorage.removeItem('cachePreloadTimestamp');
-                  console.log('%cPre-cache timestamp cleared', 'color: green; font-weight: bold');
+                  logger.log('%cPre-cache timestamp cleared', 'color: green; font-weight: bold');
                   
-                  console.log('%cALL CACHE WIPED! Reload app to rebuild.', 'background: green; color: white; font-size: 14px; font-weight: bold; padding: 4px;');
+                  logger.log('%cALL CACHE WIPED! Reload app to rebuild.', 'background: green; color: white; font-size: 14px; font-weight: bold; padding: 4px;');
                   
                   alert('Cache Cleared!\n\nReload the app to rebuild the cache.');
                   
                   // Reload the app
                   window.location.reload();
                 } catch (error) {
-                  console.error('Failed to wipe cache:', error);
+                  logger.error('Failed to wipe cache:', error);
                   alert('ERROR: Error clearing cache. Check console for details.');
                 }
               })();

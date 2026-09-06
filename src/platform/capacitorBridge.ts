@@ -2,6 +2,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 import type { PlatformBridge } from './bridge';
+import { logger } from '../utils/logger';
 
 interface DownloadNotificationPlugin {
   showProgress(opts: { title: string; text: string; progress: number; ongoing: boolean; indeterminate?: boolean }): Promise<void>;
@@ -245,9 +246,9 @@ export const capacitorBridge: PlatformBridge = {
 
   // ── Logging ───────────────────────────────────────────────────────────────
   async writeLog({ message, level }) {
-    if (level === 'ERROR') console.error('[Xylonic]', message);
-    else if (level === 'WARN') console.warn('[Xylonic]', message);
-    else console.log('[Xylonic]', message);
+    if (level === 'ERROR') logger.error('[Xylonic]', message);
+    else if (level === 'WARN') logger.warn('[Xylonic]', message);
+    else logger.log('[Xylonic]', message);
   },
   async getLogPath() { return ''; },
   async getLoggingEnabled() { return false; },

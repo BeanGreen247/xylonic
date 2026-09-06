@@ -82,35 +82,35 @@ export const readSettings = async (): Promise<AllSettings> => {
   try {
     const settingsPath = await getSettingsPath();
     
-    console.log('=== READ SETTINGS START ===');
-    console.log('Settings path:', settingsPath);
-    console.log('Is Electron?', isElectron());
+    logger.log('=== READ SETTINGS START ===');
+    logger.log('Settings path:', settingsPath);
+    logger.log('Is Electron?', isElectron());
     
     if (settingsPath && isElectron()) {
       const electron = (window as any).electron;
-      console.log('Electron object exists?', !!electron);
-      console.log('readSettings function exists?', !!electron?.readSettings);
+      logger.log('Electron object exists?', !!electron);
+      logger.log('readSettings function exists?', !!electron?.readSettings);
       
       const cfgContent = await electron.readSettings();
-      console.log('CFG content length:', cfgContent?.length || 0);
-      console.log('CFG content preview:', cfgContent?.substring(0, 200));
+      logger.log('CFG content length:', cfgContent?.length || 0);
+      logger.log('CFG content preview:', cfgContent?.substring(0, 200));
       
       if (cfgContent) {
         const parsed = parseCfg(cfgContent);
-        console.log('Parsed settings:', JSON.stringify(parsed, null, 2));
-        console.log('=== READ SETTINGS END ===');
+        logger.log('Parsed settings:', JSON.stringify(parsed, null, 2));
+        logger.log('=== READ SETTINGS END ===');
         return parsed;
       }
       return {};
     } else {
       // Fallback to localStorage
-      console.log('Using localStorage fallback');
+      logger.log('Using localStorage fallback');
       const data = localStorage.getItem(SETTINGS_KEY);
       logger.log('Read settings from localStorage');
       return data ? JSON.parse(data) : {};
     }
   } catch (error) {
-    console.error('=== READ SETTINGS ERROR ===', error);
+    logger.error('=== READ SETTINGS ERROR ===', error);
     logger.error('Failed to read settings:', error);
     return {};
   }

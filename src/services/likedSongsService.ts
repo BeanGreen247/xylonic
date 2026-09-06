@@ -5,6 +5,7 @@
 import { getStarred, starSong, unstarSong } from './subsonicApi';
 import { offlineCacheService } from './offlineCacheService';
 import { credentialsService } from './credentialsService';
+import { logger } from '../utils/logger';
 
 export interface LikedSong {
   id: string;
@@ -83,7 +84,7 @@ const getCredentials = () => {
   const { serverUrl, username, password } = credentialsService.getCached();
 
   if (!serverUrl || !username || !password) {
-    console.error('[LikedSongs] Missing credentials');
+    logger.error('[LikedSongs] Missing credentials');
     return null;
   }
 
@@ -99,13 +100,13 @@ const fetchStarredSongs = async (): Promise<void> => {
   
   // Check if offline mode is enabled
   if (isOfflineMode()) {
-    console.log('[LikedSongs] Offline mode - loading from cache only');
+    logger.log('[LikedSongs] Offline mode - loading from cache only');
     try {
       const cachedLikedSongs = offlineCacheService.getLikedSongs();
       starredSongIds = new Set(cachedLikedSongs);
-      console.log('[LikedSongs] Loaded from offline cache:', starredSongIds.size);
+      logger.log('[LikedSongs] Loaded from offline cache:', starredSongIds.size);
     } catch (cacheError) {
-      console.log('[LikedSongs] Cache not available');
+      logger.log('[LikedSongs] Cache not available');
     }
     return;
   }
@@ -147,23 +148,23 @@ const fetchStarredSongs = async (): Promise<void> => {
       }
     } catch (cacheError) {
       // Cache not initialized yet, skip sync
-      console.log('[LikedSongs] Cache not initialized, skipping sync');
+      logger.log('[LikedSongs] Cache not initialized, skipping sync');
     }
 
     lastFetchTime = Date.now();
-    console.log('[LikedSongs] Fetched starred songs from server. Total:', starredSongIds.size);
+    logger.log('[LikedSongs] Fetched starred songs from server. Total:', starredSongIds.size);
     if (changed) {
       window.dispatchEvent(new CustomEvent('likedSongsUpdated'));
     }
   } catch (error) {
-    console.error('[LikedSongs] Failed to fetch starred songs:', error);
+    logger.error('[LikedSongs] Failed to fetch starred songs:', error);
     // If fetch failed, try to load from cache
     try {
       const cachedLikedSongs = offlineCacheService.getLikedSongs();
       starredSongIds = new Set(cachedLikedSongs);
-      console.log('[LikedSongs] Loaded from offline cache:', starredSongIds.size);
+      logger.log('[LikedSongs] Loaded from offline cache:', starredSongIds.size);
     } catch (cacheError) {
-      console.log('[LikedSongs] Cache not available');
+      logger.log('[LikedSongs] Cache not available');
     }
   }
 };
@@ -187,13 +188,13 @@ export const getLikedSongs = async (): Promise<LikedSong[]> => {
         album: song.album,
         starred: song.starred
       }));
-      console.log('[LikedSongs] Retrieved from server:', songs.length, 'songs');
+      logger.log('[LikedSongs] Retrieved from server:', songs.length, 'songs');
       return songs;
     }
     
     return [];
   } catch (error) {
-    console.error('[LikedSongs] Failed to load liked songs:', error);
+    logger.error('[LikedSongs] Failed to load liked songs:', error);
     return [];
   }
 };
@@ -233,12 +234,12 @@ export const likeSong = async (song: { id: string; title: string; artist: string
   try {
     await offlineCacheService.addLikedSong(song.id, Date.now());
   } catch (cacheError) {
-    console.log('[LikedSongs] Cache not initialized');
+    logger.log('[LikedSongs] Cache not initialized');
   }
   
   // Check if offline mode is enabled
   if (isOfflineMode()) {
-    console.log(`[LikedSongs] Offline mode - queuing star for "${song.title}" (${song.id})`);
+    logger.log(`[LikedSongs] Offline mode - queuing star for "${song.title}" (${song.id})`);
     // Add to pending changes queue
     pendingChanges.push({
       songId: song.id,
@@ -252,9 +253,9 @@ export const likeSong = async (song: { id: string; title: string; artist: string
   
   try {
     await starSong(credentials.serverUrl, credentials.username, credentials.password, song.id);
-    console.log(`[LikedSongs] Starred song "${song.title}" (${song.id}) on server`);
+    logger.log(`[LikedSongs] Starred song "${song.title}" (${song.id}) on server`);
   } catch (error) {
-    console.error('[LikedSongs] Failed to star song on server:', error);
+    logger.error('[LikedSongs] Failed to star song on server:', error);
     // Add to pending changes for retry
     pendingChanges.push({
       songId: song.id,
@@ -277,12 +278,12 @@ export const unlikeSong = async (songId: string): Promise<void> => {
   try {
     await offlineCacheService.removeLikedSong(songId);
   } catch (cacheError) {
-    console.log('[LikedSongs] Cache not initialized');
+    logger.log('[LikedSongs] Cache not initialized');
   }
   
   // Check if offline mode is enabled
   if (isOfflineMode()) {
-    console.log(`[LikedSongs] Offline mode - queuing unstar for ${songId}`);
+    logger.log(`[LikedSongs] Offline mode - queuing unstar for ${songId}`);
     // Add to pending changes queue
     pendingChanges.push({
       songId: songId,
@@ -296,9 +297,9 @@ export const unlikeSong = async (songId: string): Promise<void> => {
   
   try {
     await unstarSong(credentials.serverUrl, credentials.username, credentials.password, songId);
-    console.log(`[LikedSongs] Unstarred song ${songId} on server`);
+    logger.log(`[LikedSongs] Unstarred song ${songId} on server`);
   } catch (error) {
-    console.error('[LikedSongs] Failed to unstar song on server:', error);
+    logger.error('[LikedSongs] Failed to unstar song on server:', error);
     // Add to pending changes for retry
     pendingChanges.push({
       songId: songId,
@@ -333,9 +334,9 @@ export const initializeStarredCache = async (): Promise<void> => {
   if (savedPendingChanges) {
     try {
       pendingChanges = JSON.parse(savedPendingChanges);
-      console.log('[LikedSongs] Loaded', pendingChanges.length, 'pending changes from storage');
+      logger.log('[LikedSongs] Loaded', pendingChanges.length, 'pending changes from storage');
     } catch (e) {
-      console.error('[LikedSongs] Failed to load pending changes:', e);
+      logger.error('[LikedSongs] Failed to load pending changes:', e);
       pendingChanges = [];
     }
   }
@@ -349,7 +350,7 @@ export const initializeStarredCache = async (): Promise<void> => {
  */
 export const syncPendingChanges = async (): Promise<{ synced: number; failed: number }> => {
   if (pendingChanges.length === 0) {
-    console.log('[LikedSongs] No pending changes to sync');
+    logger.log('[LikedSongs] No pending changes to sync');
     return { synced: 0, failed: 0 };
   }
   
@@ -358,7 +359,7 @@ export const syncPendingChanges = async (): Promise<{ synced: number; failed: nu
     return { synced: 0, failed: 0 };
   }
   
-  console.log('[LikedSongs] Syncing', pendingChanges.length, 'pending changes to server');
+  logger.log('[LikedSongs] Syncing', pendingChanges.length, 'pending changes to server');
   
   let synced = 0;
   let failed = 0;
@@ -369,14 +370,14 @@ export const syncPendingChanges = async (): Promise<{ synced: number; failed: nu
     try {
       if (change.action === 'star') {
         await starSong(credentials.serverUrl, credentials.username, credentials.password, change.songId);
-        console.log('[LikedSongs] Synced star:', change.songId);
+        logger.log('[LikedSongs] Synced star:', change.songId);
       } else {
         await unstarSong(credentials.serverUrl, credentials.username, credentials.password, change.songId);
-        console.log('[LikedSongs] Synced unstar:', change.songId);
+        logger.log('[LikedSongs] Synced unstar:', change.songId);
       }
       synced++;
     } catch (error) {
-      console.error('[LikedSongs] Failed to sync change:', change, error);
+      logger.error('[LikedSongs] Failed to sync change:', change, error);
       failedChanges.push(change);
       failed++;
     }
@@ -390,7 +391,7 @@ export const syncPendingChanges = async (): Promise<{ synced: number; failed: nu
     localStorage.removeItem('likedSongsPendingChanges');
   }
   
-  console.log(`[LikedSongs] Sync complete: ${synced} synced, ${failed} failed`);
+  logger.log(`[LikedSongs] Sync complete: ${synced} synced, ${failed} failed`);
   
   // Refresh from server to ensure consistency
   await fetchStarredSongs();
@@ -429,7 +430,7 @@ export const getStarredSongsDetailed = async (): Promise<LikedSong[]> => {
       starred: song.starred
     }));
   } catch (error) {
-    console.error('[LikedSongs] Failed to fetch starred songs:', error);
+    logger.error('[LikedSongs] Failed to fetch starred songs:', error);
     return [];
   }
 };
@@ -459,7 +460,7 @@ export const clearStarredCache = (): void => {
   lastFetchTime = 0;
   pendingChanges = [];
   localStorage.removeItem('likedSongsPendingChanges');
-  console.log('[LikedSongs] Cleared cache and pending changes');
+  logger.log('[LikedSongs] Cleared cache and pending changes');
 };
 
 /**

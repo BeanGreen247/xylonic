@@ -106,7 +106,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return;
       }
 
-      console.log('%cBUILDING 100% COMPLETE INDEX (API-BASED)', 'background: blue; color: white; font-size: 16px; font-weight: bold;');
+      logger.log('%cBUILDING 100% COMPLETE INDEX (API-BASED)', 'background: blue; color: white; font-size: 16px; font-weight: bold;');
 
       const artistsMap = new Map<string, Artist>();
       const albumsMap = new Map<string, Album>();
@@ -142,7 +142,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 });
               }
             } catch (err) {
-              console.warn(`Failed to fetch albums for ${artist.name}:`, err);
+              logger.warn(`Failed to fetch albums for ${artist.name}:`, err);
             }
           })
         );
@@ -178,7 +178,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 });
               }
             } catch (err) {
-              console.warn(`Failed to fetch songs for album ${album.name}:`, err);
+              logger.warn(`Failed to fetch songs for album ${album.name}:`, err);
             }
           })
         );
@@ -197,9 +197,9 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // to pre-cached album blob URLs for the rest of this session.
       imageCacheService.buildAliasMap(albums, songs);
 
-      console.log(`%cINDEX COMPLETE: ${artistsMap.size} artists, ${albumsMap.size} albums, ${songsMap.size} songs`, 'background: green; color: white; font-size: 14px; font-weight: bold; padding: 4px');
+      logger.log(`%cINDEX COMPLETE: ${artistsMap.size} artists, ${albumsMap.size} albums, ${songsMap.size} songs`, 'background: green; color: white; font-size: 14px; font-weight: bold; padding: 4px');
     } catch (error) {
-      console.error('%cERROR: Failed to build search index:', 'background: red; color: white', error);
+      logger.error('%cERROR: Failed to build search index:', 'background: red; color: white', error);
     } finally {
       setIsIndexing(false);
     }

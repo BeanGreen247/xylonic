@@ -16,6 +16,7 @@ import DownloadManagerWindow from './DownloadManagerWindow';
 import SongContextMenu, { ContextMenuSong } from '../common/SongContextMenu';
 import AddToPlaylistDialog from '../common/AddToPlaylistDialog';
 import { credentialsService } from '../../services/credentialsService';
+import { logger } from '../../utils/logger';
 
 const PAGE_SIZE = 50;
 
@@ -158,7 +159,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
         playPlaylist(playlist, Math.floor(Math.random() * playlist.length));
       }
     } catch (err) {
-      console.error('Shuffle all failed:', err);
+      logger.error('Shuffle all failed:', err);
     } finally {
       setIsShufflingAll(false);
     }
@@ -183,7 +184,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
       }
       setShowDownloadManager(true);
     } catch (err) {
-      console.error('Download all failed:', err);
+      logger.error('Download all failed:', err);
     } finally {
       setIsBulkDownloading(false);
     }

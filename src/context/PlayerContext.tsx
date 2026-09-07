@@ -3,10 +3,10 @@ import { logger } from '../utils/logger';
 import { buildShuffleQueue as buildShuffleQueuePure, computeNextIndex } from './playerQueue';
 import { useMediaSession } from './useMediaSession';
 import { useSleepTimer } from './useSleepTimer';
+import { usePlaybackPrefs } from './usePlaybackPrefs';
 import { isSongLiked, toggleLike as toggleLikeSong } from '../services/likedSongsService';
 import { offlineCacheService } from '../services/offlineCacheService';
 import { useOfflineMode } from './OfflineModeContext';
-import { getUserSettings, readSettings, writeSettings } from '../utils/settingsManager';
 import { getFromStorage } from '../utils/storage';
 import { addToHistory } from '../services/recentlyPlayedService';
 import { getCoverArtUrl } from '../services/subsonicApi';
@@ -190,13 +190,10 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const [volume, setVolumeState] = useState(0.7);
     const [shuffle, setShuffle] = useState(loadShuffle);
     const [repeat, setRepeat] = useState(loadRepeat);
-    const [bitrate, setBitrateState] = useState<number | null>(null);
     const [muted, setMuted] = useState(false);
     const [prevVolume, setPrevVolume] = useState(0.7);
     const [isLiked, setIsLiked] = useState(false);
-    const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
     const wasPlayingRef = useRef(false);
-    const playbackSpeedRef = useRef(1.0);
     const saveQueueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const preloadRef = useRef<HTMLAudioElement | null>(null);
     const currentSongRef = useRef<Song | null>(null);
@@ -209,36 +206,11 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const shuffleQueueIndexRef = useRef(0);
     const lastIpcPositionRef = useRef(0);
 
-    // Load saved streaming quality and playback speed on mount
-    useEffect(() => {
-        const loadSettings = async () => {
-            try {
-                const { username } = getFromStorage();
-                if (username) {
-                    const userSettings = await getUserSettings(username);
-                    if (userSettings?.streamingQuality !== undefined) {
-                        logger.log('Loading saved streaming quality:', userSettings.streamingQuality);
-                        setBitrateState(userSettings.streamingQuality);
-                    }
-                    if (userSettings?.playbackSpeed !== undefined) {
-                        setPlaybackSpeedState(userSettings.playbackSpeed);
-                        playbackSpeedRef.current = userSettings.playbackSpeed;
-                    }
-                }
-            } catch (error) {
-                logger.error('Failed to load settings:', error);
-            }
-        };
-        loadSettings();
-    }, []);
-
-    // Apply playback speed whenever it changes
-    useEffect(() => {
-        playbackSpeedRef.current = playbackSpeed;
-        if (audioRef.current) audioRef.current.playbackRate = playbackSpeed;
-    }, [playbackSpeed]);
-
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Per-user playback prefs — bitrate + speed (extracted to ./usePlaybackPrefs)
+    const { bitrate, setBitrate, playbackSpeed, setPlaybackSpeed, speedRef: playbackSpeedRef } =
+        usePlaybackPrefs(audioRef);
 
     // Sleep timer (extracted to ./useSleepTimer)
     const { sleepTimerRemaining, setSleepTimer } = useSleepTimer(
@@ -739,25 +711,6 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         checkLikedStatus();
         return () => { cancelled = true; };
     }, [currentSong, currentSong?.id, cacheInitialized]);
-
-    const setBitrate = useCallback((newBitrate: number | null) => {
-        setBitrateState(newBitrate);
-    }, []);
-
-    const setPlaybackSpeed = useCallback(async (speed: number) => {
-        setPlaybackSpeedState(speed);
-        playbackSpeedRef.current = speed;
-        if (audioRef.current) audioRef.current.playbackRate = speed;
-        try {
-            const { username } = getFromStorage();
-            if (username) {
-                const allSettings = await readSettings();
-                if (!allSettings[username]) allSettings[username] = { theme: 'cyan-wave', customThemes: {} };
-                allSettings[username].playbackSpeed = speed;
-                await writeSettings(allSettings);
-            }
-        } catch {}
-    }, []);
 
     // ── OS Media Session + native notification (extracted to ./useMediaSession) ──
     useMediaSession({

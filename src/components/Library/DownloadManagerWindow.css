@@ -36,7 +36,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--elevation-modal);
 }
 
 .download-manager-header {
@@ -764,7 +764,7 @@
   height: auto;
   max-height: 80vh;
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--elevation-modal);
 }
 
 @media (max-width: 768px) {
@@ -780,7 +780,7 @@
     height: auto;
     max-height: 80vh;
     border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--elevation-modal);
   }
 
   .progress-stats {

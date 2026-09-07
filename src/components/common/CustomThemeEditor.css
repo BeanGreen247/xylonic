@@ -15,7 +15,7 @@
   background: var(--bg-light);
   border-radius: 12px;
   border: 1px solid var(--border);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+  box-shadow: var(--elevation-modal);
   width: min(580px, 92vw);
   max-height: 80vh;
   overflow: hidden;

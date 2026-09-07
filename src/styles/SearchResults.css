@@ -208,7 +208,7 @@
   height: 100px;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--elevation-modal);
 }
 
 .sr-art-circle { border-radius: 50%; }
@@ -266,7 +266,7 @@
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--elevation-modal);
 }
 
 .sr-best-card:hover .sr-best-play {
@@ -276,7 +276,7 @@
 
 .sr-best-play:hover {
   transform: scale(1.06) !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--elevation-modal);
 }
 
 /* ── Song rows (use shared song-item / all-songs-item styles from index.css) ── */
@@ -331,7 +331,7 @@
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--elevation-modal);
 }
 
 .sr-artist-art .album-art,
@@ -364,7 +364,7 @@
   height: 136px;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--elevation-modal);
 }
 
 .sr-album-art .album-art,

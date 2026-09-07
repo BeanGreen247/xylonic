@@ -32,7 +32,8 @@
     --elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
     --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px 0 rgba(0, 0, 0, 0.3);
     --elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.15), 0 2px 3px 0 rgba(0, 0, 0, 0.3);
-    
+    --elevation-modal: 0 20px 60px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
+
     /* Border Radius - Material You uses larger radius */
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -82,6 +83,7 @@
         --elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
         --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.08);
         --elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.06), 0 2px 3px 0 rgba(0, 0, 0, 0.08);
+        --elevation-modal: 0 16px 48px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.10);
         --border-subtle: rgba(0, 0, 0, 0.08);
         --border: rgba(0, 0, 0, 0.12);
         --border-strong: rgba(0, 0, 0, 0.18);
@@ -106,6 +108,7 @@
     --elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
     --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.08);
     --elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.06), 0 2px 3px 0 rgba(0, 0, 0, 0.08);
+    --elevation-modal: 0 16px 48px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.10);
     --border-subtle: rgba(0, 0, 0, 0.08);
     --border: rgba(0, 0, 0, 0.12);
     --border-strong: rgba(0, 0, 0, 0.18);
@@ -1216,7 +1219,7 @@ body {
     height: 220px;
     border-radius: var(--radius-md);
     object-fit: cover;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--elevation-modal);
     display: block;
 }
 
@@ -1904,7 +1907,7 @@ body {
     z-index: 1301;
     background: var(--bg-light);
     border: 1px solid var(--border);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+    box-shadow: var(--elevation-modal);
     width: min(420px, 92vw);
     max-height: 80vh;
     display: flex;
@@ -3072,7 +3075,7 @@ body.power-saver-mode .album-art {
     max-width: 500px;
     width: 90%;
     text-align: center;
-    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--elevation-modal);
     animation: offlineSlideUp 0.25s ease;
 }
 

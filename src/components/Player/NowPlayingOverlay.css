@@ -357,11 +357,11 @@
     background: rgba(255, 255, 255, 0.95);
     color: #111;
     font-size: 26px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--elevation-modal);
     transition: transform 0.1s, box-shadow 0.1s;
 }
 
-.npo-ctrl.primary:hover:not(:disabled) { transform: scale(1.06); box-shadow: 0 6px 28px rgba(0,0,0,0.6); }
+.npo-ctrl.primary:hover:not(:disabled) { transform: scale(1.06); box-shadow: var(--elevation-modal); }
 .npo-ctrl.primary:active:not(:disabled) { transform: scale(0.95); }
 
 .npo-repeat-badge {

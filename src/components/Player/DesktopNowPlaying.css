@@ -154,7 +154,7 @@
     cursor: pointer;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    box-shadow: var(--elevation-modal);
     flex-shrink: 0;
 }
 
@@ -394,7 +394,7 @@
     background: var(--primary-color);
     color: #000;
     border-radius: 50%;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    box-shadow: var(--elevation-modal);
     transition: background 0.12s, transform 0.1s;
 }
 

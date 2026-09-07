@@ -24,7 +24,7 @@
   padding: 32px 28px 24px;
   max-width: 400px;
   width: 92%;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--elevation-modal);
 }
 
 /* ── Header text ──────────────────────────────────────────────────────────── */

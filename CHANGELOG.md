@@ -12,8 +12,10 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
-- **`electron.js` split (WS-ARCH, slices 1–8)** — eight cohesive subsystems moved
-  out of the 2232-line main file into `public/ipc/*`:
+- **`electron.js` split complete (WS-ARCH)** — the 2232-line main-process file is
+  now **533 lines of wiring** (requires, `createWindow` / `createMiniPlayer`, app
+  lifecycle, protocol + CSP, nine `register*Ipc()` calls). Nine cohesive
+  subsystems moved to `public/ipc/*`:
   - `public/ipc/remote.js` (~400 lines) — Remote Mode: LAN discovery (UDP 7766),
     HTTP command server (7767), 8 `remote-*` IPC handlers. Injected
     `getMainWindow` + `getLastPlayerState`; `startRemoteDiscovery()` from
@@ -41,13 +43,15 @@ All notable changes to Xylonic are documented here.
     `getCacheBasePath` / `saveCacheBasePath` / `dialog` / `getMainWindow`
     injected; `pathToFileUrl` moved here and re-exported (the MPRIS-art code still
     in `electron.js` imports it back).
-  `public/electron.js` **2232 → 694 lines** — now mostly window creation, app
-  lifecycle, protocol/CSP, the register calls, and the mini-player + MPRIS-art +
-  player-state IPC (couples to both windows — last remaining slice).
-  `electron-builder.json` `files` now includes `public/ipc/**/*.js`. Verified:
-  `npm run electron:serve` runs the main process with no exception; each module
-  also has a standalone plain-node functional check (all 31 cache handlers
-  round-trip).
+  - `public/ipc/playerWindow.js` — mini-player toggle, player-state sync between
+    the two windows, and the layered MPRIS cover-art → `file://` resolver
+    (`toggle-mini-player` / `is-mini-player` / `request-player-state` /
+    `player-state-update` / `player-control`). The most coupled slice — both
+    `BrowserWindow`s, `lastPlayerState`, the power-save blocker and the `mpris`
+    module are all injected.
+  `electron-builder.json` `files` now includes `public/ipc/**/*.js`. Every module
+  has a standalone plain-node functional check; `npm run electron:serve` runs the
+  full main process with no exception at each step.
 - **`vite.config.ts` → `vite.config.mts`** — native ESM config load; silences the
   Vite `configLoader: 'native'` / "ESM syntax in a file loaded as CommonJS"
   warning. `__dirname` → `import.meta.dirname` (Node 22).

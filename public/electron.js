@@ -15,6 +15,7 @@ const { registerSystemIpc } = require('./ipc/system');
 const { registerMiscIpc } = require('./ipc/misc');
 const { registerDownloadNotificationIpc } = require('./ipc/downloadNotification');
 const { registerCacheIpc, pathToFileUrl } = require('./ipc/cache');
+const { registerPlayerWindowIpc } = require('./ipc/playerWindow');
 
 let mpris = null;
 if (process.platform === 'linux') {
@@ -69,13 +70,6 @@ function _updatePowerSave() {
         _powerSaveId = null;
     }
 }
-// Bounded LRU cache: coverArtId -> file:// URL. Capped at 10 entries so memory
-// stays flat regardless of library size. A miss costs one stat call (fast), not
-// a network fetch, because temp files persist on disk with deterministic names.
-const _mprisArtMemCache = new Map();
-const MPRIS_ART_CACHE_MAX = 10;
-// coverArtId -> Promise; deduplicates concurrent in-flight fetches for the same art
-const _mprisArtPending = new Map();
 
 // Resolve the app icon regardless of dev/prod layout
 function getIconPath(preferIco = false) {
@@ -503,172 +497,18 @@ app.whenReady().then(() => {
 // Secure credential storage (extracted to ./ipc/credentials.js)
 registerCredentialsIpc({ ipcMain, safeStorage });
 
-// Mini player handlers
-ipcMain.handle('toggle-mini-player', () => {
-  try {
-    if (miniPlayerWindow) {
-      // Mini player exists - close it and show main
-      miniPlayerWindow.close();
-      if (mainWindow) {
-        mainWindow.show();
-        mainWindow.focus();
-      }
-      return false; // Mini player closed
-    } else {
-      // Create mini player and hide main
-      createMiniPlayer();
-      if (mainWindow) {
-        mainWindow.hide();
-      }
-      return true; // Mini player opened
-    }
-  } catch (error) {
-    console.error('Failed to toggle mini player:', error);
-    return false;
-  }
+// Mini-player + player-state + MPRIS-art IPC (extracted to ./ipc/playerWindow.js)
+registerPlayerWindowIpc({
+  ipcMain, mpris, pathToFileUrl,
+  getMainWindow: () => mainWindow,
+  getMiniPlayerWindow: () => miniPlayerWindow,
+  createMiniPlayer,
+  getLastPlayerState: () => lastPlayerState,
+  setLastPlayerState: (s) => { lastPlayerState = s; },
+  onPlayerStateChange: _updatePowerSave,
+  getCacheBasePath,
 });
 
-ipcMain.handle('is-mini-player', (event) => {
-  return event.sender === miniPlayerWindow?.webContents;
-});
-
-// Player state synchronization
-ipcMain.handle('request-player-state', () => {
-  // Return the last known player state
-  console.log('[Electron] request-player-state called, returning:', lastPlayerState);
-  return lastPlayerState;
-});
-
-// Return the deterministic temp path for a given coverArtId.
-// Using a fixed name per ID means the file is written once and reused across sessions.
-function mprisArtTempPath(coverArtId) {
-  const safe = coverArtId.replace(/[^a-zA-Z0-9_-]/g, '_');
-  return path.join(os.tmpdir(), `xylonic_mpris_${safe}.jpg`);
-}
-
-function mprisArtCacheGet(coverArtId) {
-  if (!_mprisArtMemCache.has(coverArtId)) return undefined;
-  // Move to end = most recently used
-  const u = _mprisArtMemCache.get(coverArtId);
-  _mprisArtMemCache.delete(coverArtId);
-  _mprisArtMemCache.set(coverArtId, u);
-  return u;
-}
-
-function mprisArtCacheSet(coverArtId, url) {
-  _mprisArtMemCache.delete(coverArtId); // remove before re-insert to update order
-  if (_mprisArtMemCache.size >= MPRIS_ART_CACHE_MAX) {
-    _mprisArtMemCache.delete(_mprisArtMemCache.keys().next().value); // evict oldest
-  }
-  _mprisArtMemCache.set(coverArtId, url);
-}
-
-// Resolve cover art to a file:// URL for MPRIS, with a layered cache to minimise I/O:
-//   1. LRU memory Map   — zero I/O, O(1)
-//   2. Offline registry — one stat call
-//   3. Existing temp file (prior session) — one stat call, zero writes
-//   4. Network fetch + single write — only on first-ever play of this cover art
-// Concurrent calls for the same coverArtId share one Promise so only one fetch
-// and one write ever happen at a time.
-function resolveMprisArt(coverArtId, httpUrl) {
-  const hit = mprisArtCacheGet(coverArtId);
-  if (hit !== undefined) return Promise.resolve(hit);
-
-  if (_mprisArtPending.has(coverArtId)) return _mprisArtPending.get(coverArtId);
-
-  const promise = (async () => {
-    // Offline cache registry
-    try {
-      const cacheDir = getCacheBasePath();
-      const registryFile = path.join(cacheDir, 'registry.json');
-      if (fs.existsSync(registryFile)) {
-        const registry = JSON.parse(fs.readFileSync(registryFile, 'utf8'));
-        const hash = registry.coverArtIdMap?.[coverArtId];
-        const entry = hash && registry.coverArtFiles?.[hash];
-        if (entry?.filePath) {
-          const full = path.join(cacheDir, entry.filePath);
-          if (fs.existsSync(full)) {
-            const u = pathToFileUrl(full);
-            mprisArtCacheSet(coverArtId, u);
-            return u;
-          }
-        }
-      }
-    } catch { /* registry unreadable — continue */ }
-
-    // Existing temp file (written in a previous session)
-    const tmpPath = mprisArtTempPath(coverArtId);
-    if (fs.existsSync(tmpPath)) {
-      const u = pathToFileUrl(tmpPath);
-      mprisArtCacheSet(coverArtId, u);
-      return u;
-    }
-
-    // Network fetch — one write per unique cover art, ever
-    if (!httpUrl) return null;
-    return new Promise((resolve) => {
-      try {
-        const parsed = new URL(httpUrl);
-        const transport = parsed.protocol === 'https:' ? https : http;
-        const req = transport.get(httpUrl, { timeout: 8000 }, (res) => {
-          if (res.statusCode !== 200) { res.resume(); return resolve(null); }
-          const chunks = [];
-          res.on('data', (c) => chunks.push(c));
-          res.on('end', () => {
-            try {
-              fs.writeFileSync(tmpPath, Buffer.concat(chunks));
-              const u = pathToFileUrl(tmpPath);
-              mprisArtCacheSet(coverArtId, u);
-              console.log('[MPRIS] Art written:', tmpPath);
-              resolve(u);
-            } catch (e) { console.warn('[MPRIS] Art write failed:', e.message); resolve(null); }
-          });
-          res.on('error', (e) => { console.warn('[MPRIS] Art response error:', e.message); resolve(null); });
-        });
-        req.on('error', (e) => { console.warn('[MPRIS] Art request error:', e.message); resolve(null); });
-        req.on('timeout', () => { req.destroy(); resolve(null); });
-      } catch (e) { console.warn('[MPRIS] Art fetch error:', e.message); resolve(null); }
-    });
-  })().finally(() => _mprisArtPending.delete(coverArtId));
-
-  _mprisArtPending.set(coverArtId, promise);
-  return promise;
-}
-
-ipcMain.handle('player-state-update', async (event, state) => {
-  lastPlayerState = state;
-  _updatePowerSave();
-  if (miniPlayerWindow && !miniPlayerWindow.isDestroyed()) {
-    miniPlayerWindow.webContents.send('player-state-changed', state);
-  }
-  if (!mpris) return;
-
-  const coverArtId = state.currentSong?.coverArt;
-  if (!coverArtId) { mpris.updateMprisState({ ...state, coverArtUrl: null }); return; }
-
-  // Hot path: LRU memory cache hit — zero I/O, synchronous
-  const cached = mprisArtCacheGet(coverArtId);
-  if (cached !== undefined) {
-    mpris.updateMprisState({ ...state, coverArtUrl: cached });
-    return;
-  }
-
-  // Push text metadata immediately; art will follow once resolved
-  mpris.updateMprisState({ ...state, coverArtUrl: null });
-
-  resolveMprisArt(coverArtId, state.coverArtUrl).then((fileUrl) => {
-    if (fileUrl && mpris && lastPlayerState?.currentSong?.coverArt === coverArtId) {
-      mpris.updateMprisState({ ...lastPlayerState, coverArtUrl: fileUrl });
-    }
-  });
-});
-
-ipcMain.handle('player-control', (event, action, data) => {
-  // Forward control actions from mini player to main window
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('player-control-action', action, data);
-  }
-});
 
 // Offline cache filesystem IPC (extracted to ./ipc/cache.js)
 registerCacheIpc({

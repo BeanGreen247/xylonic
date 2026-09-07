@@ -208,9 +208,11 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
 - [ ] **Split `downloadManagerService` (2064 lines)** into `downloadQueue`
       (model + dedup), `downloadTransport` (native Android/iOS/Electron/web pools),
       `downloadReconciler` (orphans, batch hijack, completion log).
-- [ ] **Split `electron.js` (2196 lines)** into `public/ipc/*.js` by domain
-      (cache, credentials, media/title, remote-discovery, window/miniplayer,
-      system-stats, logging). `electron.js` becomes wiring only.
+- [x] **Split `electron.js`** (2026-09-07) — 2232 → **533 lines of wiring**.
+      `public/ipc/*.js`: `remote.js`, `logging.js`, `settings.js`, `credentials.js`,
+      `system.js`, `misc.js`, `downloadNotification.js`, `cache.js` (~31 handlers),
+      `playerWindow.js` (mini-player + player-state + MPRIS art). Each module has
+      a plain-node functional test; `electron:serve` verified clean per step.
 - [ ] **Split `SettingsView` (1226 lines)** into one component per section,
       each memoised, lazy-mounted per tab.
 - [ ] **Add routing** — `react-router` with memory history on native. Replaces

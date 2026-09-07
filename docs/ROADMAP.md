@@ -392,10 +392,16 @@ kept optimisation has a before/after number in the ledger.
       applied to `<html data-theme>` synchronously at module load (no flash) and
       keeping `<meta name="theme-color">` in sync (default now `#121212`, not
       `#000000`). Settings → Appearance → Mode selector. Accent tokens unchanged
-      (user-controlled). **Remaining:** a component-by-component audit — some
-      components hardcode `rgba(255,255,255,…)` borders/hovers and
-      `rgba(0,0,0,…)` overlays that need light-mode variants; login screen
-      verified clean, the rest needs a running-app pass (WS-UX design-craft).
+      (user-controlled). **Hardcoded-colour audit done (2026-09-07):** added
+      flip-aware `--border` / `--border-subtle` / `--border-strong` /
+      `--hover-overlay` / `--active-overlay` / `--scrim` tokens (dark values in
+      `:root`, light in both light blocks); a scripted pass converted ~250
+      `rgba(255,255,255,α≤0.2)` border/hover literals + ~15 `rgba(0,0,0,0.35–0.6)`
+      backdrop fills to those tokens across 30 CSS files. Verified light + dark at
+      1400px (home, docked queue, settings). **Left as-is:** `LoginForm.css`
+      (sits on the accent gradient — white is correct), `RenderTimerHUD.css`
+      (dev overlay), a few `<svg>` data-URI arrow fills, high-alpha scrollbar
+      thumbs.
 - [~] **Token discipline** (2026-09-07, first pass) — the error / empty / inline-
       error state blocks that Artist/Album/Song lists + grids each re-declared as
       inline `style={{}}` objects (magic `40px` / `48px` / `#ff3b30` / `8px`

@@ -13,6 +13,16 @@ All notable changes to Xylonic are documented here.
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
+### Fixed
+- **Light-theme colour audit (WS-UX)** — six new theme-flipping surface tokens
+  (`--border`, `--border-subtle`, `--border-strong`, `--hover-overlay`,
+  `--active-overlay`, `--scrim`) replace ~250 hardcoded `rgba(255,255,255,…)`
+  border/hover literals and ~15 `rgba(0,0,0,…)` backdrop fills across 30
+  component stylesheets, so panel borders, row dividers, hover states and
+  scrims are now visible and correctly weighted in light mode. Dark mode is
+  unchanged (token values equal the old literals). The login screen (on the
+  accent gradient) and the dev perf overlay keep their fixed colours.
+
 ### Performance
 - **Font Awesome trimmed (WS-PERF)** — `src/index.tsx` imports only
   `fontawesome.min.css` + `solid.min.css` instead of `all.min.css`. The two

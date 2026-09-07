@@ -25,6 +25,13 @@ deferred.
   derivation + 4 look-ahead preload effects → `useNeighborSongs.ts` (`df475f1`).
   All lift-and-shift.
 
+**WS-UX leftovers this pass:**
+- Light-theme hardcoded-colour audit (`81be97f`) — added `--border*` /
+  `--hover-overlay` / `--active-overlay` / `--scrim` flip tokens; scripted
+  conversion of ~250 white + ~15 black rgba literals across 30 CSS files.
+  Verified light+dark at 1400px. Left: LoginForm (accent gradient), dev HUD,
+  data-URI arrows, scrollbar thumbs.
+
 **WS-PERF this pass (safe build-verified subset):**
 - Search-index compression — confirmed already implemented in `searchCacheService`
   (`CompressionStream` deflate, v2.0 records + v1.0 read fallback); roadmap box

@@ -48,6 +48,20 @@
     --spacing-lg: 24px;
     --spacing-xl: 32px;
 
+    /* Type scale (docs/design/0002 UI-03) — a real ramp for new/retuned type.
+       Existing component font-size literals migrate onto these over time. */
+    --font-size-xs: 11px;
+    --font-size-sm: 13px;
+    --font-size-md: 15px;
+    --font-size-lg: 18px;
+    --font-size-xl: 22px;
+    --font-size-2xl: 28px;
+    --tracking-tight: -0.01em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.08em;
+    --leading-tight: 1.2;
+    --leading-normal: 1.5;
+
     /* Surface-interaction tokens (WS-UX) — borders / hover / active / scrim that
        must flip with the theme. Replace scattered rgba(255,255,255,…) /
        rgba(0,0,0,…) literals with these. Dark values here; light overrides below. */
@@ -134,6 +148,25 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+/* Headings: no orphan words (docs/design/0002 UI-03). */
+h1, h2, h3, h4,
+.library-title,
+.settings-section-title,
+.discover-section-title,
+.album-hero-title,
+.np-title {
+    text-wrap: balance;
+}
+
+/* Display headings also get slightly tighter tracking — but NOT the uppercase
+   wide-tracked section labels, which set their own letter-spacing. */
+h1, h2,
+.library-title,
+.album-hero-title,
+.np-title {
+    letter-spacing: var(--tracking-tight);
+}
+
 input, textarea, [contenteditable="true"] {
     user-select: text;
     -webkit-user-select: text;
@@ -159,7 +192,11 @@ input, textarea, [contenteditable="true"] {
    rules can't suppress the keyboard indicator. */
 :focus-visible {
     outline: 2px solid var(--primary-color) !important;
-    outline-offset: 2px !important;
+    /* 3px offset leaves a gap in the surrounding colour between the element and
+       the accent ring, which keeps it legible over album art and flat chrome
+       alike, in both themes (docs/design/0002 UI-05). A true two-tone ring needs
+       a pseudo-element and is deferred. */
+    outline-offset: 3px !important;
 }
 :focus:not(:focus-visible) {
     outline: none;

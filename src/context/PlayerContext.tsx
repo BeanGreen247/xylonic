@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, ReactNod
 import { logger } from '../utils/logger';
 import { buildShuffleQueue as buildShuffleQueuePure, computeNextIndex } from './playerQueue';
 import { useMediaSession } from './useMediaSession';
+import { useSleepTimer } from './useSleepTimer';
 import { isSongLiked, toggleLike as toggleLikeSong } from '../services/likedSongsService';
 import { offlineCacheService } from '../services/offlineCacheService';
 import { useOfflineMode } from './OfflineModeContext';
@@ -194,8 +195,6 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const [prevVolume, setPrevVolume] = useState(0.7);
     const [isLiked, setIsLiked] = useState(false);
     const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
-    const [sleepTimerEnd, setSleepTimerEnd] = useState<number | null>(null);
-    const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
     const wasPlayingRef = useRef(false);
     const playbackSpeedRef = useRef(1.0);
     const saveQueueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -239,23 +238,12 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         if (audioRef.current) audioRef.current.playbackRate = playbackSpeed;
     }, [playbackSpeed]);
 
-    // Sleep timer countdown
-    useEffect(() => {
-        if (!sleepTimerEnd) { setSleepTimerRemaining(null); return; }
-        const tick = () => {
-            const rem = Math.max(0, Math.ceil((sleepTimerEnd - Date.now()) / 1000));
-            setSleepTimerRemaining(rem);
-            if (rem === 0) {
-                audioRef.current?.pause();
-                setSleepTimerEnd(null);
-            }
-        };
-        tick();
-        const id = setInterval(tick, 1000);
-        return () => clearInterval(id);
-    }, [sleepTimerEnd]);
-
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Sleep timer (extracted to ./useSleepTimer)
+    const { sleepTimerRemaining, setSleepTimer } = useSleepTimer(
+        useCallback(() => { audioRef.current?.pause(); }, []),
+    );
     const playlistRef = useRef<Song[]>([]);
     const currentIndexRef = useRef(0);
     const repeatRef = useRef<'off' | 'all' | 'one'>('off');
@@ -769,14 +757,6 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                 await writeSettings(allSettings);
             }
         } catch {}
-    }, []);
-
-    const setSleepTimer = useCallback((minutes: number | null) => {
-        if (minutes === null) {
-            setSleepTimerEnd(null);
-        } else {
-            setSleepTimerEnd(Date.now() + minutes * 60 * 1000);
-        }
     }, []);
 
     // ── OS Media Session + native notification (extracted to ./useMediaSession) ──

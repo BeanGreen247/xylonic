@@ -160,3 +160,30 @@
     display: none;
   }
 }
+
+/* ── Layout-mode driven (WS-UX, docs/design/0001) ─────────────────────────────
+   `data-layout` on `.app` is authoritative; the `@media` above stays as the
+   pre-hydration fallback. */
+.app[data-layout='compact'] .app-nav {
+  display: none;
+}
+
+/* medium: forced 64 px icon rail — no collapse toggle, no user/server block,
+   labels via title/aria-label only. */
+.app[data-layout='medium'] .app-nav {
+  width: 64px;
+  min-width: 64px;
+  padding: 16px 6px;
+}
+
+.app[data-layout='medium'] .app-nav-item {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.app[data-layout='medium'] .app-nav-item span,
+.app[data-layout='medium'] .app-nav-collapse-btn,
+.app[data-layout='medium'] .app-nav-user-info,
+.app[data-layout='medium'] .app-nav-divider {
+  display: none;
+}

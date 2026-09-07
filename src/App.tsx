@@ -9,7 +9,7 @@ import { ImageCacheProvider } from './context/ImageCacheContext';
 import { UIProvider } from './context/UIContext';
 import { useAuth } from './context/AuthContext';
 import { RemoteModeProvider, useRemoteMode } from './context/RemoteModeContext';
-import { LayoutModeProvider } from './context/LayoutModeContext';
+import { LayoutModeProvider, useLayoutMode } from './context/LayoutModeContext';
 import RemoteDevicePicker from './components/common/RemoteDevicePicker';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrobbler } from './hooks/useScrobbler';
@@ -85,6 +85,7 @@ const AppHooksMount: React.FC = () => {
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, logout, username, serverUrl } = useAuth();
   const { isSearching, navigatedFromSearch, returnToSearch, setOnClearCallback, activateSearch, clearSearch } = useSearch();
+  const { mode: layoutMode } = useLayoutMode();
   const { isOnline, offlineModeEnabled, isCellular, toggleOfflineMode, checkConnectivity, cacheInitialized, config } = useOfflineMode();
   const {
     isRemoteModeAvailable,
@@ -626,7 +627,7 @@ const AppContent: React.FC = () => {
   return (
     <>
       <SplashScreen visible={isLoading} />
-      {!isAuthenticated ? <LoginForm /> : <div className="app">
+      {!isAuthenticated ? <LoginForm /> : <div className="app" data-layout={layoutMode}>
       {/* Cache Preload Dialog - First Launch Only */}
       {showCachePreload && (
         <CachePreloadDialog

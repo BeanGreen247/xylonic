@@ -3,6 +3,14 @@
     display: none;
 }
 
+/* Layout-mode is authoritative (WS-UX, docs/design/0001): the bottom nav is a
+   compact-only affordance. The `@media (max-width: 767px)` block below still
+   owns its positioning/sizing (compact always sits under that width). */
+.app[data-layout='medium'] .mobile-bottom-nav,
+.app[data-layout='expanded'] .mobile-bottom-nav {
+    display: none !important;
+}
+
 @media (max-width: 767px) {
     .mobile-bottom-nav {
         display: flex;

@@ -4,7 +4,7 @@
   position: fixed;
   inset: 0;
   z-index: 1500;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -23,7 +23,7 @@
   background: rgba(14, 14, 22, 0.94);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--active-overlay);
   border-bottom: none;
   border-radius: 18px 18px 0 0;
   padding: 0 0 env(safe-area-inset-bottom, 16px);
@@ -67,8 +67,8 @@
 }
 
 .apt-close {
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: var(--active-overlay);
+  border: 1px solid var(--border);
   border-radius: 50%;
   width: 32px;
   height: 32px;
@@ -120,7 +120,7 @@
 /* ── Divider ── */
 .apt-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--hover-overlay);
   margin: 0 20px 4px;
   flex-shrink: 0;
 }
@@ -155,11 +155,11 @@
 }
 
 .apt-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--border-subtle);
+  border-color: var(--border);
 }
 
-.apt-item:active { background: rgba(255, 255, 255, 0.12); }
+.apt-item:active { background: var(--border); }
 
 /* Row that already has the song — greyed */
 .apt-item--has {
@@ -217,8 +217,8 @@
   gap: 10px;
   margin: 6px 12px 4px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: var(--hover-overlay);
+  border: 1px solid var(--border);
   border-radius: 8px;
   flex-shrink: 0;
   color: var(--primary-color);
@@ -227,7 +227,7 @@
 
 .apt-new:focus-within {
   border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--active-overlay);
 }
 
 .apt-new i { font-size: 13px; flex-shrink: 0; }
@@ -273,8 +273,8 @@
 .apt-toast {
   margin: 10px 12px 14px;
   padding: 13px 14px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--hover-overlay);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 13px;
   color: var(--primary-color);

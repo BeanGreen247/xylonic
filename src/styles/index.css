@@ -47,6 +47,16 @@
     --spacing-lg: 24px;
     --spacing-xl: 32px;
 
+    /* Surface-interaction tokens (WS-UX) — borders / hover / active / scrim that
+       must flip with the theme. Replace scattered rgba(255,255,255,…) /
+       rgba(0,0,0,…) literals with these. Dark values here; light overrides below. */
+    --border-subtle: var(--border-subtle);
+    --border: var(--border);
+    --border-strong: var(--border-strong);
+    --hover-overlay: var(--hover-overlay);
+    --active-overlay: var(--active-overlay);
+    --scrim: rgba(0, 0, 0, 0.55);
+
     /* colour-scheme hint for form controls / scrollbars (WS-UX) */
     color-scheme: dark;
 }
@@ -72,6 +82,12 @@
         --elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
         --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.08);
         --elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.06), 0 2px 3px 0 rgba(0, 0, 0, 0.08);
+        --border-subtle: rgba(0, 0, 0, 0.08);
+        --border: rgba(0, 0, 0, 0.12);
+        --border-strong: rgba(0, 0, 0, 0.18);
+        --hover-overlay: rgba(0, 0, 0, 0.04);
+        --active-overlay: rgba(0, 0, 0, 0.07);
+        --scrim: rgba(0, 0, 0, 0.32);
     }
 }
 
@@ -90,6 +106,12 @@
     --elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
     --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.08);
     --elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.06), 0 2px 3px 0 rgba(0, 0, 0, 0.08);
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.18);
+    --hover-overlay: rgba(0, 0, 0, 0.04);
+    --active-overlay: rgba(0, 0, 0, 0.07);
+    --scrim: rgba(0, 0, 0, 0.32);
 }
 
 /* Explicit dark choice pins the dark tokens even under a light OS setting.
@@ -201,7 +223,7 @@ body {
     align-items: center;
     padding: 12px 24px;
     background: var(--surface);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid var(--border);
     height: 64px;
     flex-shrink: 0;
     box-shadow: var(--elevation-2);
@@ -235,9 +257,9 @@ body {
     width: 44px;
     height: 44px;
     padding: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--active-overlay);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-subtle);
     color: var(--text-secondary, #ffffff);
     font-size: 18px;
     cursor: pointer;
@@ -246,7 +268,7 @@ body {
 
 .github-link:hover,
 .developer-link:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--active-overlay);
     border-color: var(--primary-color, #00bcd4);
     color: var(--text-primary);
 }
@@ -322,9 +344,9 @@ body {
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--active-overlay);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-subtle);
     color: var(--text-primary, #ffffff);
     font-size: 14px;
     font-weight: 500;
@@ -338,7 +360,7 @@ body {
 .mini-player-button:hover,
 .offline-mode-button:hover,
 .download-manager-button:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--active-overlay);
     border-color: var(--primary-color, #00bcd4);
 }
 
@@ -413,7 +435,7 @@ body {
 .form-group input {
     width: 100%;
     padding: 11px 14px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--bg-light);
     color: var(--text-primary);
@@ -623,7 +645,7 @@ body {
     border-radius: var(--radius-full);
     font-size: 13px;
     color: var(--text-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--hover-overlay);
 }
 
 .library-stats i {
@@ -1024,7 +1046,7 @@ body {
     background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
     color: #fff;
     font-size: 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
+    border-bottom: 1px solid var(--border-strong);
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
@@ -1070,7 +1092,7 @@ body {
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    background: rgba(255,255,255,0.2);
+    background: var(--border-strong);
     border: 1px solid rgba(255,255,255,0.35);
     border-radius: 20px;
     color: #fff;
@@ -1091,7 +1113,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.15);
+    background: var(--border-strong);
     border: none;
     border-radius: 50%;
     color: #fff;
@@ -1212,7 +1234,7 @@ body {
     padding: 20px 24px;
     background: var(--surface);
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--hover-overlay);
     margin-bottom: 24px;
 }
 
@@ -1255,7 +1277,7 @@ body {
 }
 .album-action-icon:hover:not(:disabled) {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
 }
 .album-action-icon:disabled { opacity: 0.4; cursor: not-allowed; }
 .album-action-icon--active { color: var(--primary-color) !important; }
@@ -1424,11 +1446,11 @@ body {
 }
 
 .song-item.active .song-art-overlay {
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--scrim);
 }
 
 .song-item:hover .song-art-overlay {
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--scrim);
 }
 
 .song-art-eq {
@@ -1507,7 +1529,7 @@ body {
 .player-bar {
     flex-shrink: 0;
     background: var(--surface);
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid var(--border);
     padding: 6px 16px 8px 16px;
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
     -webkit-tap-highlight-color: transparent;
@@ -1786,7 +1808,7 @@ body {
 
 .streaming-quality-selector .quality-bar {
     width: 3px;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--border-strong);
     border-radius: 2px;
     transition: all 0.15s ease;
 }
@@ -1833,7 +1855,7 @@ body {
     position: fixed;
     inset: 0;
     z-index: 1300;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--scrim);
     backdrop-filter: blur(4px);
     animation: qp-fade-in 0.15s ease;
 }
@@ -1848,7 +1870,7 @@ body {
     position: fixed;
     z-index: 1301;
     background: var(--bg-light);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
     width: min(420px, 92vw);
     max-height: 80vh;
@@ -1928,7 +1950,7 @@ body {
     padding: 14px 18px;
     background: none;
     border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--hover-overlay);
     cursor: pointer;
     transition: background 0.1s;
     text-align: left;
@@ -1939,7 +1961,7 @@ body {
 .quality-picker-item:first-child { border-top: none; }
 
 .quality-picker-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-subtle);
 }
 
 .quality-picker-item.active {
@@ -1957,7 +1979,7 @@ body {
 
 .quality-picker-bar {
     width: 4px;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--border-strong);
     border-radius: 2px;
 }
 
@@ -2003,14 +2025,14 @@ body {
     display: flex;
     gap: 10px;
     padding: 12px 18px 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--border-subtle);
 }
 
 .quality-picker-cancel {
     flex: 1;
     padding: 12px;
     background: var(--bg-medium);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text-primary);
     font-size: 14px;
@@ -2129,7 +2151,7 @@ body {
     padding: 10px 20px;
     background: linear-gradient(135deg, rgba(var(--primary-color-rgb), 1), rgba(var(--primary-color-rgb), 0.85));
     border-radius: var(--radius-lg);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-strong);
     color: white;
     font-size: 13px;
     font-weight: 500;
@@ -2149,7 +2171,7 @@ body {
 }
 
 .quality-notification .notification-close {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--border-strong);
     border: none;
     border-radius: 50%;
     width: 20px;
@@ -2186,7 +2208,7 @@ body {
 .progress-bar {
     width: 100%;
     height: 6px;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--border);
     border-radius: var(--radius-full);
     cursor: pointer;
     position: relative;
@@ -2253,7 +2275,7 @@ body {
 .volume-slider {
     flex: 1;
     height: 4px;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--border);
     border-radius: var(--radius-full);
     cursor: pointer;
     position: relative;
@@ -2321,8 +2343,8 @@ body {
 .quality-selector select {
     padding: 8px 32px 8px 12px;
     border-radius: var(--radius-md);
-    border: 1.5px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(0, 0, 0, 0.35);
+    border: 1.5px solid var(--border-strong);
+    background-color: var(--scrim);
     color: var(--text-primary);
     font-size: 13px;
     font-weight: 500;
@@ -2339,7 +2361,7 @@ body {
 
 .quality-selector select:hover {
     border-color: var(--primary-color);
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: var(--scrim);
     transform: translateY(-1px);
 }
 
@@ -3076,11 +3098,11 @@ body.power-saver-mode .album-art {
 .prompt-btn.dismiss {
     background: var(--card-background, #2a2a2a);
     color: var(--text-primary, #fff);
-    border: 2px solid var(--border-color, rgba(255,255,255,0.15));
+    border: 2px solid var(--border-color, var(--border-strong));
 }
 
 .prompt-btn.dismiss:hover {
-    background: var(--hover-background, rgba(255,255,255,0.08));
+    background: var(--hover-background, var(--border-subtle));
     border-color: var(--primary-color, #00bcd4);
     transform: translateY(-2px);
 }

@@ -1,7 +1,7 @@
 .lfm-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--scrim);
     z-index: 10100;
 }
 
@@ -12,7 +12,7 @@
     transform: translate(-50%, -50%);
     z-index: 10101;
     background: var(--bg-dark, #121212);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border);
     border-radius: 16px;
     width: min(420px, calc(100vw - 32px));
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8);
@@ -24,7 +24,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 20px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .lfm-title {
@@ -57,7 +57,7 @@
 }
 
 .lfm-close:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
     color: var(--text-primary);
 }
 
@@ -98,8 +98,8 @@
 }
 
 .lfm-field input {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--hover-overlay);
+    border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-primary);
     font-size: 14px;
@@ -204,7 +204,7 @@
     width: 44px;
     height: 24px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--border);
     position: relative;
     cursor: pointer;
     transition: background 0.2s;

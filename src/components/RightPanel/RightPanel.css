@@ -23,7 +23,7 @@
     /* responsive: at least 260 px, at most 360 px, prefer 30 % of viewport */
     width: clamp(260px, 30vw, 360px);
     background: var(--bg-medium);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border);
     border-right: none;
     border-radius: var(--radius-lg) 0 0 var(--radius-lg);
     z-index: 999;
@@ -52,7 +52,7 @@
     flex-shrink: 0;
     width: 0;
     border: none;
-    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 1px solid var(--border);
     border-radius: 0;
     box-shadow: none;
     transform: none;
@@ -109,7 +109,7 @@
 
 .right-panel-close:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
 }
 
 /* ── Panel search bar ────────────────────────── */
@@ -119,7 +119,7 @@
     gap: 8px;
     padding: 6px 12px;
     background: var(--bg-dark);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-subtle);
     flex-shrink: 0;
 }
 
@@ -177,7 +177,7 @@
 }
 
 .right-panel-content::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--border-subtle);
 }
 
 .right-panel-content::-webkit-scrollbar-thumb {
@@ -194,7 +194,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-subtle);
     transition: background 0.12s;
     cursor: default;
 }
@@ -204,7 +204,7 @@
 }
 
 .panel-song-row:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--border-subtle);
 }
 
 .panel-song-row.is-current {
@@ -284,7 +284,7 @@
 
 .panel-action-btn:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--active-overlay);
 }
 
 .panel-action-btn.danger:hover {
@@ -306,7 +306,7 @@
     position: sticky;
     top: 0;
     background: var(--bg-medium);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--hover-overlay);
     z-index: 1;
 }
 
@@ -331,7 +331,7 @@
 
 .panel-section-btn:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
 }
 
 .panel-section-btn.danger:hover {
@@ -387,7 +387,7 @@
     background: none;
     border: none;
     text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .add-to-playlist-menu-item:last-child {
@@ -395,12 +395,12 @@
 }
 
 .add-to-playlist-menu-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
 }
 
 .add-to-playlist-menu-item.create-new {
     color: var(--primary-color);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--active-overlay);
 }
 
 .add-to-playlist-menu-empty {
@@ -411,7 +411,7 @@
 
 /* ── Playlist items (flush rows) ─────────────── */
 .playlist-card {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid var(--hover-overlay);
     background: transparent;
 }
 
@@ -429,7 +429,7 @@
 }
 
 .playlist-card-header:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--border-subtle);
 }
 
 .playlist-card-expand-icon {
@@ -477,7 +477,7 @@
 }
 
 .playlist-card-songs {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--hover-overlay);
     background: rgba(0, 0, 0, 0.15);
     overflow: hidden;
     max-height: 0;
@@ -503,14 +503,14 @@
 .create-playlist-form {
     display: flex;
     gap: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .create-playlist-input {
     flex: 1;
     background: var(--bg-dark);
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid var(--border-subtle);
     color: var(--text-primary);
     font-size: 13px;
     padding: 10px 12px;
@@ -574,7 +574,7 @@
 
 .queue-panel-btn:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
 }
 
 .queue-panel-btn.active {

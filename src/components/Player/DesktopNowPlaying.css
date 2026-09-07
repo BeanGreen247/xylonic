@@ -47,7 +47,7 @@
 .dnp-drag-handle-bar {
     width: 36px;
     height: 4px;
-    background: rgba(255,255,255,0.2);
+    background: var(--border-strong);
     border-radius: 2px;
 }
 
@@ -124,7 +124,7 @@
 
 .dnp-close:hover {
     color: var(--text-primary);
-    background: rgba(255,255,255,0.08);
+    background: var(--border-subtle);
 }
 
 /* ── Main body: left art | right queue ──────────────────────── */
@@ -222,7 +222,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    border-left: 1px solid rgba(255,255,255,0.07);
+    border-left: 1px solid var(--hover-overlay);
     padding-left: 32px;
     position: relative;
 }
@@ -257,12 +257,12 @@
     flex-direction: column;
     gap: 2px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.12) transparent;
+    scrollbar-color: var(--border) transparent;
 }
 
 .dnp-queue-list::-webkit-scrollbar { width: 4px; }
 .dnp-queue-list::-webkit-scrollbar-track { background: transparent; }
-.dnp-queue-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+.dnp-queue-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 
 .dnp-queue-empty {
     display: flex;
@@ -289,7 +289,7 @@
     flex-shrink: 0;
 }
 
-.dnp-queue-row:hover { background: rgba(255,255,255,0.06); }
+.dnp-queue-row:hover { background: var(--hover-overlay); }
 .dnp-queue-row.is-current { background: rgba(255,255,255,0.09); }
 
 .dnp-queue-art {
@@ -315,7 +315,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.55);
+    background: var(--scrim);
     color: var(--primary-color);
     font-size: 14px;
 }
@@ -383,7 +383,7 @@
     flex-shrink: 0;
 }
 
-.dnp-ctrl:hover { color: var(--text-primary); background: rgba(255,255,255,0.07); }
+.dnp-ctrl:hover { color: var(--text-primary); background: var(--hover-overlay); }
 .dnp-ctrl.secondary { font-size: 16px; }
 .dnp-ctrl.secondary.active { color: var(--primary-color); }
 

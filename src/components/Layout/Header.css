@@ -15,7 +15,7 @@
   font-size: 14px;
   cursor: pointer;
   color: var(--text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--active-overlay);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
               width 0.2s ease, padding 0.2s ease, transform 0.08s ease;
   flex-shrink: 0;
@@ -26,7 +26,7 @@
 }
 
 .offline-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   color: var(--text-primary);
   border-color: rgba(255, 255, 255, 0.22);
 }
@@ -89,9 +89,9 @@ button.mini-player-button {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--active-overlay);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
   color: var(--text-primary, #ffffff);
   font-size: 14px;
   font-weight: 500;
@@ -102,7 +102,7 @@ button.mini-player-button {
 
 .mini-player-button:hover:not(:disabled),
 button.mini-player-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-color: var(--primary-color, #00bcd4);
 }
 
@@ -156,9 +156,9 @@ button.mini-player-button[disabled] .btn-label,
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--active-overlay);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
   color: var(--text-primary, #ffffff);
   font-size: 14px;
   font-weight: 500;
@@ -168,7 +168,7 @@ button.mini-player-button[disabled] .btn-label,
 }
 
 .help-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-color: var(--primary-color, #00bcd4);
 }
 
@@ -180,9 +180,9 @@ button.mini-player-button[disabled] .btn-label,
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--active-overlay);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
   color: var(--text-primary, #ffffff);
   font-size: 14px;
   font-weight: 500;
@@ -192,7 +192,7 @@ button.mini-player-button[disabled] .btn-label,
 }
 
 .logout-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-color: var(--primary-color, #00bcd4);
 }
 /* Connection Status Indicator */
@@ -231,9 +231,9 @@ button.mini-player-button[disabled] .btn-label,
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--active-overlay);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
   color: var(--text-primary, #ffffff);
   font-size: 14px;
   font-weight: 500;
@@ -243,7 +243,7 @@ button.mini-player-button[disabled] .btn-label,
 }
 
 .offline-mode-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-color: var(--primary-color, #00bcd4);
 }
 
@@ -266,9 +266,9 @@ button.mini-player-button[disabled] .btn-label,
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--active-overlay);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
   color: var(--text-primary, #ffffff);
   font-size: 14px;
   font-weight: 500;
@@ -278,7 +278,7 @@ button.mini-player-button[disabled] .btn-label,
 }
 
 .download-manager-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-color: var(--primary-color, #00bcd4);
   transform: translateY(-1px);
 }

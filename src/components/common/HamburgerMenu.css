@@ -18,13 +18,13 @@
   padding: 12px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .hamburger-button:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border);
   transform: scale(1.05);
 }
 
@@ -125,7 +125,7 @@
 .menu-item-badge {
   font-size: 0.75rem;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-radius: 12px;
   color: var(--text-secondary, rgba(255, 255, 255, 0.7));
   font-weight: 500;
@@ -146,8 +146,8 @@
 .menu-item-shortcut {
   font-size: 0.7rem;
   padding: 3px 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--border-subtle);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
   font-family: 'Courier New', monospace;
@@ -157,7 +157,7 @@
 }
 
 .menu-item:hover .menu-item-shortcut {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   border-color: rgba(255, 255, 255, 0.25);
   color: var(--text-primary, rgba(255, 255, 255, 0.9));
 }
@@ -175,7 +175,7 @@
 /* Menu Divider */
 .menu-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border);
   margin: 8px 0;
 }
 
@@ -227,7 +227,7 @@
   gap: 5px;
   padding: 10px 6px;
   border-radius: var(--radius-md, 12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   background: transparent;
   color: var(--text-secondary, rgba(255,255,255,0.7));
   font-size: 0.75rem;
@@ -243,7 +243,7 @@
 }
 
 .view-option-btn:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--hover-overlay);
   color: var(--text-primary, #fff);
 }
 
@@ -270,8 +270,8 @@
 }
 
 .switch-pass-input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--hover-overlay);
+  border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 14px;

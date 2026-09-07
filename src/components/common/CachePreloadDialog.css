@@ -19,7 +19,7 @@
 /* ── Dialog shell ─────────────────────────────────────────────────────────── */
 .cache-preload-dialog {
   background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 18px;
   padding: 32px 28px 24px;
   max-width: 400px;
@@ -79,7 +79,7 @@
 
 .cpd-ring-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.07);
+  stroke: var(--hover-overlay);
   stroke-width: 5;
 }
 
@@ -95,7 +95,7 @@
 
 /* Waiting gauge: gray unfilled ring */
 .cpd-gauge--waiting .cpd-ring-fill {
-  stroke: rgba(255, 255, 255, 0.1);
+  stroke: var(--active-overlay);
 }
 
 /* Active gauge: green, subtle glow */
@@ -124,7 +124,7 @@
 }
 
 .cpd-gauge--waiting .cpd-ring-center {
-  color: rgba(255, 255, 255, 0.18);
+  color: var(--border-strong);
 }
 
 .cpd-gauge--done .cpd-ring-center {
@@ -180,7 +180,7 @@
 
 .cache-skip-button {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
   color: #666;
   padding: 10px 28px;
   border-radius: 8px;
@@ -261,7 +261,7 @@
 
 .cache-countdown-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.06);
+  stroke: var(--hover-overlay);
   stroke-width: 5;
 }
 

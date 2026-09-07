@@ -4,7 +4,7 @@
   width: 200px;
   min-width: 200px;
   background: var(--surface);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--border-subtle);
   padding: 16px 8px;
   gap: 2px;
   flex-shrink: 0;
@@ -39,7 +39,7 @@
   padding: 10px 16px;
   border-radius: var(--radius-md);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
@@ -62,9 +62,9 @@
 }
 
 .app-nav-collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-overlay);
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: var(--border-strong);
 }
 
 .app-nav-item {
@@ -99,7 +99,7 @@
 }
 
 .app-nav-item:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-overlay);
   color: var(--text-primary);
 }
 
@@ -114,7 +114,7 @@
 
 .app-nav-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   margin: 8px 8px;
   flex-shrink: 0;
 }

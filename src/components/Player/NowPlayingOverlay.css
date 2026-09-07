@@ -112,7 +112,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.npo-close:hover  { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.npo-close:hover  { background: var(--border); color: #fff; }
 .npo-close:active { transform: scale(0.9); }
 
 .npo-label {
@@ -172,12 +172,12 @@
 
 /* Suppress the shimmer placeholder colours inside the NPO art box */
 .npo-art-inner .album-art-loading {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--border-subtle);
     animation: none;
 }
 
 .npo-art-fallback {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--hover-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -388,8 +388,8 @@
     flex: 1;
     justify-content: center;
     min-width: 0;
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--active-overlay);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm, 6px);
     padding: 8px 10px;
     color: rgba(255, 255, 255, 0.75);

@@ -5,7 +5,7 @@
   align-items: center;
   padding: 16px 24px;
   background: var(--surface-color, #1a1a1a);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--active-overlay);
   position: relative;
 }
 
@@ -53,9 +53,9 @@ button.mini-player-button:not(:disabled):not([disabled]) {
   align-items: center !important;
   gap: 8px !important;
   padding: 10px 20px !important;
-  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  border: 2px solid var(--active-overlay) !important;
   border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: var(--border-subtle) !important;
   color: var(--text-primary, #ffffff) !important;
   font-size: 14px !important;
   font-weight: 500 !important;
@@ -82,7 +82,7 @@ button.mini-player-button:not(:disabled):not([disabled]) {
 button.theme-button:hover,
 button.help-button:hover,
 button.mini-player-button:not(:disabled):not([disabled]):hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: var(--active-overlay) !important;
   border-color: var(--primary-color, #00bcd4) !important;
 }
 
@@ -187,11 +187,11 @@ button.logout-button:hover {
 }
 
 .hamburger-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
 }
 
 .hamburger-button:active {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--border-strong);
 }
 
 /* Mobile Menu Overlay */
@@ -246,8 +246,8 @@ button.logout-button:hover {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--active-overlay);
+  background: var(--border-subtle);
 }
 
 .mobile-menu-header h3 {
@@ -258,8 +258,8 @@ button.logout-button:hover {
 }
 
 .close-menu {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: var(--border-subtle);
+  border: 2px solid var(--active-overlay);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 20px;
@@ -273,7 +273,7 @@ button.logout-button:hover {
 }
 
 .close-menu:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-color: var(--primary-color);
   color: var(--primary-color);
 }
@@ -292,11 +292,11 @@ button.logout-button:hover {
 }
 
 .mobile-menu-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
 }
 
 .mobile-menu-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--border-strong);
   border-radius: 3px;
 }
 
@@ -307,8 +307,8 @@ button.logout-button:hover {
 .menu-item {
   width: 100%;
   padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: var(--border-subtle);
+  border: 2px solid var(--active-overlay);
   border-radius: 10px;
   color: var(--text-primary);
   font-size: 15px;
@@ -322,7 +322,7 @@ button.logout-button:hover {
 }
 
 .menu-item:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   border-color: var(--primary-color);
   transform: translateX(-4px);
 }

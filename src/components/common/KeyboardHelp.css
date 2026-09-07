@@ -1,7 +1,7 @@
 .keyboard-help-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--scrim);
   backdrop-filter: blur(4px);
   z-index: 9998;
   animation: dialogFadeIn 0.15s ease;
@@ -14,7 +14,7 @@
   transform: translate(-50%, -50%);
   background: var(--bg-light);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
   width: min(500px, 92vw);
   max-height: 80vh;
@@ -38,7 +38,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .keyboard-help-header h2 {

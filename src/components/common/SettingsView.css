@@ -50,8 +50,8 @@
   margin-top: 6px;
   padding: 8px 18px;
   border-radius: 99px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  background: var(--border-subtle);
   color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
@@ -60,7 +60,7 @@
 }
 
 .settings-thankyou-github:hover {
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--active-overlay);
   color: var(--text-primary);
 }
 
@@ -109,7 +109,7 @@
 .settings-card {
   background: var(--surface);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--hover-overlay);
   overflow: hidden;
 }
 
@@ -129,7 +129,7 @@
 }
 
 .settings-row:hover:not(:disabled):not(.non-interactive) {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
 }
 
 .settings-row:disabled {
@@ -185,7 +185,7 @@
 
 .settings-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-overlay);
   margin: 0 16px;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .settings-badge.off {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   color: var(--text-muted);
 }
 
@@ -313,7 +313,7 @@
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-overlay);
   gap: 2px;
 }
 
@@ -349,8 +349,8 @@
 
 .settings-select {
   appearance: none;
-  background: rgba(255, 255, 255, 0.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.4)'/%3E%3C/svg%3E") no-repeat right 10px center;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--hover-overlay) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.4)'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid var(--border-strong);
   color: var(--text-primary);
   border-radius: var(--radius-full);
   padding: 6px 30px 6px 12px;
@@ -365,7 +365,7 @@
 .settings-select:hover,
 .settings-select:focus {
   border-color: rgba(var(--primary-color-rgb), 0.5);
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--active-overlay);
 }
 
 .settings-select option {
@@ -377,8 +377,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--hover-overlay);
+  border: 1px solid var(--active-overlay);
   color: var(--text-secondary);
   border-radius: var(--radius-full);
   padding: 5px 12px;
@@ -394,7 +394,7 @@
 }
 
 .settings-view-btn:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--active-overlay);
   color: var(--text-primary);
 }
 
@@ -453,7 +453,7 @@
   gap: 2px;
   flex-shrink: 0;
   width: 155px;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--border-subtle);
 }
 
 .lic-tab {
@@ -471,7 +471,7 @@
   transition: background 0.15s, color 0.15s;
 }
 .lic-tab:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-overlay);
   color: var(--text-primary);
 }
 .lic-tab.active {
@@ -499,7 +499,7 @@
     bottom: 0;
     transform: none;
     border-radius: 16px 16px 0 0;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border);
     border-bottom: none;
     box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5);
     animation: qp-slide-up 0.22s cubic-bezier(0.4, 0, 0.2, 1);
@@ -516,7 +516,7 @@
     overflow-y: hidden;
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-subtle);
     padding: 8px 10px;
     gap: 6px;
     scrollbar-width: none;
@@ -530,7 +530,7 @@
     min-height: 44px;
     padding: 11px 20px;
     font-size: 15px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-subtle);
   }
 
   .lic-body {
@@ -551,7 +551,7 @@
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-overlay);
   padding: 3px 8px;
   border-radius: 4px;
 }

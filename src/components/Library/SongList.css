@@ -113,7 +113,7 @@
   max-width: 520px;
   width: 90%;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--border-strong);
   animation: slideUp 0.15s ease;
 }
 
@@ -155,7 +155,7 @@
   gap: 14px;
   padding: 18px;
   background: var(--bg-light);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--active-overlay);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.1s;
@@ -211,7 +211,7 @@
 .cancel-btn {
   background: var(--bg-medium);
   color: var(--text-primary);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-strong);
 }
 
 .cancel-btn:hover {

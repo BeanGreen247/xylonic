@@ -112,6 +112,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     background-color: var(--bg-dark);
     color: var(--text-primary);
 }
@@ -297,6 +298,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    min-height: 100dvh;
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
     padding: 20px;
     transition: background 0.15s ease, padding 0.15s ease;
@@ -2843,6 +2845,7 @@ body.power-saver-mode .album-art {
     .login-container {
         background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
         min-height: 100vh;
+        min-height: 100dvh;
         padding: 20px;
         justify-content: center;
     }
@@ -2995,6 +2998,7 @@ body.power-saver-mode .album-art {
     .login-container {
         align-items: flex-start;
         height: 100vh;
+        height: 100dvh;
         min-height: unset;
         overflow-y: auto;
         padding: 12px;

@@ -27,6 +27,11 @@ All notable changes to Xylonic are documented here.
   freshness table; the IPC section now carries a structure-note pointing at
   ADR 0006. Physical split of `ARCHITECTURE.md` still pending.
 
+- **`100vh` → `100dvh` (WS-UX)** — the six full-height container rules (`.app`,
+  `.login-container` incl. its media queries, `.App`, `.mini-player`) now emit
+  `height: 100vh; height: 100dvh;` — dynamic viewport height where supported, the
+  `vh` value as fallback on old engines. Fixes the address-bar-collapse gap on
+  mobile. Safe-area / `viewport-fit` handling unchanged.
 - **Memoised context values in `ThemeContext` / `SearchContext` /
   `RemoteModeContext` (WS-ARCH/perf)** — each provider was building a fresh
   `value={{…}}` object on every render, re-rendering all consumers. Now

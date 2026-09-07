@@ -320,8 +320,13 @@ kept optimisation has a before/after number in the ledger.
   - **expanded** (desktop): sidebar + content + persistent right-hand
     queue/now-playing panel.
   - (**tv** — see WS-TV.)
-- [ ] **`100vh` → `100dvh`** on `.app` and every full-height element; keep the
-      existing safe-area/`viewport-fit` handling.
+- [x] **`100vh` → `100dvh`** (2026-09-07) — the 6 full-height container
+      declarations (`.app`, `.login-container` × incl. media queries, `.App`,
+      `.mini-player`) now emit `height: 100vh; height: 100dvh;` so `dvh` wins
+      where supported and old engines keep the `vh` fallback. `safe-area` /
+      `viewport-fit=cover` untouched. The `calc(100vh - Npx)` sizing exprs in
+      `NowPlayingOverlay.css` / `HamburgerMenu` were left as-is (sizing math, not
+      full-height elements — separate pass if they show a layout jump on mobile).
 - [ ] **Real light theme** — `:root` light baseline + `prefers-color-scheme`
       dark as the default pair the theming engine (`colorConfigManager`,
       `CustomThemeEditor`) layers onto. Fix hardcoded

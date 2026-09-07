@@ -12,6 +12,15 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **`PlayerContext` → `useMediaSession` hook (WS-ARCH)** — the eight OS
+  media-session effects (`navigator.mediaSession` action handlers + metadata +
+  playback/position state, plus the Capacitor foreground-service / notification
+  bridge calls and the layered cover-art → `data:` URL resolver) moved verbatim
+  into `src/context/useMediaSession.ts`. `PlayerContext` now calls
+  `useMediaSession({ currentSong, isPlaying, …, audioRef, playNextRef, … })`;
+  the 1-fps throttle refs are internal to the hook. **`PlayerContext.tsx`
+  1565 → 1219 lines.** Behaviour unchanged; build + 121 tests + lint clean.
+  (Eyeball the MPRIS widget / iOS Control Center on the next device pass.)
 - **`electron.js` split complete (WS-ARCH)** — the 2232-line main-process file is
   now **533 lines of wiring** (requires, `createWindow` / `createMiniPlayer`, app
   lifecycle, protocol + CSP, nine `register*Ipc()` calls). Nine cohesive

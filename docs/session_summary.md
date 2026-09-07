@@ -20,6 +20,9 @@ electron:serve` bg, scan for main-process exceptions (memory
   player-state + MPRIS art). Each has a plain-node functional test; `electron:serve`
   clean per step.
 
+- WS-ARCH `PlayerContext` → `useMediaSession.ts` (8 media-session effects moved
+  verbatim; PlayerContext.tsx 1565 → 1219).
+
 **Next, in order:**
 1. `downloadManagerService` transport slice (`processQueue` / `downloadBatchNative`
    ×2 / `downloadSongJS` / worker pool) → `downloadTransport`; then queue state → `downloadQueue`.

@@ -254,16 +254,16 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
 
   if (error) {
     return (
-      <div className="error-message" style={{ padding: '40px', textAlign: 'center' }}>
-        <i className="fas fa-exclamation-circle" style={{ fontSize: '48px', color: '#ff3b30', marginBottom: '16px' }}></i>
+      <div className="library-state is-error">
+        <i className="fas fa-exclamation-circle library-state-icon"></i>
         <h3>Error Loading Songs</h3>
         <p>{error}</p>
         {offlineModeEnabled ? (
-          <button onClick={toggleOfflineMode} className="test-button" style={{ marginTop: '20px' }}>
+          <button onClick={toggleOfflineMode} className="test-button">
             <i className="fas fa-cloud"></i> Switch to Online Mode
           </button>
         ) : (
-          <button onClick={loadSongs} className="test-button" style={{ marginTop: '20px' }}>
+          <button onClick={loadSongs} className="test-button">
             <i className="fas fa-redo"></i> Retry
           </button>
         )}
@@ -314,8 +314,8 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
       </div>
 
       {displayedSongs.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <i className="fas fa-music" style={{ fontSize: '48px', marginBottom: '16px' }}></i>
+        <div className="library-state">
+          <i className="fas fa-music library-state-icon"></i>
           <h3>No Songs Found</h3>
         </div>
       ) : (

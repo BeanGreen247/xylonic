@@ -235,16 +235,16 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
 
   if (error) {
     return (
-      <div className="error-message" style={{ padding: '40px', textAlign: 'center' }}>
-        <i className="fas fa-exclamation-circle" style={{ fontSize: '48px', color: '#ff3b30', marginBottom: '16px' }}></i>
+      <div className="library-state is-error">
+        <i className="fas fa-exclamation-circle library-state-icon"></i>
         <h3>Error Loading Albums</h3>
         <p>{error}</p>
         {offlineModeEnabled ? (
-          <button onClick={toggleOfflineMode} className="test-button" style={{ marginTop: '20px' }}>
+          <button onClick={toggleOfflineMode} className="test-button">
             <i className="fas fa-cloud"></i> Switch to Online Mode
           </button>
         ) : (
-          <button onClick={loadAlbums} className="test-button" style={{ marginTop: '20px' }}>
+          <button onClick={loadAlbums} className="test-button">
             <i className="fas fa-redo"></i> Retry
           </button>
         )}
@@ -295,15 +295,15 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
       </div>
 
       {shuffleError && (
-        <div style={{ padding: '8px 16px', margin: '0 0 8px', background: 'rgba(255,59,48,0.15)', borderRadius: '8px', color: '#ff3b30', fontSize: '14px' }}>
-          <i className="fas fa-exclamation-circle" style={{ marginRight: '8px' }} />
+        <div className="library-inline-error">
+          <i className="fas fa-exclamation-circle" />
           {shuffleError}
         </div>
       )}
 
       {displayedAlbums.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <i className="fas fa-compact-disc" style={{ fontSize: '48px', marginBottom: '16px' }}></i>
+        <div className="library-state">
+          <i className="fas fa-compact-disc library-state-icon"></i>
           <h3>No Albums Found</h3>
         </div>
       ) : (

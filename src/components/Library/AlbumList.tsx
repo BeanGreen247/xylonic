@@ -227,21 +227,20 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
 
   if (error) {
     return (
-      <div className="error-message" style={{ padding: '40px', textAlign: 'center' }}>
-        <i className="fas fa-exclamation-circle" style={{ fontSize: '48px', color: '#ff3b30', marginBottom: '16px' }}></i>
+      <div className="library-state is-error">
+        <i className="fas fa-exclamation-circle library-state-icon"></i>
         <h3>Error Loading Albums</h3>
         <p>{error}</p>
         {offlineModeEnabled && error.includes('No cached songs') ? (
           <button
             onClick={toggleOfflineMode}
             className="test-button"
-            style={{ marginTop: '20px' }}
           >
             <i className="fas fa-cloud"></i>
             Switch to Online Mode
           </button>
         ) : (
-          <button onClick={loadAlbums} className="test-button" style={{ marginTop: '20px' }}>
+          <button onClick={loadAlbums} className="test-button">
             <i className="fas fa-redo"></i>
             Retry
           </button>
@@ -353,8 +352,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
       </div>
 
       {filteredAlbums.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <i className="fas fa-compact-disc" style={{ fontSize: '48px', marginBottom: '16px' }}></i>
+        <div className="library-state">
+          <i className="fas fa-compact-disc library-state-icon"></i>
           <h3>{offlineModeEnabled ? 'No Cached Albums' : 'No Albums Found'}</h3>
           <p>{offlineModeEnabled ? 'Download some songs from this artist to listen offline.' : 'This artist has no albums.'}</p>
         </div>

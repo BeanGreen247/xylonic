@@ -234,7 +234,7 @@ const MainApp: React.FC = () => {
 
       <main className="main-content">
         {showToggle && (
-          <div style={{ marginBottom: '24px' }}>
+          <div className="library-view-toggle-row">
             <LibraryViewToggle currentView={topView} onChange={handleTopViewChange} />
           </div>
         )}

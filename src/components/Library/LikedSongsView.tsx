@@ -210,11 +210,11 @@ const LikedSongsView: React.FC<LikedSongsViewProps> = ({ topView = 'likedSongs',
 
   if (error) {
     return (
-      <div className="error-message" style={{ padding: '40px', textAlign: 'center' }}>
-        <i className="fas fa-exclamation-circle" style={{ fontSize: '48px', color: '#ff3b30', marginBottom: '16px' }} />
+      <div className="library-state is-error">
+        <i className="fas fa-exclamation-circle library-state-icon" />
         <h3>Error Loading Liked Songs</h3>
         <p>{error}</p>
-        <button onClick={loadSongs} className="test-button" style={{ marginTop: '20px' }}>
+        <button onClick={loadSongs} className="test-button">
           <i className="fas fa-redo" /> Retry
         </button>
       </div>
@@ -248,8 +248,8 @@ const LikedSongsView: React.FC<LikedSongsViewProps> = ({ topView = 'likedSongs',
       </div>
 
       {songs.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <i className="fas fa-heart" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.4 }} />
+        <div className="library-state">
+          <i className="fas fa-heart library-state-icon" style={{ opacity: 0.4 }} />
           <h3>No Liked Songs</h3>
           <p>Star songs on your server to see them here.</p>
         </div>

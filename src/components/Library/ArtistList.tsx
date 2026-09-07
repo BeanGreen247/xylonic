@@ -441,15 +441,14 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
 
   if (error) {
     return (
-      <div className="error-message" style={{ padding: '40px', textAlign: 'center' }}>
-        <i className="fas fa-exclamation-circle" style={{ fontSize: '48px', color: '#ff3b30', marginBottom: '16px' }}></i>
+      <div className="library-state is-error">
+        <i className="fas fa-exclamation-circle library-state-icon"></i>
         <h3>Error Loading Artists</h3>
         <p>{error}</p>
         {offlineModeEnabled && error.includes('No cached songs') ? (
           <button 
             onClick={toggleOfflineMode} 
             className="test-button"
-            style={{ marginTop: '20px' }}
           >
             <i className="fas fa-cloud"></i>
             Switch to Online Mode
@@ -458,7 +457,6 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
           <button 
             onClick={loadArtists} 
             className="test-button"
-            style={{ marginTop: '20px' }}
           >
             <i className="fas fa-redo"></i>
             Retry
@@ -470,8 +468,8 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
 
   if (filteredArtists.length === 0 && !loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-        <i className="fas fa-music" style={{ fontSize: '48px', marginBottom: '16px' }}></i>
+      <div className="library-state">
+        <i className="fas fa-music library-state-icon"></i>
         <h3>{offlineModeEnabled ? 'No Cached Artists' : 'No Artists Found'}</h3>
         <p>{offlineModeEnabled ? 'Download some songs to listen offline.' : 'Your music library appears to be empty.'}</p>
       </div>
@@ -530,8 +528,8 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
       </div>
 
       {shuffleError && (
-        <div style={{ padding: '8px 16px', margin: '0 0 8px', background: 'rgba(255,59,48,0.15)', borderRadius: '8px', color: '#ff3b30', fontSize: '14px' }}>
-          <i className="fas fa-exclamation-circle" style={{ marginRight: '8px' }} />
+        <div className="library-inline-error">
+          <i className="fas fa-exclamation-circle" />
           {shuffleError}
         </div>
       )}

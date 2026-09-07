@@ -701,6 +701,45 @@ body {
     to { transform: rotate(360deg); }
 }
 
+/* ── Shared list / grid state blocks (WS-UX token discipline) ──────────────────
+   One place for the error / empty states that Artist/Album/Song lists + grids
+   previously each re-declared with inline style objects. */
+.library-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+.library-state.is-error {
+    color: #ff3b30;
+}
+.library-state h3 {
+    margin-bottom: 8px;
+}
+.library-state-icon {
+    display: block;
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+.library-state .test-button {
+    margin-top: 20px;
+}
+
+.library-inline-error {
+    padding: 8px 16px;
+    margin: 0 0 8px;
+    background: rgba(255, 59, 48, 0.15);
+    border-radius: var(--radius-sm);
+    color: #ff3b30;
+    font-size: 14px;
+}
+.library-inline-error i {
+    margin-right: 8px;
+}
+
+.library-view-toggle-row {
+    margin-bottom: var(--spacing-lg);
+}
+
 /* Smooth responsive transitions — applied to layout-critical elements */
 .main-content,
 .header,

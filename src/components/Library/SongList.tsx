@@ -392,21 +392,20 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
 
   if (error) {
     return (
-      <div className="error-message" style={{ padding: '40px', textAlign: 'center' }}>
-        <i className="fas fa-exclamation-circle" style={{ fontSize: '48px', color: '#ff3b30', marginBottom: '16px' }}></i>
+      <div className="library-state is-error">
+        <i className="fas fa-exclamation-circle library-state-icon"></i>
         <h3>Error Loading Songs</h3>
         <p>{error}</p>
         {offlineModeEnabled && error.includes('No cached songs') ? (
           <button 
             onClick={toggleOfflineMode} 
             className="test-button"
-            style={{ marginTop: '20px' }}
           >
             <i className="fas fa-cloud"></i>
             Switch to Online Mode
           </button>
         ) : (
-          <button onClick={loadSongs} className="test-button" style={{ marginTop: '20px' }}>
+          <button onClick={loadSongs} className="test-button">
             <i className="fas fa-redo"></i>
             Retry
           </button>
@@ -519,18 +518,18 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
 
       {/* Songs List */}
       {offlineModeEnabled && filteredSongs.length === 0 && songs.length > 0 ? (
-        <div className="no-songs" style={{ padding: '60px 20px', textAlign: 'center' }}>
-          <i className="fas fa-ban" style={{ fontSize: '64px', color: 'var(--text-secondary)', marginBottom: '20px' }}></i>
-          <h3 style={{ marginBottom: '12px' }}>No Cached Songs</h3>
-          <p style={{ color: 'var(--text-secondary)' }}>
+        <div className="no-songs library-state">
+          <i className="fas fa-ban library-state-icon"></i>
+          <h3>No Cached Songs</h3>
+          <p>
             This album isn't downloaded for offline playback.
             <br />
             Go online and click the Download button to cache this album.
           </p>
         </div>
       ) : filteredSongs.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <i className="fas fa-music" style={{ fontSize: '48px', marginBottom: '16px' }}></i>
+        <div className="library-state">
+          <i className="fas fa-music library-state-icon"></i>
           <h3>No Songs Found</h3>
           <p>This album has no songs.</p>
         </div>

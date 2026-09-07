@@ -20,6 +20,15 @@ All notable changes to Xylonic are documented here.
   seam for layout/form-factor branching — WS-UX and WS-TV consume it. 6 tests
   (first RTL component test in the suite). Nothing reads it yet.
 
+### Added
+- **ADRs (`docs/decisions/`) + architecture index (WS-ARCH / WS-DOCS)** — seven
+  decision records (platform bridge, offline-cache v2 hashing, download orphan
+  reconciliation, single credential service, Vitest + CI gate, `electron.js` →
+  `public/ipc/*`, `LayoutModeContext`). `docs/architecture/README.md` is a
+  navigable index of the 2600-line `ARCHITECTURE.md` with a per-section
+  freshness table; the IPC section now carries a structure-note pointing at
+  ADR 0006. Physical split of `ARCHITECTURE.md` still pending.
+
 ### Changed
 - **`SettingsView` split, first pass (WS-ARCH)** — three self-contained,
   props-only pieces lifted into `src/components/common/settings/`:

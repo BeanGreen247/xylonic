@@ -196,6 +196,15 @@ contextBridge.exposeInMainWorld('electron', {
 
 ## IPC Communication Patterns
 
+> **Structure note (2026-09):** `public/electron.js` was split from one 2232-line
+> file into `public/electron.js` (wiring, 533 lines) + nine
+> `public/ipc/<domain>.js` modules (`remote`, `logging`, `settings`,
+> `credentials`, `system`, `misc`, `downloadNotification`, `cache`,
+> `playerWindow`), each exporting `register<Domain>Ipc(deps)` with shared state
+> injected as getters/callbacks. The *handler names and payloads* below are
+> unchanged; the *file layout* is not. See
+> [ADR 0006](docs/decisions/0006-electron-main-split-into-ipc-modules.md).
+
 ### Pattern 1: Fire-and-Forget (One-Way)
 
 Used when the sender doesn't need a response.

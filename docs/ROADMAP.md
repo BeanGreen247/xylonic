@@ -213,8 +213,12 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       `system.js`, `misc.js`, `downloadNotification.js`, `cache.js` (~31 handlers),
       `playerWindow.js` (mini-player + player-state + MPRIS art). Each module has
       a plain-node functional test; `electron:serve` verified clean per step.
-- [ ] **Split `SettingsView` (1226 lines)** into one component per section,
-      each memoised, lazy-mounted per tab.
+- [ ] **Split `SettingsView`** — partial (2026-09-07): `LicensesDialog`,
+      `TechStackDialog`, `PerformanceCacheSection` → `components/common/settings/`;
+      1226 → 953 lines. Remaining: the ~10 small interactive sections (Appearance,
+      Playback, Account, Offline&Cache, Remote, Streaming, Downloads, Library,
+      Advanced, Danger Zone) + the switch-server modal — each is state/handler-
+      coupled to the parent; a full split wants a shared props shape or a tab UI.
 - [ ] **Add routing** — `react-router` with memory history on native. Replaces
       the `topView/drillView/selectedArtist/selectedAlbum` machine in `MainApp`.
       Enables deep-linking, desktop back-stack (subsumes the custom Android
@@ -231,10 +235,15 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
 - [ ] Provider tree (8 deep) — verify every `value` is `useMemo`'d; collapse
       `RemoteModeProvider`/`ImageCacheProvider` into leaner hooks if they don't
       need to be context.
-- [ ] `ARCHITECTURE.md` (95 KB) — split into `docs/architecture/*.md` by
-      subsystem; keep a short index. Regenerate the module map.
-- [ ] ADRs (`docs/decisions/NNNN-*.md`) for: the bridge pattern, offline cache
-      v2 hash storage, download reconciliation, routing adoption, TV layout mode.
+- [ ] `ARCHITECTURE.md` — physical per-subsystem split into `docs/architecture/*.md`
+      still pending. Interim (2026-09-07): `docs/architecture/README.md` index
+      with a per-section freshness table; the IPC section carries a
+      structure-note pointing at ADR 0006.
+- [x] ADRs (`docs/decisions/NNNN-*.md`) (2026-09-07) — 0001 platform bridge,
+      0002 offline-cache v2 hashing, 0003 download orphan reconciliation, 0004
+      single credential service, 0005 Vitest + CI gate, 0006 electron.js →
+      `public/ipc/*`, 0007 `LayoutModeContext`. Routing / TV-mode ADRs come with
+      those workstreams.
 
 ### Definition of Done
 No file in `src/` over ~600 lines except generated types; `electron.js` is
@@ -434,9 +443,10 @@ Low-risk, fills competitive gaps. Pick opportunistically between big workstreams
 
 **Now 8.0.** Huge but sprawling; `CLAUDE.md` empty; some stale.
 
-- [ ] Populate `CLAUDE.md` (WS-QUAL).
-- [ ] Split `ARCHITECTURE.md` into `docs/architecture/*.md` + index (WS-ARCH).
-- [ ] ADR set in `docs/decisions/` (WS-ARCH).
+- [x] Populate `CLAUDE.md` (WS-QUAL) — done (was the "empty" item).
+- [ ] Split `ARCHITECTURE.md` into `docs/architecture/*.md` — pending; interim
+      `docs/architecture/README.md` index exists (2026-09-07).
+- [x] ADR set in `docs/decisions/` (2026-09-07) — 7 ADRs (0001–0007).
 - [ ] Prune / date-stamp `CACHE_V21_*.md`, `IMAGE_CACHE_*.md`,
       `QUALITY_VERIFICATION.md` — mark historical, move under `docs/history/`.
 - [ ] `README.md` — trim to quick-start + feature list + platform matrix;

@@ -20,6 +20,8 @@ electron:serve` bg, scan for main-process exceptions (memory
   player-state + MPRIS art). Each has a plain-node functional test; `electron:serve`
   clean per step.
 
+- WS-DOCS: 7 ADRs in `docs/decisions/` (0001–0007) + `docs/architecture/README.md`
+  index; ARCHITECTURE.md IPC section noted stale post-split.
 - WS-ARCH `SettingsView` first-pass split → `components/common/settings/`
   (LicensesDialog, TechStackDialog, PerformanceCacheSection); 1226 → 953 lines.
 - WS-ARCH `LayoutModeContext.tsx` (compact|medium|expanded|tv; provider wired;

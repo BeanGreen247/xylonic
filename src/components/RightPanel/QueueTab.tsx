@@ -103,7 +103,7 @@ const QueueTab: React.FC<QueueTabProps> = ({ searchTerm = '' }) => {
   return (
     <>
       <div className="panel-section-header">
-        <span className="panel-section-label">{displayedItems.length} song{displayedItems.length !== 1 ? 's' : ''}</span>
+        <span className="panel-section-label" role="status" aria-live="polite">{displayedItems.length} song{displayedItems.length !== 1 ? 's' : ''}</span>
         <button className="panel-section-btn danger" onClick={clearQueue} title="Clear queue">
           <i className="fas fa-trash-alt"></i> Clear
         </button>
@@ -141,14 +141,14 @@ const QueueTab: React.FC<QueueTabProps> = ({ searchTerm = '' }) => {
             <button
               className="panel-action-btn primary"
               onClick={e => openAddMenu(e, song)}
-              title="Add to playlist"
+              title="Add to playlist" aria-label="Add to playlist"
             >
               <i className="fas fa-plus"></i>
             </button>
             <button
               className="panel-action-btn danger"
               onClick={() => removeFromQueue(originalIndex)}
-              title="Remove from queue"
+              title="Remove from queue" aria-label="Remove from queue"
             >
               <i className="fas fa-times"></i>
             </button>

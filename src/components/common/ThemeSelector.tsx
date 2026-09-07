@@ -61,7 +61,7 @@ const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onClose }) => {
                 <i className="fas fa-palette"></i>
                 Choose Theme
               </h2>
-              <button className="close-button" onClick={handleClose}>
+              <button className="close-button" onClick={handleClose} aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -102,7 +102,7 @@ const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onClose }) => {
                       <button
                         className="theme-card-delete"
                         onClick={(e) => handleDeleteCustomTheme(themeKey as 'custom1' | 'custom2' | 'custom3' | 'custom4', e)}
-                        title="Reset to default"
+                        title="Reset to default" aria-label="Reset to default"
                         type="button"
                       >
                         <i className="fas fa-times"></i>

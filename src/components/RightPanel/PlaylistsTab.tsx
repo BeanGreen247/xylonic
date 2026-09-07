@@ -328,14 +328,14 @@ const PlaylistsTab: React.FC<PlaylistsTabProps> = ({ searchTerm = '' }) => {
                 <button
                   className="panel-action-btn"
                   onClick={() => handleAddAllToQueue(pl)}
-                  title="Add all to queue"
+                  title="Add all to queue" aria-label="Add all to queue"
                 >
                   <i className="fas fa-list-ul"></i>
                 </button>
                 <button
                   className="panel-action-btn primary"
                   onClick={() => handlePlayPlaylist(pl)}
-                  title="Play playlist"
+                  title="Play playlist" aria-label="Play playlist"
                   disabled={pl.songs.length === 0}
                 >
                   <i className="fas fa-play"></i>
@@ -343,14 +343,14 @@ const PlaylistsTab: React.FC<PlaylistsTabProps> = ({ searchTerm = '' }) => {
                 <button
                   className="panel-action-btn"
                   onClick={() => startRename(pl)}
-                  title="Rename"
+                  title="Rename" aria-label="Rename"
                 >
                   <i className="fas fa-pen"></i>
                 </button>
                 <button
                   className="panel-action-btn danger"
                   onClick={() => handleDelete(pl)}
-                  title="Delete playlist"
+                  title="Delete playlist" aria-label="Delete playlist"
                 >
                   <i className="fas fa-trash-alt"></i>
                 </button>
@@ -382,14 +382,14 @@ const PlaylistsTab: React.FC<PlaylistsTabProps> = ({ searchTerm = '' }) => {
                       <button
                         className="panel-action-btn"
                         onClick={() => addToQueue(song)}
-                        title="Add to queue"
+                        title="Add to queue" aria-label="Add to queue"
                       >
                         <i className="fas fa-list-ul"></i>
                       </button>
                       <button
                         className="panel-action-btn danger"
                         onClick={() => handleRemoveSong(pl, idx)}
-                        title="Remove from playlist"
+                        title="Remove from playlist" aria-label="Remove from playlist"
                       >
                         <i className="fas fa-times"></i>
                       </button>

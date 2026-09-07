@@ -66,7 +66,7 @@ const DownloadQualityPicker: React.FC<Props> = ({
         className={triggerClassName}
         onClick={() => !disabled && setOpen(true)}
         disabled={disabled}
-        title="Select download quality"
+        title="Select download quality" aria-label="Select download quality"
         aria-haspopup="listbox"
         aria-expanded={open}
       >

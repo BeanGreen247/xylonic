@@ -119,7 +119,7 @@ const MiniPlayer: React.FC = () => {
                             className="mini-player-btn"
                             onClick={handlePrevious}
                             disabled={!currentSong}
-                            title="Previous"
+                            title="Previous" aria-label="Previous"
                         >
                             <i className="fas fa-step-backward"></i>
                         </button>
@@ -127,7 +127,7 @@ const MiniPlayer: React.FC = () => {
                             className="mini-player-btn mini-player-play"
                             onClick={handlePlayPause}
                             disabled={!currentSong}
-                            title={isLoading ? 'Loading…' : isPlaying ? 'Pause' : 'Play'}
+                            title={isLoading ? 'Loading…' : isPlaying ? 'Pause' : 'Play'} aria-label={isLoading ? 'Loading…' : isPlaying ? 'Pause' : 'Play'}
                         >
                             {isLoading ? (
                                 <span className="mini-player-spinner" />
@@ -139,7 +139,7 @@ const MiniPlayer: React.FC = () => {
                             className="mini-player-btn"
                             onClick={handleNext}
                             disabled={!currentSong}
-                            title="Next"
+                            title="Next" aria-label="Next"
                         >
                             <i className="fas fa-step-forward"></i>
                         </button>
@@ -149,7 +149,7 @@ const MiniPlayer: React.FC = () => {
                     <button
                         className="mini-player-return"
                         onClick={handleReturnToMain}
-                        title="Return to main window (Ctrl+M)"
+                        title="Return to main window (Ctrl+M)" aria-label="Return to main window (Ctrl+M)"
                     >
                         <i className="fas fa-expand"></i>
                     </button>

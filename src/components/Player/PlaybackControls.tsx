@@ -117,7 +117,7 @@ const PlaybackControls: React.FC = () => {
           <button 
             className="notification-close"
             onClick={() => setShowQualityNotification(false)}
-            title="Dismiss"
+            title="Dismiss" aria-label="Dismiss"
           >
             <i className="fas fa-times"></i>
           </button>
@@ -188,7 +188,7 @@ const PlaybackControls: React.FC = () => {
             <i className="fas fa-random"></i>
           </button>
 
-          <button onClick={handlePrevious} title="Previous">
+          <button onClick={handlePrevious} title="Previous" aria-label="Previous">
             <i className="fas fa-step-backward"></i>
           </button>
 
@@ -205,7 +205,7 @@ const PlaybackControls: React.FC = () => {
             )}
           </button>
 
-          <button onClick={handleNext} title="Next">
+          <button onClick={handleNext} title="Next" aria-label="Next">
             <i className="fas fa-step-forward"></i>
           </button>
 

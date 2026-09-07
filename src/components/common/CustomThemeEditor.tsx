@@ -41,7 +41,7 @@ const CustomThemeEditor: React.FC<CustomThemeEditorProps> = ({ isOpen, onClose }
             <i className="fas fa-paint-brush"></i>
             Create Custom Theme
           </h2>
-          <button className="close-button" onClick={onClose}>
+          <button className="close-button" onClick={onClose} aria-label="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>

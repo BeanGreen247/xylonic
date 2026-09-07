@@ -749,7 +749,7 @@ const AppContent: React.FC = () => {
                 </>
               }
             />
-            <button className="missing-banner-dismiss" onClick={() => setShowMissingBanner(false)} title="Dismiss">
+            <button className="missing-banner-dismiss" onClick={() => setShowMissingBanner(false)} title="Dismiss" aria-label="Dismiss">
               <i className="fas fa-times" />
             </button>
           </div>

@@ -221,7 +221,7 @@ const DownloadManagerWindow: React.FC<DownloadManagerWindowProps> = ({ isOpen, o
                   <span className="download-progress-text">{progress.overallProgress}%</span>
                 </div>
               </div>
-              <div className="progress-stats">
+              <div className="progress-stats" role="status" aria-live="polite">
                 <span>Total: {progress.totalSongs}</span>
                 <span>Done: {progress.completedSongs}</span>
                 {progress.failedSongs > 0 && <span className="stat-failed">Failed: {progress.failedSongs}</span>}

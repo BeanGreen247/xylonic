@@ -32,7 +32,7 @@ const KeyboardHelp: React.FC<KeyboardHelpProps> = ({ isOpen, onClose }) => {
             <i className="fas fa-keyboard"></i>
             Keyboard Shortcuts
           </h2>
-          <button className="close-button" onClick={onClose}>
+          <button className="close-button" onClick={onClose} aria-label="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>

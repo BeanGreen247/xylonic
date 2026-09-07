@@ -53,7 +53,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ song }) => {
             className="download-button"
             onClick={handleDownload}
             disabled={downloading}
-            title="Download song"
+            title="Download song" aria-label="Download song"
         >
             {downloading ? (
                 <span>{Math.round(progress)}%</span>

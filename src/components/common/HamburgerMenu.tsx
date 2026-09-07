@@ -339,7 +339,7 @@ const HamburgerMenu: React.FC = () => {
         onClick={handleRebuildCache}
         className="menu-item"
         disabled={isRebuildingCache}
-        title="Re-fetch library index from server without deleting downloaded files"
+        title="Re-fetch library index from server without deleting downloaded files" aria-label="Re-fetch library index from server without deleting downloaded files"
       >
         <i className={`fas fa-${isRebuildingCache ? 'spinner fa-spin' : 'sync-alt'}`}></i>
         <span>{isRebuildingCache ? 'Rebuilding...' : 'Rebuild Cache'}</span>
@@ -349,7 +349,7 @@ const HamburgerMenu: React.FC = () => {
         onClick={handleClearAllCaches}
         className="menu-item"
         disabled={isClearingAllCaches}
-        title="Delete all caches — rebuild happens on next launch"
+        title="Delete all caches — rebuild happens on next launch" aria-label="Delete all caches — rebuild happens on next launch"
       >
         <i className={`fas fa-${isClearingAllCaches ? 'spinner fa-spin' : 'trash-alt'}`}></i>
         <span>{isClearingAllCaches ? 'Clearing...' : 'Clear All Caches'}</span>

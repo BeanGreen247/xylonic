@@ -122,21 +122,21 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ searchTerm = '' }) => {
             <button
               className="panel-action-btn"
               onClick={() => handleAddToQueue(entry)}
-              title="Add to queue"
+              title="Add to queue" aria-label="Add to queue"
             >
               <i className="fas fa-list-ul"></i>
             </button>
             <button
               className="panel-action-btn primary"
               onClick={e => openAddMenu(e, entry)}
-              title="Add to playlist"
+              title="Add to playlist" aria-label="Add to playlist"
             >
               <i className="fas fa-plus"></i>
             </button>
             <button
               className="panel-action-btn primary"
               onClick={() => handlePlay(entry)}
-              title="Play"
+              title="Play" aria-label="Play"
             >
               <i className="fas fa-play"></i>
             </button>

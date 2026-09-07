@@ -476,7 +476,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
             className="album-play-circle"
             onClick={handlePlayAll}
             disabled={filteredSongs.length === 0}
-            title="Play album"
+            title="Play album" aria-label="Play album"
           >
             <i className="fas fa-play" />
           </button>
@@ -484,7 +484,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
             className="album-action-icon"
             onClick={handleShuffleAlbum}
             disabled={filteredSongs.length === 0}
-            title="Shuffle"
+            title="Shuffle" aria-label="Shuffle"
           >
             <i className="fas fa-random" />
           </button>
@@ -493,7 +493,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
               className="album-action-icon album-action-icon--active"
               onClick={handleDownloadAlbum}
               disabled={songs.length === 0}
-              title="Cached — click to remove"
+              title="Cached — click to remove" aria-label="Cached — click to remove"
             >
               <i className="fas fa-check-circle" />
             </button>

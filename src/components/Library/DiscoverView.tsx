@@ -224,7 +224,7 @@ const DiscoverView: React.FC<DiscoverViewProps> = ({ onAlbumClick, onArtistClick
                     className="discover-play-btn"
                     onClick={handlePlayRandomMix}
                     disabled={playingRandom}
-                    title="Play all Random Mix albums"
+                    title="Play all Random Mix albums" aria-label="Play all Random Mix albums"
                   >
                     {playingRandom
                       ? <><i className="fas fa-spinner fa-spin" /> Loading…</>

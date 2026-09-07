@@ -31,7 +31,7 @@ const SpeedSelector: React.FC = () => {
       <button
         className="speed-selector-btn"
         onClick={() => setOpen(true)}
-        title="Playback speed"
+        title="Playback speed" aria-label="Playback speed"
         aria-haspopup="listbox"
         aria-expanded={open}
       >

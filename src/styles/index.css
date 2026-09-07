@@ -114,6 +114,32 @@ input, textarea, [contenteditable="true"] {
     -webkit-user-select: text;
 }
 
+/* Track / album / artist names are content, not chrome — let them be copied
+   even though the app default is user-select: none (WS-UX a11y). */
+.song-title,
+.panel-song-title,
+.panel-song-sub,
+.mini-player-title,
+.mini-player-artist,
+.album-hero-title,
+.np-title,
+.artist-name {
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+/* ── Accessibility: one keyboard-focus ring for the whole app (WS-UX) ─────────
+   Only shows for keyboard/programmatic focus (:focus-visible), never on mouse
+   click. `!important` so the many scattered `:focus { outline: none }` component
+   rules can't suppress the keyboard indicator. */
+:focus-visible {
+    outline: 2px solid var(--primary-color) !important;
+    outline-offset: 2px !important;
+}
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
 html {
     width: 100%;
     overflow-x: hidden;

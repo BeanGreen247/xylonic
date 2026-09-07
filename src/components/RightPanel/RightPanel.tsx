@@ -75,7 +75,7 @@ const RightPanel: React.FC = () => {
           >
             <i className="fas fa-search"></i>
           </button>
-          <button className="right-panel-close" onClick={closePanel} title="Close (Esc)">
+          <button className="right-panel-close" onClick={closePanel} title="Close (Esc)" aria-label="Close (Esc)">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -92,7 +92,7 @@ const RightPanel: React.FC = () => {
               onKeyDown={e => { if (e.key === 'Escape') { setSearchOpen(false); setSearchTerm(''); } }}
             />
             {searchTerm && (
-              <button className="right-panel-search-clear" onClick={() => setSearchTerm('')} title="Clear">
+              <button className="right-panel-search-clear" onClick={() => setSearchTerm('')} title="Clear" aria-label="Clear">
                 <i className="fas fa-times"></i>
               </button>
             )}

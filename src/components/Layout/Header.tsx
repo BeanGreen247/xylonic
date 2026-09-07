@@ -87,7 +87,7 @@ const Header: React.FC = () => {
           <button
             className="notification-close"
             onClick={() => setShowMiniPlayerNotification(false)}
-            title="Dismiss"
+            title="Dismiss" aria-label="Dismiss"
           >
             <i className="fas fa-times"></i>
           </button>
@@ -99,11 +99,11 @@ const Header: React.FC = () => {
           <XylonicLogo size={28} />
           Xylonic
         </h1>
-        <button className="github-link" onClick={handleGitHubClick} title="View on GitHub">
+        <button className="github-link" onClick={handleGitHubClick} title="View on GitHub" aria-label="View on GitHub">
           <i className="fab fa-github"></i>
         </button>
         {!isAppStoreBuild && (
-          <button className="support-link" onClick={handleSupportClick} title="Support the Project">
+          <button className="support-link" onClick={handleSupportClick} title="Support the Project" aria-label="Support the Project">
             <i className="fas fa-heart"></i>
           </button>
         )}

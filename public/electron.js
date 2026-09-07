@@ -10,6 +10,8 @@ const isDev = require('electron-is-dev');
 const { registerRemoteIpc } = require('./ipc/remote');
 const { registerLoggingIpc } = require('./ipc/logging');
 const { registerSettingsIpc } = require('./ipc/settings');
+const { registerCredentialsIpc } = require('./ipc/credentials');
+const { registerSystemIpc } = require('./ipc/system');
 
 let mpris = null;
 if (process.platform === 'linux') {
@@ -574,38 +576,8 @@ ipcMain.handle('get-download-dir', async () => {
 });
 
 
-// Secure credential storage handlers (safeStorage)
-ipcMain.handle('safe-storage-available', () => {
-  return safeStorage.isEncryptionAvailable();
-});
-
-ipcMain.handle('safe-storage-encrypt', (event, plaintext) => {
-  try {
-    if (!safeStorage.isEncryptionAvailable()) {
-      console.warn('Encryption not available - storing credentials in memory only');
-      return null;
-    }
-    const buffer = safeStorage.encryptString(plaintext);
-    return buffer.toString('base64');
-  } catch (error) {
-    console.error('Failed to encrypt credential:', error);
-    return null;
-  }
-});
-
-ipcMain.handle('safe-storage-decrypt', (event, encrypted) => {
-  try {
-    if (!safeStorage.isEncryptionAvailable()) {
-      console.warn('Encryption not available - cannot decrypt');
-      return null;
-    }
-    const buffer = Buffer.from(encrypted, 'base64');
-    return safeStorage.decryptString(buffer);
-  } catch (error) {
-    console.error('Failed to decrypt credential:', error);
-    return null;
-  }
-});
+// Secure credential storage (extracted to ./ipc/credentials.js)
+registerCredentialsIpc({ ipcMain, safeStorage });
 
 // Mini player handlers
 ipcMain.handle('toggle-mini-player', () => {
@@ -1420,137 +1392,9 @@ ipcMain.handle('save-art-to-temp', (event, { buffer, mimeType }) => {
     }
 });
 
-// ── Power Saver: lower/restore scheduling priority of every app process ────────
-// On Unix, a process can increase its own nice value (lower priority) freely,
-// but restoring a lower nice value requires the process to have been the one
-// that raised it, or to have CAP_SYS_NICE. We set main + renderer PIDs and
-// swallow errors gracefully — on Windows this is fully reversible.
-// Helper: collect all app process PIDs (main + renderers + GPU etc.)
-function _allAppPids() {
-    const pids = new Set([process.pid]);
-    try { app.getAppMetrics().forEach(m => { if (m.pid) pids.add(m.pid); }); } catch {}
-    return [...pids];
-}
+// Priority / affinity / system stats (extracted to ./ipc/system.js)
+registerSystemIpc({ ipcMain, app, execFile });
 
-ipcMain.handle('set-power-saver-priority', () => {
-    const pids = _allAppPids();
-    const totalCores   = os.cpus().length;
-    const allowedCores = Math.max(1, Math.floor(totalCores / 2));
-
-    // Lower scheduling priority
-    const target = os.constants.priority.PRIORITY_BELOW_NORMAL;
-    pids.forEach(pid => { try { os.setPriority(pid, target); } catch {} });
-
-    // Limit CPU affinity to the first half of logical cores
-    if (process.platform === 'linux') {
-        // taskset is part of util-linux, available on virtually all Linux distros
-        pids.forEach(pid => {
-            execFile('taskset', ['-cp', `0-${allowedCores - 1}`, String(pid)], () => {});
-        });
-    } else if (process.platform === 'win32') {
-        // Affinity mask: bit N = core N allowed; use Math.pow to handle >30 cores
-        const mask = Math.round(Math.pow(2, allowedCores)) - 1;
-        pids.forEach(pid => {
-            execFile('powershell', [
-                '-Command',
-                `try { (Get-Process -Id ${pid}).ProcessorAffinity = ${mask} } catch {}`,
-            ], () => {});
-        });
-    }
-    // macOS: no user-space affinity API; priority reduction above is the best we can do
-});
-
-// Normal mode: all cores + normal priority (let OS schedule naturally)
-ipcMain.handle('restore-process-priority', () => {
-    const pids = _allAppPids();
-    const totalCores = os.cpus().length;
-
-    const normal = os.constants.priority.PRIORITY_NORMAL;
-    pids.forEach(pid => { try { os.setPriority(pid, normal); } catch {} });
-
-    if (process.platform === 'linux') {
-        pids.forEach(pid => {
-            execFile('taskset', ['-cp', `0-${totalCores - 1}`, String(pid)], () => {});
-        });
-    } else if (process.platform === 'win32') {
-        const fullMask = Math.round(Math.pow(2, totalCores)) - 1;
-        pids.forEach(pid => {
-            execFile('powershell', [
-                '-Command',
-                `try { (Get-Process -Id ${pid}).ProcessorAffinity = ${fullMask} } catch {}`,
-            ], () => {});
-        });
-    }
-});
-
-// Performance mode: all cores + normal priority
-ipcMain.handle('set-performance-priority', () => {
-    const pids = _allAppPids();
-    const totalCores = os.cpus().length;
-
-    const normal = os.constants.priority.PRIORITY_NORMAL;
-    pids.forEach(pid => { try { os.setPriority(pid, normal); } catch {} });
-
-    if (process.platform === 'linux') {
-        pids.forEach(pid => {
-            execFile('taskset', ['-cp', `0-${totalCores - 1}`, String(pid)], () => {});
-        });
-    } else if (process.platform === 'win32') {
-        const fullMask = Math.round(Math.pow(2, totalCores)) - 1;
-        pids.forEach(pid => {
-            execFile('powershell', [
-                '-Command',
-                `try { (Get-Process -Id ${pid}).ProcessorAffinity = ${fullMask} } catch {}`,
-            ], () => {});
-        });
-    }
-});
-
-// Short display labels for Electron process types.
-const _PROC_LABEL = {
-    'Browser':  'MAIN',
-    'Tab':      'RNDR',
-    'Renderer': 'RNDR',
-    'GPU':      'GPU',
-    'Utility':  'UTIL',
-    'Crashpad': 'CRSH',
-};
-
-ipcMain.handle('get-system-stats', () => {
-    try {
-        const metrics = app.getAppMetrics();
-
-        // Total app CPU: sum all Electron sub-processes (percentCPUUsage can
-        // exceed 100 on multi-core machines — cap the displayed sum at 100).
-        const totalCpu = metrics.reduce((sum, m) => sum + (m.cpu?.percentCPUUsage ?? 0), 0);
-
-        // Per-process-type CPU breakdown — app-specific, not system-wide.
-        // Multiple processes of the same type (e.g. two RNDR windows) are merged.
-        const byType = {};
-        for (const m of metrics) {
-            const label = _PROC_LABEL[m.type] ?? m.type.slice(0, 4).toUpperCase();
-            byType[label] = (byType[label] ?? 0) + (m.cpu?.percentCPUUsage ?? 0);
-        }
-        const processBreakdown = Object.entries(byType)
-            .map(([label, pct]) => ({ label, pct: Math.round(pct) }))
-            .filter(e => e.pct > 0)
-            .sort((a, b) => b.pct - a.pct);
-
-        // Sum working-set KB across every Electron process (renderer + GPU + etc.)
-        const appMemKb = metrics.reduce((sum, m) => sum + (m.memory?.workingSetSize ?? 0), 0);
-
-        return {
-            cpuPercent:      Math.min(100, Math.round(totalCpu)),
-            cores:           os.cpus().length,
-            appMemBytes:     appMemKb * 1024,
-            totalRamBytes:   os.totalmem(),
-            freeRamBytes:    os.freemem(),
-            processBreakdown,
-        };
-    } catch {
-        return null;
-    }
-});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

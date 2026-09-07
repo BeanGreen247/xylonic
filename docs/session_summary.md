@@ -9,15 +9,23 @@
 normalise the native log shapes and share one pure planner; `savePendingBatch`
 uses `mergePendingBatch`. 121 tests green, build + lint clean.
 Commit: `refactor(downloads): extract orphan-reconciliation planner; +11 tests`.
-**`electron.js` split — committed through `84eab73`:** `chore(vite)` .mts rename
-(`cbab461`), `public/ipc/remote.js` (`4a995ba`), `public/ipc/logging.js`
-(`84eab73`). **UNCOMMITTED — slice 4:** `public/ipc/settings.js` (settings.cfg +
-per-user color-config, 6 IPC handlers; path helpers injected from electron.js).
-`electron.js` 2232 → **1565**. Verified with a standalone plain-node functional
-test (all 6 handlers round-trip). Commit:
-`refactor(electron): extract settings + color-config IPC to public/ipc/settings.js`.
-Still worth an `electron:serve` smoke-test for the logging + settings slices
-(logging moves the `console.*` override).
+**`electron.js` split — committed through `46416d5`:** .mts rename (`cbab461`),
+`remote.js` (`4a995ba`), `logging.js` (`84eab73`), `settings.js` (`46416d5`).
+**UNCOMMITTED — slices 5–6:** `public/ipc/credentials.js` (safe-storage, 3
+handlers) + `public/ipc/system.js` (priority/affinity + `get-system-stats`, 4
+handlers). `electron.js` 2232 → **1409**. Verified: `npm run electron:serve`
+main process starts with no exception; each module has a standalone plain-node
+functional check. **Git: user authorized Claude to commit/push directly now
+(memory `feedback_git_authorization`) — single-line messages, no attribution.**
+
+Remaining `electron.js` domains: player/mini-window (`toggle-mini-player` /
+`is-mini-player` / `request-player-state` / `player-state-update` /
+`player-control` — couples to `mainWindow`/`miniPlayerWindow`/`lastPlayerState` +
+MPRIS art), download-notification (`set-download-active` / `set-download-progress`
+/ `clear-download-progress` — tray), misc (`get-os-platform`,
+`detect-linux-firewall`, `save-song`, `get-download-dir`), then the big
+**cache-filesystem** block (~30 handlers). After that: download-manager transport
+slice, then `PlayerContext` hooks.
 
 Next `electron.js` domains (same pattern): settings/color-config, credentials
 (safe-storage), player/mini-window, system-stats/priority, then the big

@@ -12,7 +12,7 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
-- **`electron.js` split (WS-ARCH, slices 1–3)** — three cohesive subsystems moved
+- **`electron.js` split (WS-ARCH, slices 1–5)** — five cohesive subsystems moved
   out of the 2232-line main file into `public/ipc/*`:
   - `public/ipc/remote.js` (~400 lines) — Remote Mode: LAN discovery (UDP 7766),
     HTTP command server (7767), 8 `remote-*` IPC handlers. Injected
@@ -24,15 +24,18 @@ All notable changes to Xylonic are documented here.
     from `app.whenReady()`.
   - `public/ipc/settings.js` — `settings.cfg` + per-user color-config file
     handling (`ensureSettingsFile` / `ensureSettingsDir` / `ensureColorConfig`)
-    and its 6 IPC handlers (`get-settings-path` / `read-settings` /
-    `write-settings` / `get-color-config-path` / `read-color-config` /
-    `write-color-config`). Path helpers stay in `electron.js` (shared with the
+    and its 6 IPC handlers. Path helpers stay in `electron.js` (shared with the
     cache-location code) and are injected.
-  `public/electron.js` **2232 → 1565 lines**. `electron-builder.json` `files`
-  now includes `public/ipc/**/*.js`. Test path: `npm run electron:serve`, scan
-  output for a main-process exception (that's how a missed `lastPlayerState` free
-  var in slice 1 was caught). `settings.js` also has a standalone functional
-  check (all 6 handlers round-trip in plain node).
+  - `public/ipc/credentials.js` — `safe-storage-available` / `-encrypt` /
+    `-decrypt` (Electron `safeStorage`).
+  - `public/ipc/system.js` — per-process priority / CPU-affinity
+    (`set-power-saver-priority` / `restore-process-priority` /
+    `set-performance-priority`) + `get-system-stats` (app CPU/RAM via
+    `app.getAppMetrics()`).
+  `public/electron.js` **2232 → 1409 lines**. `electron-builder.json` `files`
+  now includes `public/ipc/**/*.js`. Verified: `npm run electron:serve` starts
+  the main process with no exception; each module also has a standalone
+  plain-node functional check.
 - **`vite.config.ts` → `vite.config.mts`** — native ESM config load; silences the
   Vite `configLoader: 'native'` / "ESM syntax in a file loaded as CommonJS"
   warning. `__dirname` → `import.meta.dirname` (Node 22).

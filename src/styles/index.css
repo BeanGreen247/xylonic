@@ -184,6 +184,24 @@ html {
     -webkit-text-size-adjust: 100%;
 }
 
+/* Tabular figures for anything that shows a running number — stops digit jitter
+   as times tick and counts change (WS-UX / docs/design/0002 UI-04). */
+.progress-time,
+.progress-time span,
+.song-duration,
+.song-track-num,
+.song-track-number,
+.panel-song-time,
+.progress-stats,
+.library-stats,
+.active-download-pct,
+.download-progress-text,
+.stat-value,
+.mini-player-time {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
 /* iOS: prevent pinch-zoom at the CSS compositor level */
 body.ios-platform,
 body.ios-platform * {

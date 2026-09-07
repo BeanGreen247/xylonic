@@ -437,8 +437,12 @@ kept optimisation has a before/after number in the ledger.
 - [x] Design-craft research pass (2026-09-07) — `docs/design/0001-responsive-
       layouts.md`: Navidrome demo inspected live at 3 widths + YouTube Music /
       Spotify / Apple Music structural traits; locked direction + decision ledger.
-- [ ] Motion pass — `prefers-reduced-motion` honoured everywhere; one deliberate
-      now-playing transition rather than scattered effects.
+- [~] Motion pass (2026-09-07) — global `@media (prefers-reduced-motion: reduce)`
+      block in `index.css` cuts every animation/transition to 0.01 ms app-wide
+      (state still lands, just no travel); component blocks like `Skeleton`
+      refine on top. Verified with Playwright `reduced_motion="reduce"`.
+      **Remaining:** the "one deliberate now-playing transition rather than
+      scattered effects" is design task UI-13 in `docs/design/0002`.
 - [ ] Contrast check both themes against WCAG AA; ship a high-contrast variant
       for the cheap-DAP hardware.
 - [ ] **Surface modernization** — `docs/design/0002-ui-modernization.md`: 14

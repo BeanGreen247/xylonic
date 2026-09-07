@@ -12,6 +12,13 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **Skeleton loaders for library lists/grids (WS-UX)** — new
+  `src/components/common/Skeleton.tsx` (`grid` and `list` variants) replaces the
+  centred spinner + "Loading …" text in `ArtistList`, `AlbumList`,
+  `AllAlbumsGrid`, `SongList`, `AllSongsGrid`, and `LikedSongsView`. The shimmer
+  is transform-based (reuses the existing `album-art-shimmer` keyframes) and
+  freezes under `prefers-reduced-motion` and the app's `performance-mode`; the
+  wrapper is a `role="status"` region so the load is still announced.
 - **Shared list/grid state styling (WS-UX token discipline)** — the error, empty,
   and inline-error blocks in `ArtistList` / `AlbumList` / `SongList` /
   `AllAlbumsGrid` / `AllSongsGrid` / `LikedSongsView` each carried the same

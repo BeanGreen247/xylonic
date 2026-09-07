@@ -357,9 +357,15 @@ kept optimisation has a before/after number in the ledger.
       close buttons) named; `user-select: text` exception added for track /
       album / artist name classes; `role="status" aria-live="polite"` on the
       download-manager progress-stats and the queue-count label.
-- [ ] **Empty / loading / error states** — skeletons for lists, an explicit
-      offline "here's what's available" state, retry buttons where WS-QUAL
-      removed silent catches.
+- [~] **Empty / loading / error states** (2026-09-07) — shared
+      `components/common/Skeleton.tsx` (`grid` / `list` variants, shimmer reuses
+      the compositor-only `album-art-shimmer`, frozen under
+      `prefers-reduced-motion` + `body.performance-mode`, `role="status"`
+      wrapper) replaces the `.loading` spinner in `ArtistList` / `AlbumList` /
+      `AllAlbumsGrid` (grid) and `SongList` / `AllSongsGrid` / `LikedSongsView`
+      (list). Error states already have retry / switch-to-online buttons.
+      **Remaining:** an explicit offline "here's what's available" landing state;
+      skeletons for the right-hand panel tabs + Discover.
 
 ### Should
 - [ ] Persistent right-hand **queue panel** on expanded layout with drag-reorder

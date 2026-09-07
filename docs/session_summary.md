@@ -25,11 +25,15 @@ WS-TV last). 127 tests green, `npm run lint` 0 errors, `npm run build` clean.
   classes; `MainApp` toggle wrapper → `.library-view-toggle-row`. Inline
   `style={{}}` 115 → 79 (rest is dynamic).
 
+- **Skeleton loaders** (HEAD `8b20f73`): `components/common/Skeleton.tsx`
+  (`grid`/`list`, reduced-motion + performance-mode aware, `role=status`)
+  replaces the `.loading` spinner in the 6 Library list/grid views.
+
 **WS-UX remaining:** 3 container-query layouts via `LayoutModeContext` (**big —
 needs the design-craft research pass first**); eslint rule vs new static inline
-styles; empty/loading/error *states* proper (skeletons, offline "what's
-available", retry affordances); component-by-component light-mode hardcoded-
-colour audit.
+styles; explicit offline "here's what's available" state + skeletons for
+RightPanel tabs / Discover; component-by-component light-mode hardcoded-colour
+audit.
 
 ---
 

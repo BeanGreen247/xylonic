@@ -20,7 +20,10 @@ deferred.
   index; old path is a redirect stub; README/CLAUDE pointers updated (`a7c8bc8`).
 - `SettingsView` 974 → 745 — `AboutSection` (`b0b96dd`) + `AdvancedSection`
   (`af4769d`) → `components/common/settings/`.
-- `PlayerContext` 1218 → 1198 — sleep timer → `context/useSleepTimer.ts` (`89f2841`).
+- `PlayerContext` **1555 → 1026** — sleep timer → `useSleepTimer.ts` (`89f2841`);
+  bitrate + playback speed → `usePlaybackPrefs.ts` (`e76541e`); neighbor-song
+  derivation + 4 look-ahead preload effects → `useNeighborSongs.ts` (`df475f1`).
+  All lift-and-shift.
 
 **WS-ARCH blocked (needs devices / WS-TEST, which is now last):**
 - `PlayerContext` → `usePlaybackEngine` + `useQueue`: queue↔audio-engine core is

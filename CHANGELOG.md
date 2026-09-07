@@ -14,6 +14,14 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **`PlayerContext` further decomposed (WS-ARCH)** — 1555 → **1026 lines**. Three
+  more self-contained slices moved to dedicated hooks: `context/useSleepTimer.ts`
+  (countdown + `setSleepTimer`), `context/usePlaybackPrefs.ts` (per-user bitrate
+  + playback speed, load/apply/persist), `context/useNeighborSongs.ts`
+  (`nextSong` / `prevSong` derivation + the four look-ahead preload effects —
+  audio buffer, 15 s-before-end safety net, cover-art prefetch, native-
+  notification artwork). All lift-and-shift — no behaviour change; the
+  `usePlaybackEngine` / `useQueue` core split stays gated on test coverage.
 - **`ARCHITECTURE.md` split (WS-ARCH / WS-DOCS)** — the 2614-line monolith is now
   14 per-subsystem docs under `docs/architecture/` (`01-overview` …
   `14-android-native`) with a rewritten index table. The root `ARCHITECTURE.md`

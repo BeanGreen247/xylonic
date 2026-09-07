@@ -215,22 +215,24 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
 **Now 7.5.** Good bridge spine; god-objects, no router, manual view state machine.
 
 ### Must (each preceded by its WS-TEST coverage)
-- [~] **Split `PlayerContext`** (1218 lines, down from 1555) — extracted so far:
+- [~] **Split `PlayerContext`** (**1026** lines, down from 1555) — extracted:
       `playerQueue.ts` (shuffle/next-index math), `playerPersistence.ts`,
       `utils/dataUrl.ts`, `useMediaSession.ts` (8 OS-media effects),
-      `useSleepTimer.ts` (2026-09-07). **Blocked:** the `usePlaybackEngine` /
-      `useQueue` core split — the two are mutually entangled through
-      `playNext`/`playSong`/`playPrevious` + the ref web, this file owns the
-      repo's worst race/dup-event bug history, and WS-TEST (now scheduled last)
-      hasn't pinned it. Needs test coverage or a paired on-device session
-      (gapless / MPRIS / media-notification not verifiable from a Linux build).
-      Remaining safe peripheral cuts: `bitrate`, `playbackSpeed`, neighbor-song
-      preload.
-- [ ] **Split `downloadManagerService` (2064 lines)** — `downloadReconciler.ts`
-      + `downloadManagerHelpers.ts` already extracted. **Blocked** on the same
-      basis: `downloadQueue` (model + dedup) is safe-ish, but `downloadTransport`
-      (native Android/iOS/Electron/web pools) and the batch-hijack path are a
-      landmine that needs device verification.
+      `useSleepTimer.ts`, `usePlaybackPrefs.ts` (bitrate + playback-speed),
+      `useNeighborSongs.ts` (nextSong/prevSong + 4 look-ahead preload effects)
+      (2026-09-07). **Blocked:** the `usePlaybackEngine` / `useQueue` core split —
+      the two are mutually entangled through `playNext`/`playSong`/`playPrevious`
+      + the ref web, this file owns the repo's worst race/dup-event bug history,
+      and WS-TEST (now scheduled last) hasn't pinned it. Needs test coverage or a
+      paired on-device session (gapless / MPRIS / media-notification not
+      verifiable from a Linux build).
+- [ ] **Split `downloadManagerService` (2012 lines)** — pure helpers already
+      out (`downloadReconciler.ts`, `downloadManagerHelpers.ts`). **Blocked:** on
+      inspection the `queue` model can't be lifted without threading `this.queue`
+      through ~40 mutation sites inside the class — that's a restructure, not a
+      pure extraction, on a file `CLAUDE.md` flags as a landmine (batch hijack,
+      orphan reconciliation). Needs device verification of the native download
+      flows, same as `downloadTransport`.
 - [x] **Split `electron.js`** (2026-09-07) — 2232 → **533 lines of wiring**.
       `public/ipc/*.js`: `remote.js`, `logging.js`, `settings.js`, `credentials.js`,
       `system.js`, `misc.js`, `downloadNotification.js`, `cache.js` (~31 handlers),

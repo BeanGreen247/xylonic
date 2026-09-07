@@ -26,6 +26,13 @@ import {
   filterUnqueuedSongs,
   computeProgress,
 } from './downloadManagerHelpers';
+import {
+  planOrphanReconciliation,
+  mergePendingBatch,
+  parsePendingBatch,
+  pendingBatchFromQueueArray,
+  type CompletionEntry,
+} from './downloadReconciler';
 
 // Cryptographically-random hex salt for Subsonic auth params (16 bytes).
 const randomSalt = (): string => {
@@ -510,18 +517,9 @@ class DownloadManagerService {
    */
   private savePendingBatch(items: DownloadQueueItem[]): void {
     try {
-      const existing: Record<string, unknown> = JSON.parse(
-        localStorage.getItem(DownloadManagerService.BATCH_PENDING_KEY) || '{}'
-      );
-      items.forEach(item => {
-        existing[item.song.id] = {
-          song:            item.song,
-          quality:         item.quality,
-          artistId:        item.artistId,
-          artistCoverArtId: item.artistCoverArtId,
-        };
-      });
-      localStorage.setItem(DownloadManagerService.BATCH_PENDING_KEY, JSON.stringify(existing));
+      const key = DownloadManagerService.BATCH_PENDING_KEY;
+      const merged = mergePendingBatch(parsePendingBatch(localStorage.getItem(key)), items);
+      localStorage.setItem(key, JSON.stringify(merged));
     } catch { /* storage full / unavailable */ }
   }
 
@@ -1873,39 +1871,31 @@ class DownloadManagerService {
   private async reconcileIOSOrphans(): Promise<void> {
     if (!BackgroundDownload) return;
 
-    let entries: Array<{ songId: string; audioHash: string; extension: string; fileSize: number }>;
+    let raw: Array<{ songId: string; audioHash: string; extension: string; fileSize: number }>;
     try {
       const result = await BackgroundDownload.readCompletionLog();
-      entries = result.entries ?? [];
+      raw = result.entries ?? [];
     } catch {
       return;
     }
-    if (entries.length === 0) return;
+    if (raw.length === 0) return;
 
-    let pending: Record<string, {
-      song: DownloadableSong;
-      quality: DownloadQuality;
-      artistId?: string;
-      artistCoverArtId?: string;
-    }> = {};
-    try {
-      pending = JSON.parse(localStorage.getItem(DownloadManagerService.QUEUE_KEY) || '[]')
-        .reduce((acc: any, item: any) => { acc[item.song?.id] = item; return acc; }, {});
-    } catch {}
+    const entries: CompletionEntry[] = raw.map(e => ({
+      songId: e.songId, hash: e.audioHash, extension: e.extension, fileSize: e.fileSize,
+    }));
+    const pending = pendingBatchFromQueueArray(localStorage.getItem(DownloadManagerService.QUEUE_KEY));
+    const plan = planOrphanReconciliation(entries, pending, id => offlineCacheService.isCached(id));
 
     let recovered = 0;
-    for (const entry of entries) {
-      if (offlineCacheService.isCached(entry.songId)) continue;
-      const item = pending[entry.songId];
-      if (!item) continue;
+    for (const reg of plan) {
       try {
         await offlineCacheService.registerNativeDownload(
-          item.song, item.quality, entry.audioHash, entry.extension, entry.fileSize,
-          item.artistId, item.artistCoverArtId
+          reg.song, reg.quality, reg.hash, reg.extension, reg.fileSize,
+          reg.artistId, reg.artistCoverArtId
         );
         recovered++;
       } catch (e) {
-        logger.warn('[DownloadManager] reconcileIOSOrphans: failed to register', entry.songId, e);
+        logger.warn('[DownloadManager] reconcileIOSOrphans: failed to register', reg.song.id, e);
       }
     }
 
@@ -1929,38 +1919,31 @@ class DownloadManagerService {
     await this.reconcileIOSOrphans();
     if (!NativeDownloader) return;
 
-    let entries: Array<{ hash: string; songId: string; extension: string; bytesReceived: number }>;
+    let raw: Array<{ hash: string; songId: string; extension: string; bytesReceived: number }>;
     try {
       const result = await NativeDownloader.readCompletionLog();
-      entries = result.entries ?? [];
+      raw = result.entries ?? [];
     } catch {
       return; // method not available in older APK — skip silently
     }
-    if (entries.length === 0) return;
+    if (raw.length === 0) return;
 
-    let pending: Record<string, {
-      song: DownloadableSong;
-      quality: DownloadQuality;
-      artistId?: string;
-      artistCoverArtId?: string;
-    }> = {};
-    try {
-      pending = JSON.parse(localStorage.getItem(DownloadManagerService.BATCH_PENDING_KEY) || '{}');
-    } catch {}
+    const entries: CompletionEntry[] = raw.map(e => ({
+      songId: e.songId, hash: e.hash, extension: e.extension, fileSize: e.bytesReceived,
+    }));
+    const pending = parsePendingBatch(localStorage.getItem(DownloadManagerService.BATCH_PENDING_KEY));
+    const plan = planOrphanReconciliation(entries, pending, id => offlineCacheService.isCached(id));
 
     let recovered = 0;
-    for (const entry of entries) {
-      if (offlineCacheService.isCached(entry.songId)) continue;
-      const item = pending[entry.songId];
-      if (!item) continue;
+    for (const reg of plan) {
       try {
         await offlineCacheService.registerNativeDownload(
-          item.song, item.quality, entry.hash, entry.extension, entry.bytesReceived,
-          item.artistId, item.artistCoverArtId
+          reg.song, reg.quality, reg.hash, reg.extension, reg.fileSize,
+          reg.artistId, reg.artistCoverArtId
         );
         recovered++;
       } catch (e) {
-        logger.warn('[DownloadManager] reconcileOrphans: failed to register', entry.songId, e);
+        logger.warn('[DownloadManager] reconcileOrphans: failed to register', reg.song.id, e);
       }
     }
 

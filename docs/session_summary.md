@@ -2,14 +2,15 @@
 
 ## Current Focus (September 6, 2026 — WS-ARCH / WS-PERF in progress)
 
-**RESUME HERE:** `downloadManagerService` split **slice 1** done —
-`src/services/downloadManagerHelpers.ts` (pure `qualityToBitrate` / `formatSpeed`
-/ `sanitizeFilename` / `computeSpeedBps` / `filterUnqueuedSongs` / `computeProgress`,
-10 tests) + service wired to them, behaviour-preserving, 110 tests green. Commit:
-`refactor(downloads): extract pure helpers from downloadManagerService; +10 tests`.
-Next: continue splitting the stateful class → `downloadQueue` / `downloadTransport`
-/ `downloadReconciler` (the reconciler unblocks the idempotent-`songDownloaded`/
-`songFailed` + orphan-recovery tests). Then `PlayerContext` hooks
+**RESUME HERE:** `downloadManagerService` split **slices 1–2** done + committed
+(`53d4650` = helpers). Slice 2 (uncommitted): `src/services/downloadReconciler.ts`
+(`planOrphanReconciliation` / `mergePendingBatch` / `parsePendingBatch` /
+`pendingBatchFromQueueArray`, 11 tests) — both `reconcile*Orphans` paths now
+normalise the native log shapes and share one pure planner; `savePendingBatch`
+uses `mergePendingBatch`. 121 tests green, build + lint clean.
+Commit: `refactor(downloads): extract orphan-reconciliation planner; +11 tests`.
+Next: the transport slice (`processQueue`, `downloadBatchNative` x2,
+`downloadSongJS`, worker pool) — I/O-heavy, bigger job. Then `PlayerContext` hooks
 (`useMediaSession` / `usePlaybackEngine` / `useQueue`), then `electron.js` →
 `ipc/*` (user smoke-tests — no Electron on Linux), `SettingsView` split,
 `react-router` + `LayoutModeContext`. Then WS-PERF proper, WS-UX, WS-FEAT/DOCS,

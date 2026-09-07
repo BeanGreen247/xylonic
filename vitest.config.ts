@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-// Separate from vite.config.ts on purpose: the build config pulls in
+// Separate from vite.config.mts on purpose: the build config pulls in
 // @vitejs/plugin-legacy (build-only, breaks under Vitest's transform).
 export default defineConfig({
   plugins: [react()],

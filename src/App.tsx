@@ -9,6 +9,7 @@ import { ImageCacheProvider } from './context/ImageCacheContext';
 import { UIProvider } from './context/UIContext';
 import { useAuth } from './context/AuthContext';
 import { RemoteModeProvider, useRemoteMode } from './context/RemoteModeContext';
+import { LayoutModeProvider } from './context/LayoutModeContext';
 import RemoteDevicePicker from './components/common/RemoteDevicePicker';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useScrobbler } from './hooks/useScrobbler';
@@ -921,24 +922,26 @@ function App() {
   }
 
   return (
-    <AuthProvider>
-      <OfflineModeProvider>
-        <PlayerProvider>
-          <RemoteModeProvider>
-            <ThemeProvider>
-              <ImageCacheProvider>
-                <UIProvider>
-                  <SearchProvider>
-                    <AppHooksMount />
-                    <AppContent />
-                  </SearchProvider>
-                </UIProvider>
-              </ImageCacheProvider>
-            </ThemeProvider>
-          </RemoteModeProvider>
-        </PlayerProvider>
-      </OfflineModeProvider>
-    </AuthProvider>
+    <LayoutModeProvider>
+      <AuthProvider>
+        <OfflineModeProvider>
+          <PlayerProvider>
+            <RemoteModeProvider>
+              <ThemeProvider>
+                <ImageCacheProvider>
+                  <UIProvider>
+                    <SearchProvider>
+                      <AppHooksMount />
+                      <AppContent />
+                    </SearchProvider>
+                  </UIProvider>
+                </ImageCacheProvider>
+              </ThemeProvider>
+            </RemoteModeProvider>
+          </PlayerProvider>
+        </OfflineModeProvider>
+      </AuthProvider>
+    </LayoutModeProvider>
   );
 }
 

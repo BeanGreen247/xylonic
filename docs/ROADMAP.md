@@ -219,9 +219,13 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       the `topView/drillView/selectedArtist/selectedAlbum` machine in `MainApp`.
       Enables deep-linking, desktop back-stack (subsumes the custom Android
       back-stack), and scroll-position restore on reload.
-- [ ] **`LayoutModeContext`** — `'compact' | 'medium' | 'expanded' | 'tv'`,
-      derived from container size + input capability + native `uiMode`
-      (TV signal from the bridge). The one place platform/layout branching lives.
+- [x] **`LayoutModeContext`** (2026-09-07) — `src/context/LayoutModeContext.tsx`,
+      `'compact' | 'medium' | 'expanded' | 'tv'` from viewport `matchMedia`
+      (767 / 1199 breakpoints) + `(hover:none) and (pointer:coarse)`. `forceMode`
+      prop for TV / testing. `LayoutModeProvider` wraps the app tree; `useLayoutMode()`
+      hook. 6 tests. Nothing consumes it yet — WS-UX does. `tv` mode arrives with
+      the native `getUiMode()` bridge in WS-TV; container-query upgrade for the
+      medium/expanded split is a WS-UX task.
 
 ### Should
 - [ ] Provider tree (8 deep) — verify every `value` is `useMemo`'d; collapse

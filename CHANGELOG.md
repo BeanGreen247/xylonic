@@ -11,6 +11,15 @@ All notable changes to Xylonic are documented here.
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
+### Added
+- **`LayoutModeContext` (WS-ARCH)** — `src/context/LayoutModeContext.tsx`:
+  `compact | medium | expanded | tv` derived from viewport `matchMedia` (767 /
+  1199 px) + `(hover:none) and (pointer:coarse)`, with a `forceMode` prop for
+  TV / tests. `LayoutModeProvider` wraps the app; `useLayoutMode()` returns the
+  mode + `isCompact`/`isMedium`/`isExpanded`/`isTv`/`isCoarsePointer`. The single
+  seam for layout/form-factor branching — WS-UX and WS-TV consume it. 6 tests
+  (first RTL component test in the suite). Nothing reads it yet.
+
 ### Changed
 - **`PlayerContext` → `useMediaSession` hook (WS-ARCH)** — the eight OS
   media-session effects (`navigator.mediaSession` action handlers + metadata +

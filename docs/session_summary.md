@@ -20,6 +20,8 @@ electron:serve` bg, scan for main-process exceptions (memory
   player-state + MPRIS art). Each has a plain-node functional test; `electron:serve`
   clean per step.
 
+- WS-ARCH `LayoutModeContext.tsx` (compact|medium|expanded|tv; provider wired;
+  6 tests) — WS-UX/WS-TV will consume it.
 - WS-ARCH `PlayerContext` → `useMediaSession.ts` (8 media-session effects moved
   verbatim; PlayerContext.tsx 1565 → 1219).
 

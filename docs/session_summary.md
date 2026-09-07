@@ -9,8 +9,23 @@
 normalise the native log shapes and share one pure planner; `savePendingBatch`
 uses `mergePendingBatch`. 121 tests green, build + lint clean.
 Commit: `refactor(downloads): extract orphan-reconciliation planner; +11 tests`.
-Next: the transport slice (`processQueue`, `downloadBatchNative` x2,
-`downloadSongJS`, worker pool) — I/O-heavy, bigger job. Then `PlayerContext` hooks
+**`electron.js` split slices 1–2 done** (UNCOMMITTED — 3 commits pending, see
+below): `public/ipc/remote.js` (Remote Mode, ~400 lines) + `public/ipc/logging.js`
+(file logging + 5 IPC handlers + console.* overrides). `electron.js` 2232 →
+**1700**. `electron-builder.json` files += `public/ipc/**/*.js`. Slice 1 verified
+via `npm run electron:serve` (caught + fixed a missed `lastPlayerState` free var);
+slice 2 build + 121 tests green + plain-node load test, **needs a `electron:serve`
+smoke-test** (it moves the `console.*` override).
+
+**Pending commits (in order):**
+1. `chore(vite): rename config to .mts for native ESM loading` — `vite.config.mts` + `vitest.config.ts`
+2. `refactor(electron): extract remote-mode IPC + discovery to public/ipc/remote.js`
+3. `refactor(electron): extract file logging + IPC to public/ipc/logging.js` — `public/ipc/logging.js`, `public/electron.js`, `electron-builder.json`, docs
+
+Next `electron.js` domains (same pattern): settings/color-config, credentials
+(safe-storage), player/mini-window, system-stats/priority, then the big
+cache-filesystem block (~30 handlers). Then the download-manager transport slice,
+then `PlayerContext` hooks
 (`useMediaSession` / `usePlaybackEngine` / `useQueue`), then `electron.js` →
 `ipc/*` (user smoke-tests — no Electron on Linux), `SettingsView` split,
 `react-router` + `LayoutModeContext`. Then WS-PERF proper, WS-UX, WS-FEAT/DOCS,

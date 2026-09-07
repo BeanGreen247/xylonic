@@ -12,6 +12,23 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **`electron.js` split (WS-ARCH, slices 1–2)** — two cohesive subsystems moved
+  out of the 2232-line main file into `public/ipc/*`:
+  - `public/ipc/remote.js` (~400 lines) — Remote Mode: LAN discovery (UDP 7766),
+    HTTP command server (7767), 8 `remote-*` IPC handlers. Injected
+    `getMainWindow` + `getLastPlayerState`; `startRemoteDiscovery()` from
+    `app.whenReady()`.
+  - `public/ipc/logging.js` — file logging + its 5 IPC handlers
+    (`write-log` / `get-log-path` / `get-logging-enabled` / `set-logging-enabled`
+    / `open-log-folder`) + the `console.*` overrides. `_logging.initLogging()`
+    from `app.whenReady()`.
+  `public/electron.js` **2232 → 1700 lines**. `electron-builder.json` `files`
+  now includes `public/ipc/**/*.js`. Test path: `npm run electron:serve`, scan
+  output for a main-process exception (that's how a missed `lastPlayerState` free
+  var in slice 1 was caught).
+- **`vite.config.ts` → `vite.config.mts`** — native ESM config load; silences the
+  Vite `configLoader: 'native'` / "ESM syntax in a file loaded as CommonJS"
+  warning. `__dirname` → `import.meta.dirname` (Node 22).
 - **`downloadManagerService` split (WS-ARCH, slices 1–2)** — pure helpers →
   `src/services/downloadManagerHelpers.ts` (`qualityToBitrate`, `formatSpeed`,
   `sanitizeFilename` (was dead), rolling speed-window math, enqueue filter,

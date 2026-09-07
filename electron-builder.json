@@ -7,6 +7,7 @@
   "files": [
     "dist/**/*",
     "public/electron.js",
+    "public/ipc/**/*.js",
     "public/preload.js",
     "public/mpris.js",
     "public/logo.svg",

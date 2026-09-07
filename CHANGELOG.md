@@ -19,8 +19,6 @@ All notable changes to Xylonic are documented here.
   mode + `isCompact`/`isMedium`/`isExpanded`/`isTv`/`isCoarsePointer`. The single
   seam for layout/form-factor branching — WS-UX and WS-TV consume it. 6 tests
   (first RTL component test in the suite). Nothing reads it yet.
-
-### Added
 - **ADRs (`docs/decisions/`) + architecture index (WS-ARCH / WS-DOCS)** — seven
   decision records (platform bridge, offline-cache v2 hashing, download orphan
   reconciliation, single credential service, Vitest + CI gate, `electron.js` →
@@ -29,6 +27,11 @@ All notable changes to Xylonic are documented here.
   freshness table; the IPC section now carries a structure-note pointing at
   ADR 0006. Physical split of `ARCHITECTURE.md` still pending.
 
+- **Production debug-log stripping (WS-PERF)** — prod builds now minify with
+  terser and `pure_funcs: ['logger.log','logger.info','logger.debug']`, so
+  those disabled-by-default calls *and* their template-literal arguments are
+  removed from the modern bundle (609 → 597 kB raw). `error`/`warn` still
+  emit. The `plugin-legacy` chunk keeps them (separate minify path).
 ### Changed
 - **`SettingsView` split, first pass (WS-ARCH)** — three self-contained,
   props-only pieces lifted into `src/components/common/settings/`:

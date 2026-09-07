@@ -267,8 +267,15 @@ ADRs exist for every major decision.
       short page. (Subsonic `search3` returns no reliable total, so probe-then-
       batch rather than reading a total up front.) Order + `failed` + offline
       guard preserved; covered by `subsonicApi.test.ts`.
-- [ ] **Production log stripping** — Vite `define` drops `logger.debug/log`;
-      confirm no `console.*` survives (WS-QUAL).
+- [x] **Production log stripping** (2026-09-07) — prod builds minify with terser
+      and `terserOptions.compress.pure_funcs = ['logger.log','logger.info','logger.debug']`,
+      so those calls **and their argument construction** are dropped from the
+      **modern** bundle (609 → 597 kB raw). `logger.error`/`warn` are not listed
+      — they always emit. **Limitation:** the `@vitejs/plugin-legacy` chunk
+      doesn't honour `pure_funcs` (own minify path) so the debug strings survive
+      there — the legacy bundle targets Android 7 / Chrome 56 only; a `@babel/core`
+      plugin would close that gap. Needs a packaged build to smoke-test the
+      terser output (dev mode is unaffected).
 - [ ] **FontAwesome subset** — stop importing all of `@fortawesome/fontawesome-free`.
       Build a subset (~60 glyphs used) or inline SVGs. Cuts bundle + fixes the
       MECHEN H1-Pro `+` non-render (see `feedback_fa7_icon_range`).

@@ -308,9 +308,15 @@ ADRs exist for every major decision.
       there — the legacy bundle targets Android 7 / Chrome 56 only; a `@babel/core`
       plugin would close that gap. Needs a packaged build to smoke-test the
       terser output (dev mode is unaffected).
-- [ ] **FontAwesome subset** — stop importing all of `@fortawesome/fontawesome-free`.
-      Build a subset (~60 glyphs used) or inline SVGs. Cuts bundle + fixes the
-      MECHEN H1-Pro `+` non-render (see `feedback_fa7_icon_range`).
+- [~] **FontAwesome subset** (2026-09-07, first cut) — `src/index.tsx` drops
+      `all.min.css` for `fontawesome.min.css` + `solid.min.css` only; the two
+      brand glyphs (github, lastfm) are inlined as SVG in
+      `components/common/BrandGlyph`; the regular family had zero call sites.
+      `fa-brands-400.woff2` (110 kB) + `fa-regular-400.woff2` (19 kB) gone, CSS
+      254 → 232 kB. **Remaining:** subset `fa-solid-900.woff2` (ships whole,
+      115 kB, ~98 of ~1400 glyphs used) — needs a build-time subsetter + a full
+      glyph list incl. every dynamic `fa-${…}` outcome; also closes the
+      MECHEN H1-Pro non-render of high-codepoint glyphs (`feedback_fa7_icon_range`).
 - [x] **Search index compression** — `searchCacheService` already stores the IDB
       search index as a `deflate`-compressed `ArrayBuffer` (v2.0 records:
       `compress()` / `decompress()` via `CompressionStream`, compress happens

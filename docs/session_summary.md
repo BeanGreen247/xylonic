@@ -13,9 +13,26 @@ deferred.
 127 tests green, `npm run lint` 0 errors, `npm run build` clean. Version
 `26.09.07` (`npm run version:date`).
 
-**WS-ARCH remaining (safest first):** provider-tree memoization → `ARCHITECTURE.md`
-physical split → `SettingsView` section split → `react-router` → `PlayerContext`
-→ hooks → `downloadManagerService` → transport/queue split.
+**WS-ARCH done this pass:**
+- Provider-tree memoization complete — `Auth` / `UI` / `OfflineMode` / `ImageCache`
+  values now `useMemo` + `useCallback` (HEAD `5614555`).
+- `ARCHITECTURE.md` physically split → 14 `docs/architecture/NN-*.md` + rewritten
+  index; old path is a redirect stub; README/CLAUDE pointers updated (`a7c8bc8`).
+- `SettingsView` 974 → 745 — `AboutSection` (`b0b96dd`) + `AdvancedSection`
+  (`af4769d`) → `components/common/settings/`.
+- `PlayerContext` 1218 → 1198 — sleep timer → `context/useSleepTimer.ts` (`89f2841`).
+
+**WS-ARCH blocked (needs devices / WS-TEST, which is now last):**
+- `PlayerContext` → `usePlaybackEngine` + `useQueue`: queue↔audio-engine core is
+  mutually entangled, worst race/dup-event bug history in the repo, zero test
+  coverage, gapless/MPRIS only verifiable on-device. Peripheral slices
+  (`useSleepTimer` done; `bitrate`/`playbackSpeed`/neighbor-preload possible) are
+  the only safe cuts from here.
+- `downloadManagerService` → `downloadQueue` + `downloadTransport`: same landmine
+  class (orphan reconciliation, batch hijack); transport = native pools.
+- `react-router`: new runtime dep + rewrites Android hardware-back + section
+  history → on-device test required.
+These three want a paired/device session or WS-TEST coverage first.
 
 **WS-UX done & committed this pass:**
 - `100vh` → `100dvh` (index.css / App.css / MiniPlayer.css).

@@ -215,30 +215,41 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
 **Now 7.5.** Good bridge spine; god-objects, no router, manual view state machine.
 
 ### Must (each preceded by its WS-TEST coverage)
-- [ ] **Split `PlayerContext` (1555 lines)** into:
-      `usePlaybackEngine` (audio element, src swap, preload/gapless),
-      `useQueue` (queue/shuffle/repeat/persistence),
-      `useMediaSession` (OS media integration + MPRIS/MediaSession bridge calls),
-      `usePlayerPersistence` (localStorage/IDB, queue-as-IDs — see WS-PERF).
-      `PlayerProvider` composes them; public `usePlayer()` API unchanged.
-- [ ] **Split `downloadManagerService` (2064 lines)** into `downloadQueue`
-      (model + dedup), `downloadTransport` (native Android/iOS/Electron/web pools),
-      `downloadReconciler` (orphans, batch hijack, completion log).
+- [~] **Split `PlayerContext`** (1218 lines, down from 1555) — extracted so far:
+      `playerQueue.ts` (shuffle/next-index math), `playerPersistence.ts`,
+      `utils/dataUrl.ts`, `useMediaSession.ts` (8 OS-media effects),
+      `useSleepTimer.ts` (2026-09-07). **Blocked:** the `usePlaybackEngine` /
+      `useQueue` core split — the two are mutually entangled through
+      `playNext`/`playSong`/`playPrevious` + the ref web, this file owns the
+      repo's worst race/dup-event bug history, and WS-TEST (now scheduled last)
+      hasn't pinned it. Needs test coverage or a paired on-device session
+      (gapless / MPRIS / media-notification not verifiable from a Linux build).
+      Remaining safe peripheral cuts: `bitrate`, `playbackSpeed`, neighbor-song
+      preload.
+- [ ] **Split `downloadManagerService` (2064 lines)** — `downloadReconciler.ts`
+      + `downloadManagerHelpers.ts` already extracted. **Blocked** on the same
+      basis: `downloadQueue` (model + dedup) is safe-ish, but `downloadTransport`
+      (native Android/iOS/Electron/web pools) and the batch-hijack path are a
+      landmine that needs device verification.
 - [x] **Split `electron.js`** (2026-09-07) — 2232 → **533 lines of wiring**.
       `public/ipc/*.js`: `remote.js`, `logging.js`, `settings.js`, `credentials.js`,
       `system.js`, `misc.js`, `downloadNotification.js`, `cache.js` (~31 handlers),
       `playerWindow.js` (mini-player + player-state + MPRIS art). Each module has
       a plain-node functional test; `electron:serve` verified clean per step.
-- [ ] **Split `SettingsView`** — partial (2026-09-07): `LicensesDialog`,
-      `TechStackDialog`, `PerformanceCacheSection` → `components/common/settings/`;
-      1226 → 953 lines. Remaining: the ~10 small interactive sections (Appearance,
+- [~] **Split `SettingsView`** — 1226 → **745** (2026-09-07). Extracted:
+      `LicensesDialog`, `TechStackDialog`, `PerformanceCacheSection`,
+      `AboutSection` (owns build-info/licenses fetch + both dialogs),
+      `AdvancedSection` (owns perf-mode / power-saver / render-timer / debug-log
+      toggles) → `components/common/settings/`. Remaining sections (Appearance,
       Playback, Account, Offline&Cache, Remote, Streaming, Downloads, Library,
-      Advanced, Danger Zone) + the switch-server modal — each is state/handler-
-      coupled to the parent; a full split wants a shared props shape or a tab UI.
+      Danger Zone) + the switch-server modal are state/handler-coupled to the
+      parent — a full split wants a shared props shape or a tab UI.
 - [ ] **Add routing** — `react-router` with memory history on native. Replaces
-      the `topView/drillView/selectedArtist/selectedAlbum` machine in `MainApp`.
-      Enables deep-linking, desktop back-stack (subsumes the custom Android
-      back-stack), and scroll-position restore on reload.
+      the `appSection` / `navigation` / `topView` / `sectionHistory` machine in
+      `App.tsx` (`MainApp.tsx` is dead code). Enables deep-linking, desktop
+      back-stack (subsumes the custom Android `backbutton` handler), scroll
+      restore. **Blocked:** new runtime dependency + rewrites Android
+      hardware-back — needs an on-device pass.
 - [x] **`LayoutModeContext`** (2026-09-07) — `src/context/LayoutModeContext.tsx`,
       `'compact' | 'medium' | 'expanded' | 'tv'` from viewport `matchMedia`
       (767 / 1199 breakpoints) + `(hover:none) and (pointer:coarse)`. `forceMode`

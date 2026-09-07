@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BrandGlyph from '../common/BrandGlyph';
 import { usePlayer } from '../../context/PlayerContext';
 import { useRemoteMode } from '../../context/RemoteModeContext';
 import { useOfflineMode } from '../../context/OfflineModeContext';
@@ -100,7 +101,7 @@ const Header: React.FC = () => {
           Xylonic
         </h1>
         <button className="github-link" onClick={handleGitHubClick} title="View on GitHub" aria-label="View on GitHub">
-          <i className="fab fa-github"></i>
+          <BrandGlyph name="github" />
         </button>
         {!isAppStoreBuild && (
           <button className="support-link" onClick={handleSupportClick} title="Support the Project" aria-label="Support the Project">

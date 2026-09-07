@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BrandGlyph from './BrandGlyph';
 import ReactDOM from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -85,7 +86,7 @@ const LastfmSettings: React.FC<Props> = ({ onClose }) => {
       <div className="lfm-modal" role="dialog" aria-label="Last.fm Settings">
         <div className="lfm-header">
           <span className="lfm-title">
-            <i className="fab fa-lastfm" />
+            <BrandGlyph name="lastfm" />
             Last.fm Scrobbling
           </span>
           <button className="lfm-close" onClick={onClose} aria-label="Close">
@@ -97,7 +98,7 @@ const LastfmSettings: React.FC<Props> = ({ onClose }) => {
           /* ── Connected state ── */
           <div className="lfm-connected">
             <div className="lfm-connected-info">
-              <i className="fab fa-lastfm lfm-connected-icon" />
+              <BrandGlyph name="lastfm" className="lfm-connected-icon" />
               <div>
                 <div className="lfm-connected-name">{config.lastfmUsername}</div>
                 <div className="lfm-connected-sub">Connected to Last.fm</div>
@@ -189,7 +190,7 @@ const LastfmSettings: React.FC<Props> = ({ onClose }) => {
               {connecting ? (
                 <><i className="fas fa-spinner fa-spin" /> Connecting…</>
               ) : (
-                <><i className="fab fa-lastfm" /> Connect to Last.fm</>
+                <><BrandGlyph name="lastfm" /> Connect to Last.fm</>
               )}
             </button>
           </div>

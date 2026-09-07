@@ -311,8 +311,13 @@ ADRs exist for every major decision.
 - [ ] **FontAwesome subset** — stop importing all of `@fortawesome/fontawesome-free`.
       Build a subset (~60 glyphs used) or inline SVGs. Cuts bundle + fixes the
       MECHEN H1-Pro `+` non-render (see `feedback_fa7_icon_range`).
-- [ ] **Search index compression** — `CompressionStream('deflate')` on the IDB
-      search index (3–5× smaller); read path handles legacy uncompressed records.
+- [x] **Search index compression** — `searchCacheService` already stores the IDB
+      search index as a `deflate`-compressed `ArrayBuffer` (v2.0 records:
+      `compress()` / `decompress()` via `CompressionStream`, compress happens
+      *before* the IDB transaction opens so async work doesn't straddle it). The
+      read path falls back to legacy uncompressed v1.0 records, and write falls
+      back to uncompressed if `CompressionStream` is unavailable. Confirmed
+      2026-09-07 — the roadmap checkbox was just stale.
 
 ### Should
 - [ ] **Dependency bumps** (each isolated, tested, changelog-reviewed):

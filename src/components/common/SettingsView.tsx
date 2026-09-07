@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BrandGlyph from './BrandGlyph';
 import ReactDOM from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { isAppStoreBuild } from '../../config/buildVariant';
@@ -285,7 +286,7 @@ const SettingsView: React.FC = () => {
                 You're awesome — thank you for being part of this journey.
               </p>
               <button className="settings-thankyou-github" onClick={handleOpenGitHub}>
-                <i className="fab fa-github" /> View source on GitHub
+                <BrandGlyph name="github" /> View source on GitHub
               </button>
             </div>
           </div>
@@ -345,7 +346,7 @@ const SettingsView: React.FC = () => {
         <h3 className="settings-section-title">Account</h3>
         <div className="settings-card">
           <div className="settings-row">
-            <span className="settings-row-icon"><i className="fab fa-lastfm" /></span>
+            <span className="settings-row-icon"><BrandGlyph name="lastfm" /></span>
             <span className="settings-row-label">
               Last.fm
               <span className="settings-row-sub">Scrobbling is handled by your server — enable Last.fm in your server's admin panel</span>

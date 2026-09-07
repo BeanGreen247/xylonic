@@ -5,6 +5,7 @@ import { isAppStoreBuild, isReleaseBuild } from '../../config/buildVariant';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
+import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { useRemoteMode } from '../../context/RemoteModeContext';
 import { offlineCacheService } from '../../services/offlineCacheService';
 import { imageCacheService, type PerformanceCacheStats } from '../../services/imageCacheService';
@@ -59,6 +60,7 @@ const VIEW_OPTIONS: { view: TopLevelView; label: string; icon: string }[] = [
 const SettingsView: React.FC = () => {
   const { offlineModeEnabled, toggleOfflineMode, config: offlineConfig, updateConfig: updateOfflineConfig } = useOfflineMode();
   const { username, login } = useAuth();
+  const { themeMode, setThemeMode } = useTheme();
   const { sleepTimerRemaining, bitrate, setBitrate } = usePlayer();
   const {
     isRemoteModeAvailable,
@@ -373,9 +375,28 @@ const SettingsView: React.FC = () => {
       <section className="settings-section">
         <h3 className="settings-section-title">Appearance</h3>
         <div className="settings-card">
+          <div className="settings-row non-interactive">
+            <span className="settings-row-icon"><i className="fas fa-moon" /></span>
+            <span className="settings-row-label">
+              Mode
+              <span className="settings-row-sub">Light / dark — follows your system by default</span>
+            </span>
+            <span className="settings-row-action">
+              <select
+                className="settings-select"
+                value={themeMode}
+                onChange={e => setThemeMode(e.target.value as ThemeMode)}
+              >
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </span>
+          </div>
+          <div className="settings-divider" />
           <button className="settings-row" onClick={() => setShowThemeSelector(true)}>
             <span className="settings-row-icon"><i className="fas fa-palette" /></span>
-            <span className="settings-row-label">Theme</span>
+            <span className="settings-row-label">Accent Theme</span>
             <span className="settings-row-action"><i className="fas fa-chevron-right" /></span>
           </button>
         </div>

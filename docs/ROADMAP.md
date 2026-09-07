@@ -327,10 +327,18 @@ kept optimisation has a before/after number in the ledger.
       `viewport-fit=cover` untouched. The `calc(100vh - Npx)` sizing exprs in
       `NowPlayingOverlay.css` / `HamburgerMenu` were left as-is (sizing math, not
       full-height elements — separate pass if they show a layout jump on mobile).
-- [ ] **Real light theme** — `:root` light baseline + `prefers-color-scheme`
-      dark as the default pair the theming engine (`colorConfigManager`,
-      `CustomThemeEditor`) layers onto. Fix hardcoded
-      `<meta name="theme-color" content="#000000">` (theme-aware).
+- [~] **Real light theme** (2026-09-07, first pass) — structural tokens
+      (bg/surface/text/elevation/scrollbar) flip via
+      `@media (prefers-color-scheme: light) { :root:not([data-theme=dark]) }` +
+      an explicit `:root[data-theme=light|dark]` override. `ThemeContext` gained
+      `themeMode: 'system'|'light'|'dark'` (persisted `xylonic_theme_mode`),
+      applied to `<html data-theme>` synchronously at module load (no flash) and
+      keeping `<meta name="theme-color">` in sync (default now `#121212`, not
+      `#000000`). Settings → Appearance → Mode selector. Accent tokens unchanged
+      (user-controlled). **Remaining:** a component-by-component audit — some
+      components hardcode `rgba(255,255,255,…)` borders/hovers and
+      `rgba(0,0,0,…)` overlays that need light-mode variants; login screen
+      verified clean, the rest needs a running-app pass (WS-UX design-craft).
 - [ ] **Token discipline** — replace inline `style={{ marginBottom: '24px' }}`
       (MainApp and others) and magic pixels with the existing `--spacing-*` /
       `--radius-*` scale. Lint rule to discourage new inline style objects.

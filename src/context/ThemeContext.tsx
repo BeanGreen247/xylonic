@@ -3,6 +3,8 @@ import { ThemeType, Theme, presetThemes, generateColorVariants } from '../types/
 import { readUserColorConfig, writeUserColorConfig } from '../utils/colorConfigManager';
 import { logger } from '../utils/logger';
 
+export type ThemeMode = 'system' | 'light' | 'dark';
+
 interface ThemeContextType {
   currentTheme: ThemeType;
   setTheme: (theme: ThemeType) => void;
@@ -11,6 +13,45 @@ interface ThemeContextType {
   resetCustomTheme: (slot: 'custom1' | 'custom2' | 'custom3' | 'custom4') => void;
   getAllThemes: () => Record<string, Theme>;
   refreshThemes: () => Promise<void>;
+  /** light/dark mode — orthogonal to the accent theme above */
+  themeMode: ThemeMode;
+  setThemeMode: (m: ThemeMode) => void;
+}
+
+const THEME_MODE_KEY = 'xylonic_theme_mode';
+const BG = { dark: '#121212', light: '#f7f7f8' } as const;
+
+function readThemeMode(): ThemeMode {
+  try {
+    const v = localStorage.getItem(THEME_MODE_KEY);
+    if (v === 'light' || v === 'dark') return v;
+  } catch {
+    /* ignore */
+  }
+  return 'system';
+}
+
+/** Reflect the mode onto <html data-theme> and the theme-color meta. */
+function applyThemeMode(mode: ThemeMode): void {
+  const root = document.documentElement;
+  if (mode === 'system') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', mode);
+
+  const effective =
+    mode === 'system'
+      ? window.matchMedia?.('(prefers-color-scheme: light)').matches
+        ? 'light'
+        : 'dark'
+      : mode;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', BG[effective]);
+}
+
+// Apply synchronously at module load so there's no flash before React mounts.
+try {
+  applyThemeMode(readThemeMode());
+} catch {
+  /* SSR / no document */
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -57,6 +98,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     custom4: defaultCustomTheme('My Theme 4'),
   });
   const [loaded, setLoaded] = useState(false);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(readThemeMode);
+
+  const setThemeMode = useCallback((m: ThemeMode) => {
+    setThemeModeState(m);
+    try {
+      if (m === 'system') localStorage.removeItem(THEME_MODE_KEY);
+      else localStorage.setItem(THEME_MODE_KEY, m);
+    } catch {
+      /* ignore */
+    }
+    applyThemeMode(m);
+  }, []);
+
+  // Keep the theme-color meta in sync when the OS scheme changes while on 'system'.
+  useEffect(() => {
+    if (themeMode !== 'system' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => applyThemeMode('system');
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, [themeMode]);
 
   const getAllThemes = useCallback(
     () => ({
@@ -291,8 +353,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       resetCustomTheme,
       getAllThemes,
       refreshThemes,
+      themeMode,
+      setThemeMode,
     }),
-    [currentTheme, setTheme, customThemes, updateCustomTheme, resetCustomTheme, getAllThemes, refreshThemes],
+    [currentTheme, setTheme, customThemes, updateCustomTheme, resetCustomTheme, getAllThemes, refreshThemes, themeMode, setThemeMode],
   );
 
   return (

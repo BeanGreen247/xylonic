@@ -27,6 +27,17 @@ All notable changes to Xylonic are documented here.
   freshness table; the IPC section now carries a structure-note pointing at
   ADR 0006. Physical split of `ARCHITECTURE.md` still pending.
 
+- **Light theme + `prefers-color-scheme` (WS-UX, first pass)** — structural
+  tokens (background / surface / text / elevation / scrollbar) now flip to a
+  light palette under `@media (prefers-color-scheme: light)` unless the user has
+  forced dark, plus an explicit `:root[data-theme="light"|"dark"]` override.
+  `ThemeContext` gained `themeMode: system|light|dark` (persisted, applied to
+  `<html data-theme>` synchronously at module load — no flash) and keeps
+  `<meta name="theme-color">` in sync (default `#121212`). Toggle in
+  Settings → Appearance → Mode; "Theme" row renamed "Accent Theme". Accent
+  colours are unchanged in both modes (user-controlled). A per-component
+  hardcoded-colour audit for full light-mode polish is the follow-up — the
+  login screen is verified clean.
 - **`100vh` → `100dvh` (WS-UX)** — the six full-height container rules (`.app`,
   `.login-container` incl. its media queries, `.App`, `.mini-player`) now emit
   `height: 100vh; height: 100dvh;` — dynamic viewport height where supported, the

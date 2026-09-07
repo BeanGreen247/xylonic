@@ -11,6 +11,22 @@
     gap: var(--spacing-lg);
 }
 
+/* Match the real card grids' container-query steps (docs/design/0001 step 3)
+   so the skeleton doesn't jump column count when content loads in. */
+@container main-col (width < 560px) {
+    .lib-skeleton-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: var(--spacing-md);
+    }
+}
+
+@container main-col (width >= 900px) {
+    .lib-skeleton-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: var(--spacing-xl);
+    }
+}
+
 .lib-skeleton-list {
     display: flex;
     flex-direction: column;

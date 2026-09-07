@@ -367,6 +367,10 @@ body {
     overflow-x: hidden;
     padding: var(--spacing-lg);
     padding-bottom: 24px;
+    /* Query container (WS-UX, docs/design/0001 step 3): card grids reflow off
+       this column's width, so docking the queue panel / the medium rail
+       re-flows cards without a viewport media query. */
+    container: main-col / inline-size;
 }
 
 /* Login Form */
@@ -763,6 +767,25 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: var(--spacing-lg);
     margin-bottom: 32px;
+}
+
+/* Card grids step their column minimum off the content column's width
+   (WS-UX, docs/design/0001 step 3) — narrow when the docked queue panel or the
+   medium rail eats horizontal room, generous on a full-width desktop column. */
+@container main-col (width < 560px) {
+    .artists-grid,
+    .albums-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: var(--spacing-md);
+    }
+}
+
+@container main-col (width >= 900px) {
+    .artists-grid,
+    .albums-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: var(--spacing-xl);
+    }
 }
 
 .artist-card {
@@ -2737,12 +2760,7 @@ body {
         padding-bottom: 32px !important;
     }
 
-    /* Larger grid minimum so cards breathe */
-    .artists-grid,
-    .albums-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
-        gap: var(--spacing-xl) !important;
-    }
+    /* Grid column sizing now lives in the `@container main-col` block above. */
 
     /* Restore art aspect-ratio (overrides any mobile fixed height) */
     .artist-cover,

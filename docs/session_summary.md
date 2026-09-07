@@ -9,18 +9,15 @@
 normalise the native log shapes and share one pure planner; `savePendingBatch`
 uses `mergePendingBatch`. 121 tests green, build + lint clean.
 Commit: `refactor(downloads): extract orphan-reconciliation planner; +11 tests`.
-**`electron.js` split slices 1–2 done** (UNCOMMITTED — 3 commits pending, see
-below): `public/ipc/remote.js` (Remote Mode, ~400 lines) + `public/ipc/logging.js`
-(file logging + 5 IPC handlers + console.* overrides). `electron.js` 2232 →
-**1700**. `electron-builder.json` files += `public/ipc/**/*.js`. Slice 1 verified
-via `npm run electron:serve` (caught + fixed a missed `lastPlayerState` free var);
-slice 2 build + 121 tests green + plain-node load test, **needs a `electron:serve`
-smoke-test** (it moves the `console.*` override).
-
-**Pending commits (in order):**
-1. `chore(vite): rename config to .mts for native ESM loading` — `vite.config.mts` + `vitest.config.ts`
-2. `refactor(electron): extract remote-mode IPC + discovery to public/ipc/remote.js`
-3. `refactor(electron): extract file logging + IPC to public/ipc/logging.js` — `public/ipc/logging.js`, `public/electron.js`, `electron-builder.json`, docs
+**`electron.js` split — committed through `84eab73`:** `chore(vite)` .mts rename
+(`cbab461`), `public/ipc/remote.js` (`4a995ba`), `public/ipc/logging.js`
+(`84eab73`). **UNCOMMITTED — slice 4:** `public/ipc/settings.js` (settings.cfg +
+per-user color-config, 6 IPC handlers; path helpers injected from electron.js).
+`electron.js` 2232 → **1565**. Verified with a standalone plain-node functional
+test (all 6 handlers round-trip). Commit:
+`refactor(electron): extract settings + color-config IPC to public/ipc/settings.js`.
+Still worth an `electron:serve` smoke-test for the logging + settings slices
+(logging moves the `console.*` override).
 
 Next `electron.js` domains (same pattern): settings/color-config, credentials
 (safe-storage), player/mini-window, system-stats/priority, then the big

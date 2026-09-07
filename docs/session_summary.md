@@ -31,6 +31,14 @@ deferred.
   conversion of ~250 white + ~15 black rgba literals across 30 CSS files.
   Verified light+dark at 1400px. Left: LoginForm (accent gradient), dev HUD,
   data-URI arrows, scrollbar thumbs.
+- Global `prefers-reduced-motion` block (`42a1da7`) — all animation/transition
+  → 0.01 ms; verified with Playwright `reduced_motion="reduce"`.
+- UI-04 tabular figures (`a440807`); UI-01 partial — `--elevation-modal` flip
+  token replacing 28 heavy modal shadows (`e93c308`).
+- **WS-UX still open:** "playing from <context>" header (touches PlayerContext
+  queue), offline "what's available" landing (= design UI-09), contrast/AA
+  check + high-contrast variant, on-device compact check, UI-02/03/05 +
+  Tiers 2–3.
 
 **WS-PERF this pass (safe build-verified subset):**
 - Search-index compression — confirmed already implemented in `searchCacheService`

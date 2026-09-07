@@ -55,10 +55,11 @@ Sizes: **S** ≈ half-day · **M** ≈ 1–2 days · **L** ≈ 3+ days / needs i
 
 ### Tier 1 — high impact, low risk (do first, interleave with WS-UX Must)
 
-- [ ] **UI-01 · Elevation + radius re-tune** (S) — re-tune `--elevation-1..4`
-      softer (lower spread, lower opacity), audit every `box-shadow: 0 …` literal
-      (~20 sites) onto tokens, converge card/button radius on `--radius-md/lg`.
-      Reference: Spotify/Apple restraint. Token-only, no JSX.
+- [~] **UI-01 · Elevation + radius re-tune** (S) — done 2026-09-07: new
+      theme-flipping `--elevation-modal` token (dark `0 20px 60px /.55`, light
+      `0 16px 48px /.18`) replaces 28 heavy `0 …px rgba(0,0,0,0.4–0.8)` modal
+      drop-shadows across 18 files. **Remaining:** re-tune `--elevation-1..4`
+      themselves + converge card/button radius on `--radius-md/lg`.
 - [ ] **UI-02 · Card hover-lift + play FAB** (M) — `translateY(-2px)` + elevation
       step on `.album-card` / `.artist-card` hover; a round primary-accent play
       button that fades/scales in over the art (keyboard-focusable, hidden from
@@ -67,9 +68,11 @@ Sizes: **S** ≈ half-day · **M** ≈ 1–2 days · **L** ≈ 3+ days / needs i
 - [ ] **UI-03 · Type scale tokens** (S) — add `--font-size-xs…2xl`,
       `--tracking-tight`, `--leading-*`; apply to headings / section titles /
       card text; `text-wrap: balance` on headings. Reference: Apple Music.
-- [ ] **UI-04 · Tabular figures** (S) — `font-variant-numeric: tabular-nums` on
-      durations, track numbers, counts, the player time labels, download stats
-      (`progress-stats`). Stops digit jitter. Trivial, high polish-per-line.
+- [x] **UI-04 · Tabular figures** (2026-09-07) — `font-variant-numeric:
+      tabular-nums` + `font-feature-settings: "tnum"` on `.progress-time`,
+      `.song-duration`, track-number, `.panel-song-time`, `.progress-stats`,
+      `.library-stats`, `.download-progress-text`, `.stat-value`,
+      `.mini-player-time`. One grouped rule in `index.css`.
 - [ ] **UI-05 · Focus-ring polish** (S) — the WS-a11y `:focus-visible` ring is
       functional but blunt; give it `border-radius` inheritance and a 2-layer
       ring (accent + 1px contrast) so it reads on both light art and dark chrome.

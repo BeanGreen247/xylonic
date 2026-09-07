@@ -13,6 +13,17 @@ All notable changes to Xylonic are documented here.
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
+### Added
+- **Motion: `prefers-reduced-motion` honoured app-wide (WS-UX)** — a global block
+  in `index.css` collapses every animation and transition to ~0.01 ms when the OS
+  asks to reduce motion (state still lands, just without the travel); component
+  blocks like the skeleton loader refine further.
+- **UI polish (`docs/design/0002`)** — tabular figures (`tabular-nums`) on every
+  running-number display (player time, durations, track numbers, counts,
+  download stats) so digits stop jittering; a theme-flipping `--elevation-modal`
+  shadow token replaces 28 heavy `rgba(0,0,0,0.4–0.8)` modal drop-shadows that
+  read as grey blobs in light mode.
+
 ### Fixed
 - **Light-theme colour audit (WS-UX)** — six new theme-flipping surface tokens
   (`--border`, `--border-subtle`, `--border-strong`, `--hover-overlay`,

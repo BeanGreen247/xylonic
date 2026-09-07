@@ -721,7 +721,6 @@ const AppContent: React.FC = () => {
       )}
 
       <NowPlayingOverlay />
-      <RightPanel />
       <Header />
 
 
@@ -870,6 +869,7 @@ const AppContent: React.FC = () => {
         <PlaybackControls />
         <DesktopNowPlaying />
         </div>
+        <RightPanel />
       </div>
       {!isReleaseBuild && <RenderTimerHUD />}
       <MobileBottomNav

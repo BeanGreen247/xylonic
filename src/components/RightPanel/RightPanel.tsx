@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useUI } from '../../context/UIContext';
+import { useLayoutMode } from '../../context/LayoutModeContext';
 import QueueTab from './QueueTab';
 import HistoryTab from './HistoryTab';
 import PlaylistsTab from './PlaylistsTab';
@@ -19,6 +20,7 @@ const PANEL_ICONS = {
 
 const RightPanel: React.FC = () => {
   const { panelOpen, panelTab, closePanel } = useUI();
+  const { isExpanded } = useLayoutMode();
   const panelRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -54,14 +56,14 @@ const RightPanel: React.FC = () => {
   return (
     <>
       <div
-        className={`right-panel-backdrop${panelOpen ? ' open' : ''}`}
+        className={`right-panel-backdrop${panelOpen && !isExpanded ? ' open' : ''}`}
         onClick={closePanel}
         aria-hidden="true"
       />
 
       <div
         ref={panelRef}
-        className={`right-panel${panelOpen ? ' open' : ''}`}
+        className={`right-panel${panelOpen ? ' open' : ''}${isExpanded ? ' right-panel--docked' : ''}`}
         role="complementary"
         aria-label={PANEL_TITLES[panelTab]}
       >

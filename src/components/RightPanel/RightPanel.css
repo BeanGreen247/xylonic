@@ -39,6 +39,35 @@
     transform: translateX(0);
 }
 
+/* ── Docked mode: expanded layout (WS-UX, docs/design/0001 step 2) ─────────────
+   A flex child of .app-body, not a fixed overlay. Reserves width only when open;
+   the content column shrinks rather than being covered. No backdrop. */
+.right-panel--docked {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    height: auto;
+    align-self: stretch;
+    flex-shrink: 0;
+    width: 0;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+    transition: width 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.right-panel--docked:not(.open) {
+    border-left-width: 0;
+}
+
+.right-panel--docked.open {
+    width: clamp(300px, 26vw, 380px);
+    transform: none;
+}
+
 /* ── Panel header ─────────────────────────────── */
 .right-panel-header {
     display: flex;

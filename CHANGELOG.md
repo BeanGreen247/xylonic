@@ -13,6 +13,21 @@ All notable changes to Xylonic are documented here.
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
+### Performance
+- **Font Awesome trimmed (WS-PERF)** — `src/index.tsx` imports only
+  `fontawesome.min.css` + `solid.min.css` instead of `all.min.css`. The two
+  brand glyphs the app uses (GitHub, Last.fm) are now inline SVG
+  (`components/common/BrandGlyph`), and the *regular* family had no call sites.
+  Result: the `fa-brands-400` (110 kB) and `fa-regular-400` (19 kB) webfonts are
+  no longer shipped and `index.css` drops ~22 kB (11 kB gzip); only
+  `fa-solid-900` remains.
+- **Bundle-size gate (WS-PERF)** — `npm run size`
+  (`scripts/check-bundle-size.js`) fails the build if the modern/legacy JS,
+  legacy polyfills, or CSS chunk exceeds its ceiling; runs in CI after the build.
+  `docs/PERF_LEDGER.md` now tracks every optimisation with before/after numbers.
+- **`content-visibility` on Settings sections** — the ~10 stacked
+  `.settings-section` blocks skip layout/paint until scrolled near.
+
 ### Changed
 - **`PlayerContext` further decomposed (WS-ARCH)** — 1555 → **1026 lines**. Three
   more self-contained slices moved to dedicated hooks: `context/useSleepTimer.ts`

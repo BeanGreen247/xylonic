@@ -25,6 +25,22 @@ deferred.
   derivation + 4 look-ahead preload effects → `useNeighborSongs.ts` (`df475f1`).
   All lift-and-shift.
 
+**WS-PERF this pass (safe build-verified subset):**
+- Search-index compression — confirmed already implemented in `searchCacheService`
+  (`CompressionStream` deflate, v2.0 records + v1.0 read fallback); roadmap box
+  was stale. Marked done.
+- Font Awesome trim (`05a2183`) — `all.min.css` → `fontawesome.min.css` +
+  `solid.min.css`; `github`/`lastfm` → inline SVG `BrandGlyph`; regular family
+  unused. **−131 kB webfonts, −22 kB CSS**, +2 kB JS. Verified in-browser: github
+  glyph + all `fas` icons render.
+- Bundle-size gate (`2df718d`) — `scripts/check-bundle-size.js` / `npm run size`,
+  wired into CI; `docs/PERF_LEDGER.md` created.
+- `content-visibility: auto` on `.settings-section`.
+- **WS-PERF blocked here:** queue-persistence → `{ids}`+IDB (entangled with the
+  synchronous `PlayerContext` boot), `fa-solid` true subset (needs full glyph
+  list incl. dynamic exprs), dep bumps + Android download pool + legacy-strip
+  (device / packaged-build).
+
 **WS-ARCH blocked (needs devices / WS-TEST, which is now last):**
 - `PlayerContext` → `usePlaybackEngine` + `useQueue`: queue↔audio-engine core is
   mutually entangled, worst race/dup-event bug history in the repo, zero test

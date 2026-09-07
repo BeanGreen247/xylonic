@@ -329,16 +329,24 @@ ADRs exist for every major decision.
 - [ ] **Dependency bumps** (each isolated, tested, changelog-reviewed):
       Electron 27 → current LTS, TypeScript 4.9 → 5.x, Capacitor 8 → 9,
       Vite already 8. Each removes a class of platform bugs.
-- [ ] `SettingsView` + large lists — `React.memo` audit, `useMemo` for derived
-      lists, `content-visibility: auto` on off-screen sections.
+- [~] `SettingsView` + large lists (2026-09-07) — `content-visibility: auto` +
+      `contain-intrinsic-size` added to `.settings-section` (~10 stacked, most
+      off-screen). The high-cost list items were already memoized (`ArtistCard`,
+      `VirtualSongRow`) and virtualized where unbounded (`SongList` >60).
+      **Remaining:** `QueueTab` renders the full queue un-windowed (25k rows on
+      "play all") — wants `react-window` but that reworks the drag-reorder UX,
+      so it's a device-tested follow-up; extract memoized `AlbumCard`/`SongRow`
+      for the ≤60-item paginated grids if profiling shows it matters.
 - [ ] Android downloads — multi-threaded pool matching the Electron/iOS cap
       (see `docs/todos.md`); notification/wakelock state reworked for N active
       transfers.
-- [ ] Perf budget in CI — bundle size check (`bundlesize`), fail on >10 % growth;
-      a Lighthouse run on the web build.
-- [ ] Keep a `docs/PERF_LEDGER.md` — every optimisation attempt, baseline →
-      result → keep/revert, so dead ideas aren't re-tried.
-
+- [x] Perf budget in CI (2026-09-07) — `scripts/check-bundle-size.js`
+      (`npm run size`) checks the 4 main chunks against ceilings ~10–15% above
+      the post-FA-trim baseline; wired into `.github/workflows/ci.yml` after the
+      build step. Lighthouse run still to add.
+- [x] `docs/PERF_LEDGER.md` created (2026-09-07) — table of every optimisation
+      (getAllSongs parallelism, log stripping, search compression, FA trim) with
+      baseline → result → verdict, plus the current bundle snapshot and backlog.
 ### Definition of Done
 No synchronous multi-MB serialization on the playback path; big-library
 metadata fetch is parallel; production bundle carries no debug logging and a

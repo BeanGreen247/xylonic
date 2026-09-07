@@ -66,6 +66,10 @@
 
 .settings-section {
   margin-bottom: 32px;
+  /* ~10 stacked sections, most off-screen — skip their layout/paint until
+     scrolled near (WS-PERF). Older WebViews ignore this harmlessly. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
 }
 
 .settings-section-title {

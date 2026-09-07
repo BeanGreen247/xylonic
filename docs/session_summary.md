@@ -19,9 +19,17 @@ WS-TV last). 127 tests green, `npm run lint` 0 errors, `npm run build` clean.
   name classes; `role=status aria-live=polite` on download progress-stats +
   queue count.
 
-**WS-UX remaining:** 3 container-query layouts via `LayoutModeContext`; token
-discipline (kill inline `style={{}}`); empty/loading/error states + retry;
-component-by-component light-mode hardcoded-colour audit.
+- **Token discipline first pass** (HEAD `a61f043`): repeated inline-`style`
+  error/empty/inline-error blocks in the 6 Library list+grid components →
+  shared `.library-state` / `.library-state-icon` / `.library-inline-error`
+  classes; `MainApp` toggle wrapper → `.library-view-toggle-row`. Inline
+  `style={{}}` 115 → 79 (rest is dynamic).
+
+**WS-UX remaining:** 3 container-query layouts via `LayoutModeContext` (**big —
+needs the design-craft research pass first**); eslint rule vs new static inline
+styles; empty/loading/error *states* proper (skeletons, offline "what's
+available", retry affordances); component-by-component light-mode hardcoded-
+colour audit.
 
 ---
 

@@ -11,6 +11,18 @@ All notable changes to Xylonic are documented here.
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
+### Changed
+- **Shared list/grid state styling (WS-UX token discipline)** — the error, empty,
+  and inline-error blocks in `ArtistList` / `AlbumList` / `SongList` /
+  `AllAlbumsGrid` / `AllSongsGrid` / `LikedSongsView` each carried the same
+  hand-written inline `style={{}}` objects (`padding: 40px`, `fontSize: 48px`,
+  `color: #ff3b30`, `borderRadius: 8px`, `marginTop: 20px`, …). Those collapse to
+  four shared classes — `.library-state`, `.library-state-icon`,
+  `.library-state.is-error`, `.library-inline-error` — in `src/styles/index.css`.
+  `MainApp`'s `style={{ marginBottom: '24px' }}` view-toggle wrapper is now
+  `.library-view-toggle-row` on `var(--spacing-lg)`. App-wide static inline style
+  objects dropped from 115 to 79 (the rest are genuinely dynamic).
+
 ### Added
 - **Accessibility pass (WS-UX)** — one global `:focus-visible` keyboard-focus
   ring in `src/styles/index.css` (2px accent outline, `!important` so the many

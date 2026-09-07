@@ -339,9 +339,16 @@ kept optimisation has a before/after number in the ledger.
       components hardcode `rgba(255,255,255,…)` borders/hovers and
       `rgba(0,0,0,…)` overlays that need light-mode variants; login screen
       verified clean, the rest needs a running-app pass (WS-UX design-craft).
-- [ ] **Token discipline** — replace inline `style={{ marginBottom: '24px' }}`
-      (MainApp and others) and magic pixels with the existing `--spacing-*` /
-      `--radius-*` scale. Lint rule to discourage new inline style objects.
+- [~] **Token discipline** (2026-09-07, first pass) — the error / empty / inline-
+      error state blocks that Artist/Album/Song lists + grids each re-declared as
+      inline `style={{}}` objects (magic `40px` / `48px` / `#ff3b30` / `8px`
+      radius, repeated ~7×) collapse to shared `.library-state` /
+      `.library-state-icon` / `.library-state.is-error` / `.library-inline-error`
+      classes in `index.css`; MainApp's `style={{ marginBottom: '24px' }}` →
+      `.library-view-toggle-row` on `var(--spacing-lg)`. Inline `style={{}}`
+      count 115 → 79 (remainder is genuinely dynamic — `width: ${pct}%`,
+      JS-positioned menus, dev-only `RenderTimerHUD`). **Remaining:** eslint rule
+      to flag new static inline style objects.
 - [x] **Accessibility pass** — global `:focus-visible` ring in `index.css`
       (`!important`, overrides scattered `:focus{outline:none}`); `aria-label`
       mirroring `title` on all icon-only buttons (40 across 17 files), reverted

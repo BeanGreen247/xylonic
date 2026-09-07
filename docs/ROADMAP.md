@@ -386,6 +386,13 @@ kept optimisation has a before/after number in the ledger.
       now-playing transition rather than scattered effects.
 - [ ] Contrast check both themes against WCAG AA; ship a high-contrast variant
       for the cheap-DAP hardware.
+- [ ] **Surface modernization** — `docs/design/0002-ui-modernization.md`: 14
+      tiered tasks (UI-01…14) to bring the surface up to current streaming-app
+      standards without a re-skin. Tier 1 (elevation re-tune, card hover + play
+      FAB, type scale, tabular figures, focus-ring polish) is token-heavy and
+      interleaves with the items above; Tiers 2–3 slot between other workstreams,
+      the big ones (hero shelf, now-playing redesign, motion system) each want
+      their own `docs/design/000N` first.
 
 ### Definition of Done
 Three container-query layouts verified on phone / tablet / desktop / small

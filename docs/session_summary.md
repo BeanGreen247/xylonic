@@ -1,41 +1,37 @@
 # Session Summary
 
-## Current Focus (September 6, 2026 — WS-ARCH / WS-PERF in progress)
+## Current Focus (Sept 6–7, 2026 — WS-ARCH, roadmap execution)
 
-**RESUME HERE:** `downloadManagerService` split **slices 1–2** done + committed
-(`53d4650` = helpers). Slice 2 (uncommitted): `src/services/downloadReconciler.ts`
-(`planOrphanReconciliation` / `mergePendingBatch` / `parsePendingBatch` /
-`pendingBatchFromQueueArray`, 11 tests) — both `reconcile*Orphans` paths now
-normalise the native log shapes and share one pure planner; `savePendingBatch`
-uses `mergePendingBatch`. 121 tests green, build + lint clean.
-Commit: `refactor(downloads): extract orphan-reconciliation planner; +11 tests`.
-**`electron.js` split — committed through `46416d5`:** .mts rename (`cbab461`),
-`remote.js` (`4a995ba`), `logging.js` (`84eab73`), `settings.js` (`46416d5`).
-committed `1b1587f` (`credentials.js` + `system.js`). **UNCOMMITTED — slices
-6–7:** `public/ipc/misc.js` (4 handlers) + `public/ipc/downloadNotification.js`
-(dock/tray progress + `set-download-active`). `electron.js` 2232 → **1332**. Verified: `npm run electron:serve`
-main process starts with no exception; each module has a standalone plain-node
-functional check. **Git: user authorized Claude to commit/push directly now
-(memory `feedback_git_authorization`) — single-line messages, no attribution.**
+**RESUME HERE.** Executing `docs/ROADMAP.md` in order (SEC-leftovers + WS-TV
+last). Git: **Claude commits/pushes directly now** — single-line conventional
+messages, zero attribution (memory `feedback_git_authorization`). 121 tests green,
+`npm run lint` 0 errors, CI workflow live. Electron test path: `npm run
+electron:serve` bg, scan for main-process exceptions (memory
+`reference_electron_test_launch`). iPhone 15 Pro Max available for on-device iOS.
 
-Remaining `electron.js` domains: player/mini-window (`toggle-mini-player` /
-`is-mini-player` / `request-player-state` / `player-state-update` /
-`player-control` — couples to `mainWindow`/`miniPlayerWindow`/`lastPlayerState` +
-MPRIS art), download-notification (`set-download-active` / `set-download-progress`
-/ `clear-download-progress` — tray), misc (`get-os-platform`,
-`detect-linux-firewall`, `save-song`, `get-download-dir`), then the big
-**cache-filesystem** block (~30 handlers). After that: download-manager transport
-slice, then `PlayerContext` hooks.
+**Done & committed (HEAD `5cc319b`):**
+- WS-QUAL core, WS-TEST baseline (Vitest + CI, 121 tests)
+- WS-PERF: `getAllSongs` concurrent batches
+- WS-ARCH `PlayerContext` → `playerQueue.ts` / `playerPersistence.ts` / `utils/dataUrl.ts`
+- WS-ARCH `downloadManagerService` → `downloadManagerHelpers.ts` + `downloadReconciler.ts`
+- WS-ARCH `electron.js` **2232 → 1332 lines** — extracted to `public/ipc/*`:
+  `remote.js`, `logging.js`, `settings.js`, `credentials.js`, `system.js`,
+  `misc.js`, `downloadNotification.js`. Each has a plain-node functional test;
+  `electron:serve` verified clean.
 
-Next `electron.js` domains (same pattern): settings/color-config, credentials
-(safe-storage), player/mini-window, system-stats/priority, then the big
-cache-filesystem block (~30 handlers). Then the download-manager transport slice,
-then `PlayerContext` hooks
-(`useMediaSession` / `usePlaybackEngine` / `useQueue`), then `electron.js` →
-`ipc/*` (user smoke-tests — no Electron on Linux), `SettingsView` split,
-`react-router` + `LayoutModeContext`. Then WS-PERF proper, WS-UX, WS-FEAT/DOCS,
-and WS-SEC-leftovers + WS-TV last. 100 tests green, `npm run lint` 0 errors, CI
-workflow live. iPhone 15 Pro Max available for on-device iOS verification.
+**Next, in order:**
+1. `electron.js` — player/mini-window + MPRIS-art + `player-state-update` IPC
+   (couples to `mainWindow` / `miniPlayerWindow` / `lastPlayerState` / `mpris` /
+   `_updatePowerSave` / `createMiniPlayer` — inject all).
+2. `electron.js` — the ~30-handler **cache-filesystem** block → `public/ipc/cache.js`
+   (inject `getCacheBasePath` / `saveCacheBasePath`; ~650 lines → target electron.js ≈ 800).
+3. `downloadManagerService` transport slice (`processQueue` / `downloadBatchNative`
+   ×2 / `downloadSongJS` / worker pool) → `downloadTransport`; then queue state → `downloadQueue`.
+4. `PlayerContext` → `useMediaSession` / `usePlaybackEngine` / `useQueue`.
+5. `SettingsView` (1226) split; `react-router` + `LayoutModeContext`.
+6. Split `ARCHITECTURE.md`; ADRs.
+Then WS-PERF proper (queue-persistence→IDs+IDB, FA subset, search-index
+compression, dep bumps), WS-UX, WS-FEAT/DOCS, WS-SEC-leftovers + WS-TV.
 
 ---
 

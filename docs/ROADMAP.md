@@ -342,10 +342,14 @@ kept optimisation has a before/after number in the ledger.
 - [ ] **Token discipline** — replace inline `style={{ marginBottom: '24px' }}`
       (MainApp and others) and magic pixels with the existing `--spacing-*` /
       `--radius-*` scale. Lint rule to discourage new inline style objects.
-- [ ] **Accessibility pass** — `aria-label` on every icon-only button (not just
-      `title`); global `:focus-visible` ring; audit `user-select: none` (keep for
-      chrome, allow for track/album titles); `role`/`aria-live` already good on
-      banners — extend to download/queue status.
+- [x] **Accessibility pass** — global `:focus-visible` ring in `index.css`
+      (`!important`, overrides scattered `:focus{outline:none}`); `aria-label`
+      mirroring `title` on all icon-only buttons (40 across 17 files), reverted
+      on buttons carrying visible text to avoid WCAG 2.5.3 "label in name";
+      icon-only buttons with no name at all (`VolumeControl` mute, three modal
+      close buttons) named; `user-select: text` exception added for track /
+      album / artist name classes; `role="status" aria-live="polite"` on the
+      download-manager progress-stats and the queue-count label.
 - [ ] **Empty / loading / error states** — skeletons for lists, an explicit
       offline "here's what's available" state, retry buttons where WS-QUAL
       removed silent catches.

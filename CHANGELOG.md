@@ -12,6 +12,19 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Added
+- **Accessibility pass (WS-UX)** — one global `:focus-visible` keyboard-focus
+  ring in `src/styles/index.css` (2px accent outline, `!important` so the many
+  component-level `:focus { outline: none }` rules can't hide it; plain mouse
+  `:focus` stays ringless). Every icon-only `<button>` that previously exposed
+  its label only via `title` now also has a matching `aria-label` (40 buttons
+  across 17 files); buttons that already show visible text were left with just
+  `title` to avoid WCAG 2.5.3 "label in name" mismatches. Icon-only buttons that
+  had *no* accessible name — `VolumeControl` mute toggle (dynamic Mute/Unmute),
+  the Theme / Custom-theme / Keyboard-help modal close buttons — are now named.
+  Track / album / artist name text (`.song-title`, `.panel-song-title`,
+  `.mini-player-title`, …) is now selectable despite the app-wide
+  `user-select: none` chrome default. `role="status" aria-live="polite"` added
+  to the download-manager progress stats and the queue song-count label.
 - **`LayoutModeContext` (WS-ARCH)** — `src/context/LayoutModeContext.tsx`:
   `compact | medium | expanded | tv` derived from viewport `matchMedia` (767 /
   1199 px) + `(hover:none) and (pointer:coarse)`, with a `forceMode` prop for

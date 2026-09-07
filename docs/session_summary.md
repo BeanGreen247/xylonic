@@ -1,6 +1,31 @@
 # Session Summary
 
-## Current Focus (Sept 6–7, 2026 — WS-ARCH, roadmap execution)
+## Current Focus (Sept 7, 2026 — WS-UX, roadmap execution)
+
+**RESUME HERE.** Still executing `docs/ROADMAP.md` in order (SEC-leftovers +
+WS-TV last). 127 tests green, `npm run lint` 0 errors, `npm run build` clean.
+
+**WS-UX done & committed this pass:**
+- `100vh` → `100dvh` (index.css / App.css / MiniPlayer.css).
+- Light theme + `prefers-color-scheme` (structural tokens flip; `ThemeContext`
+  `themeMode: system|light|dark`, persisted, `<html data-theme>` + `theme-color`
+  meta synced; Settings → Appearance → Mode). Per-component hardcoded-colour
+  audit still pending.
+- **Accessibility pass** (HEAD `5416532`): global `:focus-visible` ring in
+  `index.css` (`!important`); `aria-label` mirroring `title` on 40 icon-only
+  buttons (17 files) — codemod, then reverted on buttons with visible text
+  (WCAG 2.5.3); named the 4 unnamed icon-only buttons (`VolumeControl` mute +
+  3 modal close buttons); `user-select: text` exception for track/album/artist
+  name classes; `role=status aria-live=polite` on download progress-stats +
+  queue count.
+
+**WS-UX remaining:** 3 container-query layouts via `LayoutModeContext`; token
+discipline (kill inline `style={{}}`); empty/loading/error states + retry;
+component-by-component light-mode hardcoded-colour audit.
+
+---
+
+## Previous Focus (Sept 6–7, 2026 — WS-ARCH, roadmap execution)
 
 **RESUME HERE.** Executing `docs/ROADMAP.md` in order (SEC-leftovers + WS-TV
 last). Git: **Claude commits/pushes directly now** — single-line conventional

@@ -213,8 +213,8 @@ export const RemoteModeProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const clearPairingError = useCallback(() => setPairingError(null), []);
 
-  return (
-    <RemoteModeContext.Provider value={{
+  const value = useMemo(
+    () => ({
       isRemoteModeAvailable,
       remoteControlEnabled,
       setRemoteControlEnabled,
@@ -223,7 +223,7 @@ export const RemoteModeProvider: React.FC<{ children: ReactNode }> = ({ children
       isOnWifi,
       availableDevices,
       remoteTarget,
-      isRemoteMode:      remoteTarget !== null,
+      isRemoteMode: remoteTarget !== null,
       isBeingControlled,
       controllerName,
       pairingError,
@@ -235,7 +235,17 @@ export const RemoteModeProvider: React.FC<{ children: ReactNode }> = ({ children
       sendRemoteCommand,
       onRemoteCommand,
       clearPairingError,
-    }}>
+    }),
+    [
+      isRemoteModeAvailable, remoteControlEnabled, setRemoteControlEnabled, remoteControllerEnabled,
+      setRemoteControllerEnabled, isOnWifi, availableDevices, remoteTarget, isBeingControlled,
+      controllerName, pairingError, myAccountId, remotePlayerState, remoteCurrentTime,
+      connectToDevice, disconnectRemote, sendRemoteCommand, onRemoteCommand, clearPairingError,
+    ],
+  );
+
+  return (
+    <RemoteModeContext.Provider value={value}>
       {children}
     </RemoteModeContext.Provider>
   );

@@ -232,7 +232,9 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       medium/expanded split is a WS-UX task.
 
 ### Should
-- [ ] Provider tree (8 deep) — verify every `value` is `useMemo`'d; collapse
+- [~] Provider tree — `ThemeContext`/`SearchContext`/`RemoteModeContext` values
+      now `useMemo`'d (2026-09-07); UI/OfflineMode/ImageCache/Auth still build a
+      fresh object each render (need `useCallback` on their handlers first). Collapse
       `RemoteModeProvider`/`ImageCacheProvider` into leaner hooks if they don't
       need to be context.
 - [ ] `ARCHITECTURE.md` — physical per-subsystem split into `docs/architecture/*.md`

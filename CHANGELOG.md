@@ -27,6 +27,14 @@ All notable changes to Xylonic are documented here.
   freshness table; the IPC section now carries a structure-note pointing at
   ADR 0006. Physical split of `ARCHITECTURE.md` still pending.
 
+- **Memoised context values in `ThemeContext` / `SearchContext` /
+  `RemoteModeContext` (WS-ARCH/perf)** — each provider was building a fresh
+  `value={{…}}` object on every render, re-rendering all consumers. Now
+  `useMemo`'d; the few bare handlers (`setTheme`, `updateCustomTheme`,
+  `resetCustomTheme`, `clearSearch`, `returnToSearch`) are `useCallback`'d so
+  the memo actually holds. Object contents unchanged; 127 tests + lint green.
+  The other providers (UI / OfflineMode / ImageCache / Auth) need `useCallback`
+  on more handlers first — separate pass.
 - **Production debug-log stripping (WS-PERF)** — prod builds now minify with
   terser and `pure_funcs: ['logger.log','logger.info','logger.debug']`, so
   those disabled-by-default calls *and* their template-literal arguments are

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { ThemeType, Theme, presetThemes, generateColorVariants } from '../types/theme';
 import { readUserColorConfig, writeUserColorConfig } from '../utils/colorConfigManager';
 import { logger } from '../utils/logger';
@@ -237,11 +237,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     return () => clearTimeout(timeoutId);
   }, [currentTheme, customThemes, loaded]);
 
-  const setTheme = (theme: ThemeType) => {
+  const setTheme = useCallback((theme: ThemeType) => {
     setCurrentTheme(theme);
-  };
+  }, []);
 
-  const updateCustomTheme = (
+  const updateCustomTheme = useCallback((
     slot: 'custom1' | 'custom2' | 'custom3' | 'custom4',
     primaryColor: string,
     name: string
@@ -267,9 +267,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (currentTheme === slot) {
       setTimeout(() => applyTheme(slot), 0);
     }
-  };
+  }, [currentTheme, applyTheme]);
 
-  const resetCustomTheme = (slot: 'custom1' | 'custom2' | 'custom3' | 'custom4') => {
+  const resetCustomTheme = useCallback((slot: 'custom1' | 'custom2' | 'custom3' | 'custom4') => {
     const slotNumber = slot.replace('custom', '');
     const defaultTheme = defaultCustomTheme('My Theme ' + slotNumber);
     setCustomThemes(prev => ({
@@ -280,20 +280,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       setCurrentTheme('cyan');
       applyTheme('cyan');
     }
-  };
+  }, [currentTheme, applyTheme]);
+
+  const value = useMemo(
+    () => ({
+      currentTheme,
+      setTheme,
+      customThemes,
+      updateCustomTheme,
+      resetCustomTheme,
+      getAllThemes,
+      refreshThemes,
+    }),
+    [currentTheme, setTheme, customThemes, updateCustomTheme, resetCustomTheme, getAllThemes, refreshThemes],
+  );
 
   return (
-    <ThemeContext.Provider
-      value={{
-        currentTheme,
-        setTheme,
-        customThemes,
-        updateCustomTheme,
-        resetCustomTheme,
-        getAllThemes,
-        refreshThemes,
-      }}
-    >
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

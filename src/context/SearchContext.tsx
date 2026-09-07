@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { SearchResult3, Artist, Album, SearchResultSong } from '../types/subsonic';
 import { search, getArtists, getArtist, getAlbum } from '../services/subsonicApi';
 import { searchCacheService } from '../services/searchCacheService';
@@ -236,7 +236,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return searchCacheService.search(query);
   }, [cacheInitialized]);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     setSearching(false);
     setInputValue('');
@@ -244,38 +244,45 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setSearchResults(null);
     setNavigatedFromSearch(false);
     if (onClearCallback) onClearCallback();
-  };
+  }, [onClearCallback]);
 
-  const returnToSearch = () => {
+  const returnToSearch = useCallback(() => {
     setSearching(true);
     setNavigatedFromSearch(false);
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      isSearching,
+      isLoading,
+      inputValue,
+      searchQuery,
+      searchResults,
+      navigatedFromSearch,
+      isIndexing,
+      cacheInitialized,
+      handleInputChange,
+      activateSearch,
+      clearSearchInput,
+      setSearching,
+      setSearchQuery,
+      setSearchResults,
+      setNavigatedFromSearch,
+      clearSearch,
+      returnToSearch,
+      setOnClearCallback,
+      searchCached,
+      buildSearchIndex,
+    }),
+    [
+      isSearching, isLoading, inputValue, searchQuery, searchResults, navigatedFromSearch,
+      isIndexing, cacheInitialized, handleInputChange, activateSearch, clearSearchInput,
+      clearSearch, returnToSearch, searchCached, buildSearchIndex,
+    ],
+  );
 
   return (
-    <SearchContext.Provider
-      value={{
-        isSearching,
-        isLoading,
-        inputValue,
-        searchQuery,
-        searchResults,
-        navigatedFromSearch,
-        isIndexing,
-        cacheInitialized,
-        handleInputChange,
-        activateSearch,
-        clearSearchInput,
-        setSearching,
-        setSearchQuery,
-        setSearchResults,
-        setNavigatedFromSearch,
-        clearSearch,
-        returnToSearch,
-        setOnClearCallback,
-        searchCached,
-        buildSearchIndex,
-      }}
-    >
+    <SearchContext.Provider value={value}>
       {children}
     </SearchContext.Provider>
   );

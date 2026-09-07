@@ -1,6 +1,6 @@
 {
   "name": "xylonic",
-  "version": "26.08.01",
+  "version": "26.09.07",
   "desktopName": "beangreen247.xylonic.musicplayer",
   "description": "Modern Subsonic music streaming client with Spotify-like UI. Stream your music library from any Subsonic-compatible server (Navidrome, Airsonic, Gonic) with full playback controls, album art, and responsive design.",
   "author": {
@@ -83,6 +83,7 @@
     "electron:serve": "concurrently -k \"vite\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:serve:persist": "concurrently -k \"cross-env SKIP_DEV_CLEAR=true vite\" \"wait-on http://localhost:3000 && electron .\"",
     "prebuild:clean": "node scripts/clean-appdata-prebuild.js",
+    "version:date": "node scripts/set-version-date.js",
     "write-build-info:debug": "node scripts/write-build-info.js debug",
     "write-build-info:release": "node scripts/write-build-info.js release",
     "electron:build": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder\"",

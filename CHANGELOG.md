@@ -4,12 +4,23 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+## [26.09.07] - 2026-09-07
+
 ### Security
 - **Single credential path (WS-SEC, phase 1)** — new `src/services/credentialsService.ts` is now the one authoritative accessor for `{serverUrl, username, password}`: `get()` prefers the encrypted backend (Electron `safeStorage` via the existing `secureCredentialService`), `getCached()` is a synchronous best-effort read for the many existing call sites, `set()`/`clear()` keep the encrypted store, the sync cache and legacy `localStorage` in step, and `hydrate()` refreshes the cache from the encrypted store at boot. `useCredentials()` hook exposes it reactively. Every `localStorage.getItem('password')` in application code (App/MainApp, all `Library/*` list & grid views, `MiniPlayer`, `CachePreloadDialog`, `SearchContext`, `useScrobbler`, `useSongList`, `likedSongsService`, `apiErrorHandler`, `downloadManagerService`, `subsonicApi`, `utils/storage`) now routes through `credentialsService.getCached()` — the copy-pasted `serverUrl/username/password` triple collapses to one destructure. Plaintext `localStorage` is still written as the sync hydration source (removing plaintext-at-rest is gated on WS-TEST + the `webSecurity:true`/`xylonic://` desktop pass — see `docs/ROADMAP.md`).
 - **Cryptographic auth salt** — `subsonicApi.generateAuthParams` and the two cover-art fetch paths in `downloadManagerService` now derive the Subsonic auth salt from `crypto.getRandomValues` (16-byte hex) instead of `Math.random().toString(36)`.
 - **Electron `setWindowOpenHandler` default-deny** — both `BrowserWindow`s now deny every `window.open` target, handing only `http(s)` URLs to the system browser (previously non-web schemes returned `{action:'allow'}`; the mini-player window had no handler at all).
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
+
+### Added
+- **`npm run version:date`** — `scripts/set-version-date.js` stamps
+  `package.json` `version` with today's local date as `YY.MM.DD` (the project's
+  CalVer scheme, one version per calendar day). Run it when cutting a build, like
+  the CHANGELOG bump; it is deliberately not part of `npm run build`. Everything
+  downstream (`write-build-info.js` → `build-info.json` + Settings "About",
+  Electron window titles, electron-builder artifact versions) already reads
+  `package.json`, so it stays the single source of truth. `--dry` previews.
 
 ### Changed
 - **Three responsive layouts (WS-UX, `docs/design/0001`)** — `LayoutModeContext`

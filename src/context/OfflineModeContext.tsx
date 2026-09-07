@@ -3,7 +3,7 @@
  * Manages offline mode state and internet connectivity
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Network } from '@capacitor/network';
 import { OfflineModeConfig } from '../types/offline';
@@ -166,7 +166,7 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
   /**
    * Check internet connectivity (ping test)
    */
-  const checkConnectivity = async (): Promise<boolean> => {
+  const checkConnectivity = useCallback(async (): Promise<boolean> => {
     const attempt = async (): Promise<boolean> => {
       try {
         await fetch('https://www.google.com/favicon.ico', {
@@ -201,12 +201,12 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
       logger.log('[OfflineMode] Connectivity check: offline');
       return false;
     }
-  };
+  }, []);
 
   /**
    * Toggle offline mode
    */
-  const toggleOfflineMode = async () => {
+  const toggleOfflineMode = useCallback(async () => {
     const wasOffline = config.enabled;
     const newConfig = {
       ...config,
@@ -237,17 +237,19 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
         }
       }
     }
-  };
+  }, [config, checkConnectivity]);
 
   /**
    * Update configuration
    */
-  const updateConfig = (updates: Partial<OfflineModeConfig>) => {
-    const newConfig = { ...config, ...updates };
-    setConfig(newConfig);
-    offlineCacheService.saveConfig(newConfig);
-    logger.log('[OfflineMode] Config updated:', updates);
-  };
+  const updateConfig = useCallback((updates: Partial<OfflineModeConfig>) => {
+    setConfig(prev => {
+      const newConfig = { ...prev, ...updates };
+      offlineCacheService.saveConfig(newConfig);
+      logger.log('[OfflineMode] Config updated:', updates);
+      return newConfig;
+    });
+  }, []);
 
   /**
    * Periodic liked-songs sync: keep starredSongIds fresh across devices.
@@ -303,7 +305,7 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
   }, []); // Empty dependency array - only setup/cleanup
 
-  const value: OfflineModeContextType = {
+  const value = useMemo<OfflineModeContextType>(() => ({
     isOnline,
     offlineModeEnabled: config.enabled,
     isCellular,
@@ -311,8 +313,8 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
     toggleOfflineMode,
     updateConfig,
     checkConnectivity,
-    cacheInitialized
-  };
+    cacheInitialized,
+  }), [isOnline, config, isCellular, toggleOfflineMode, updateConfig, checkConnectivity, cacheInitialized]);
 
   return (
     <OfflineModeContext.Provider value={value}>

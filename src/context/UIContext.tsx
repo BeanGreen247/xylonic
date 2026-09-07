@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 
 export type PanelTab = 'queue' | 'history' | 'playlists';
 
@@ -31,36 +31,38 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [desktopNowPlayingOpen, setDesktopNowPlayingOpen] = useState(false);
 
-  const openPanel = (tab?: PanelTab) => {
+  const openPanel = useCallback((tab?: PanelTab) => {
     if (tab) setPanelTab(tab);
     setPanelOpen(true);
-  };
+  }, []);
 
-  const closePanel = () => setPanelOpen(false);
-  const setTab = (tab: PanelTab) => setPanelTab(tab);
+  const closePanel = useCallback(() => setPanelOpen(false), []);
+  const setTab = useCallback((tab: PanelTab) => setPanelTab(tab), []);
 
-  const togglePanel = (tab?: PanelTab) => {
+  const togglePanel = useCallback((tab?: PanelTab) => {
     if (panelOpen && (!tab || tab === panelTab)) {
       setPanelOpen(false);
     } else {
       if (tab) setPanelTab(tab);
       setPanelOpen(true);
     }
-  };
+  }, [panelOpen, panelTab]);
 
-  const openNowPlaying  = () => setNowPlayingOpen(true);
-  const closeNowPlaying = () => setNowPlayingOpen(false);
+  const openNowPlaying  = useCallback(() => setNowPlayingOpen(true), []);
+  const closeNowPlaying = useCallback(() => setNowPlayingOpen(false), []);
 
-  const openDesktopNowPlaying  = () => setDesktopNowPlayingOpen(true);
-  const closeDesktopNowPlaying = () => setDesktopNowPlayingOpen(false);
+  const openDesktopNowPlaying  = useCallback(() => setDesktopNowPlayingOpen(true), []);
+  const closeDesktopNowPlaying = useCallback(() => setDesktopNowPlayingOpen(false), []);
 
-  return (
-    <UIContext.Provider value={{
-      panelOpen, panelTab, openPanel, closePanel, setTab, togglePanel,
-      nowPlayingOpen, openNowPlaying, closeNowPlaying,
-      desktopNowPlayingOpen, openDesktopNowPlaying, closeDesktopNowPlaying,
-    }}>
-      {children}
-    </UIContext.Provider>
-  );
+  const value = useMemo<UIContextType>(() => ({
+    panelOpen, panelTab, openPanel, closePanel, setTab, togglePanel,
+    nowPlayingOpen, openNowPlaying, closeNowPlaying,
+    desktopNowPlayingOpen, openDesktopNowPlaying, closeDesktopNowPlaying,
+  }), [
+    panelOpen, panelTab, openPanel, closePanel, setTab, togglePanel,
+    nowPlayingOpen, openNowPlaying, closeNowPlaying,
+    desktopNowPlayingOpen, openDesktopNowPlaying, closeDesktopNowPlaying,
+  ]);
+
+  return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
 };

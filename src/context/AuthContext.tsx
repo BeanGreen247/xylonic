@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { initializeStarredCache } from '../services/likedSongsService';
 import { saveConnection } from '../services/connectionHistoryService';
 import { migratePlaintextCredentials } from '../services/secureCredentialService';
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       .finally(() => { credentialsService.hydrate().catch(() => {}); });
   }, []);
 
-  const login = async (server: string, user: string, password: string, offlineMode: boolean = false) => {
+  const login = useCallback(async (server: string, user: string, password: string, offlineMode: boolean = false) => {
     metadataCache.invalidate();
     logger.log('AuthContext: Logging in', { serverUrl: server, user, offlineMode });
     
@@ -94,9 +94,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('auth-changed'));
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     metadataCache.invalidate();
     // Only remove auth-related keys, keep themes intact
     localStorage.removeItem('auth');
@@ -117,11 +117,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       window.dispatchEvent(new Event('auth-changed'));
       window.dispatchEvent(new Event('logout')); // Specific event for logout
     }
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, username, serverUrl, isOfflineMode, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({ isAuthenticated, isLoading, username, serverUrl, isOfflineMode, login, logout }),
+    [isAuthenticated, isLoading, username, serverUrl, isOfflineMode, login, logout],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

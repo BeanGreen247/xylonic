@@ -3,7 +3,7 @@
  * Provides image caching functionality across the app
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { imageCacheService } from '../services/imageCacheService';
 import { searchCacheService } from '../services/searchCacheService';
 import { logger } from '../utils/logger';
@@ -101,19 +101,20 @@ export const ImageCacheProvider: React.FC<{ children: ReactNode }> = ({ children
     return imageCacheService.getImage(coverArtId, serverFetchFn);
   }, [isInitialized]);
 
-  const clearCache = async () => {
+  const clearCache = useCallback(async () => {
     await imageCacheService.clearCache();
-  };
+  }, []);
 
-  const getCacheStats = async () => {
+  const getCacheStats = useCallback(async () => {
     return imageCacheService.getCacheStats();
-  };
+  }, []);
 
-  return (
-    <ImageCacheContext.Provider value={{ isInitialized, getCachedImage, clearCache, getCacheStats }}>
-      {children}
-    </ImageCacheContext.Provider>
+  const value = useMemo<ImageCacheContextType>(
+    () => ({ isInitialized, getCachedImage, clearCache, getCacheStats }),
+    [isInitialized, getCachedImage, clearCache, getCacheStats],
   );
+
+  return <ImageCacheContext.Provider value={value}>{children}</ImageCacheContext.Provider>;
 };
 
 export const useImageCache = () => {

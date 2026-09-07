@@ -14,18 +14,16 @@ electron:serve` bg, scan for main-process exceptions (memory
 - WS-PERF: `getAllSongs` concurrent batches
 - WS-ARCH `PlayerContext` → `playerQueue.ts` / `playerPersistence.ts` / `utils/dataUrl.ts`
 - WS-ARCH `downloadManagerService` → `downloadManagerHelpers.ts` + `downloadReconciler.ts`
-- WS-ARCH `electron.js` **2232 → 1332 lines** — extracted to `public/ipc/*`:
+- WS-ARCH `electron.js` **2232 → 694 lines** — extracted to `public/ipc/*`:
   `remote.js`, `logging.js`, `settings.js`, `credentials.js`, `system.js`,
-  `misc.js`, `downloadNotification.js`. Each has a plain-node functional test;
-  `electron:serve` verified clean.
+  `misc.js`, `downloadNotification.js`, **`cache.js` (~31 cache-fs handlers)**.
+  Each has a plain-node functional test; `electron:serve` verified clean.
 
 **Next, in order:**
-1. `electron.js` — player/mini-window + MPRIS-art + `player-state-update` IPC
-   (couples to `mainWindow` / `miniPlayerWindow` / `lastPlayerState` / `mpris` /
-   `_updatePowerSave` / `createMiniPlayer` — inject all).
-2. `electron.js` — the ~30-handler **cache-filesystem** block → `public/ipc/cache.js`
-   (inject `getCacheBasePath` / `saveCacheBasePath`; ~650 lines → target electron.js ≈ 800).
-3. `downloadManagerService` transport slice (`processQueue` / `downloadBatchNative`
+1. `electron.js` — LAST slice: player/mini-window + MPRIS-art + `player-state-update`
+   IPC (couples to `mainWindow` / `miniPlayerWindow` / `lastPlayerState` / `mpris` /
+   `_updatePowerSave` / `createMiniPlayer` — inject all). ~120 lines.
+2. `downloadManagerService` transport slice (`processQueue` / `downloadBatchNative`
    ×2 / `downloadSongJS` / worker pool) → `downloadTransport`; then queue state → `downloadQueue`.
 4. `PlayerContext` → `useMediaSession` / `usePlaybackEngine` / `useQueue`.
 5. `SettingsView` (1226) split; `react-router` + `LayoutModeContext`.

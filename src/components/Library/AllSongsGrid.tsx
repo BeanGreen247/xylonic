@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import Skeleton from '../common/Skeleton';
 import { searchSongsPaginated, getStreamUrl, getAllSongs } from '../../services/subsonicApi';
 import { usePlayback } from '../../hooks/usePlayback';
 import { useOfflineMode } from '../../context/OfflineModeContext';
@@ -244,12 +245,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
   const totalPages = offlineModeEnabled ? Math.ceil(songs.length / PAGE_SIZE) : 0;
 
   if (loading) {
-    return (
-      <div className="loading">
-        <i className="fas fa-spinner"></i>
-        <span>Loading songs...</span>
-      </div>
-    );
+    return <Skeleton variant="list" />;
   }
 
   if (error) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import Skeleton from '../common/Skeleton';
 import { getStarred, getStreamUrl } from '../../services/subsonicApi';
 import { toggleLike } from '../../services/likedSongsService';
 import { usePlayback } from '../../hooks/usePlayback';
@@ -200,12 +201,7 @@ const LikedSongsView: React.FC<LikedSongsViewProps> = ({ topView = 'likedSongs',
   };
 
   if (loading) {
-    return (
-      <div className="loading">
-        <i className="fas fa-spinner" />
-        <span>Loading liked songs...</span>
-      </div>
-    );
+    return <Skeleton variant="list" />;
   }
 
   if (error) {

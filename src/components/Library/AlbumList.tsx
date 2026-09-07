@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Skeleton from '../common/Skeleton';
 import { getArtist, getAlbum } from '../../services/subsonicApi';
 import { metadataCache } from '../../services/metadataCache';
 import { usePlayback } from '../../hooks/usePlayback';
@@ -217,12 +218,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   // ─────────────────────────────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <div className="loading">
-        <i className="fas fa-spinner"></i>
-        <span>Loading albums...</span>
-      </div>
-    );
+    return <Skeleton variant="grid" />;
   }
 
   if (error) {

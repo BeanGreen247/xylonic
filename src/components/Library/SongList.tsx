@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Skeleton from '../common/Skeleton';
 import { List, RowComponentProps } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { getAlbum, getArtist, getStreamUrl } from '../../services/subsonicApi';
@@ -382,12 +383,7 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
   };
 
   if (loading) {
-    return (
-      <div className="loading">
-        <i className="fas fa-spinner"></i>
-        <span>Loading songs...</span>
-      </div>
-    );
+    return <Skeleton variant="list" />;
   }
 
   if (error) {

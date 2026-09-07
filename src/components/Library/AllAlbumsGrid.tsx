@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import Skeleton from '../common/Skeleton';
 import { getAllAlbumsPaginated, getAllSongs, getStreamUrl, getCoverArtUrl } from '../../services/subsonicApi';
 import { metadataCache } from '../../services/metadataCache';
 import { usePlayback } from '../../hooks/usePlayback';
@@ -225,12 +226,7 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
   };
 
   if (loading) {
-    return (
-      <div className="loading">
-        <i className="fas fa-spinner"></i>
-        <span>Loading albums...</span>
-      </div>
-    );
+    return <Skeleton variant="grid" />;
   }
 
   if (error) {

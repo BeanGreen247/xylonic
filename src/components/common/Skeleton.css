@@ -1,0 +1,93 @@
+/* Library loading skeletons (WS-UX). Shimmer reuses the compositor-only
+   `album-art-shimmer` keyframes already defined in index.css. */
+
+.lib-skeleton {
+    padding: 4px 0 32px;
+}
+
+.lib-skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.lib-skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.lib-skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lib-skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.lib-skeleton-rowtext {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lib-skeleton-box {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+}
+
+/* Shimmer sweep — transform-based, matches .album-art-loading::after. */
+.lib-skeleton-box::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 25%, var(--surface-variant) 50%, transparent 75%);
+    transform: translateX(-100%);
+    will-change: transform;
+    animation: album-art-shimmer 1.4s ease-in-out infinite;
+}
+
+.lib-skeleton-thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-md);
+}
+
+.lib-skeleton-thumb.sm {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+}
+
+.lib-skeleton-line {
+    height: 12px;
+    width: 90%;
+}
+
+.lib-skeleton-line.short {
+    width: 55%;
+}
+
+/* Respect reduced-motion and the app's performance mode: freeze the sweep. */
+@media (prefers-reduced-motion: reduce) {
+    .lib-skeleton-box::after {
+        animation: none;
+        transform: translateX(0);
+        opacity: 0.5;
+    }
+}
+
+body.performance-mode .lib-skeleton-box::after {
+    animation: none !important;
+    transform: translateX(0);
+    opacity: 0.45;
+}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Skeleton from '../common/Skeleton';
 import { getArtists, getSongCount, getAllSongs, getStreamUrl, getCoverArtUrl } from '../../services/subsonicApi';
 import { metadataCache } from '../../services/metadataCache';
 import { searchCacheService } from '../../services/searchCacheService';
@@ -431,12 +432,7 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
   };
 
   if (loading) {
-    return (
-      <div className="loading">
-        <i className="fas fa-spinner"></i>
-        <span>Loading artists...</span>
-      </div>
-    );
+    return <Skeleton variant="grid" />;
   }
 
   if (error) {

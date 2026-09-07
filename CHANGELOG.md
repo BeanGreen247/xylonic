@@ -12,6 +12,24 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **Three responsive layouts (WS-UX, `docs/design/0001`)** — `LayoutModeContext`
+  is now wired in: `App` stamps `data-layout="compact|medium|expanded"` on `.app`
+  and layout CSS keys off it (`forceMode` still overrides, `@media` kept as the
+  pre-hydration fallback).
+  - **medium** (768–1199 px): `AppNav` becomes a 64 px icon rail — no collapse
+    toggle, no user/server block; labels via `title`/`aria-label`. Reclaims
+    ~136 px for content on tablets and half-screen desktop windows.
+  - **expanded** (≥1200 px): the queue / history / playlists `RightPanel` now
+    **docks** — a flex child of `.app-body` with no backdrop that reserves
+    `clamp(300px, 26vw, 380px)` only while open, so the content column shrinks
+    instead of being covered. Below 1200 px it stays the overlay drawer. Closed
+    by default at every width; header toggle unchanged.
+  - **compact** (≤767 px): unchanged — bottom nav, overlay drawer.
+  - Card grids (`.artists-grid`, `.albums-grid`, the skeleton grid) now reflow
+    off the content column via a `@container` query on `.main-content`, stepping
+    the column minimum 150 → 180 → 200 px; opening the docked panel or the rail
+    re-flows the cards with no viewport media query. The `min-width: 1366px`
+    `!important` grid override is gone.
 - **Skeleton loaders for library lists/grids (WS-UX)** — new
   `src/components/common/Skeleton.tsx` (`grid` and `list` variants) replaces the
   centred spinner + "Loading …" text in `ArtistList`, `AlbumList`,

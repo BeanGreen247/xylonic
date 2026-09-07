@@ -312,14 +312,22 @@ kept optimisation has a before/after number in the ledger.
 `100vh`, whole-FA, no real light theme, a11y gaps.
 
 ### Must
-- [ ] **Three real responsive layouts** driven by `LayoutModeContext` +
-      container queries (not just `max-width: 767`):
-  - **compact** (phone): bottom nav, single pane, current mobile UI.
-  - **medium** (tablet / small desktop window): rail nav + content, optional
-    right panel.
-  - **expanded** (desktop): sidebar + content + persistent right-hand
-    queue/now-playing panel.
-  - (**tv** — see WS-TV.)
+- [x] **Three real responsive layouts** (2026-09-07, `docs/design/0001`) —
+      `LayoutModeContext` is now consumed: `App` writes `data-layout` on `.app`;
+      structural CSS keys off `.app[data-layout="…"]`, `forceMode` still overrides.
+  - **compact** (≤767): unchanged — bottom nav, single pane, overlay queue drawer.
+  - **medium** (768–1199): `AppNav` forced to a 64 px icon rail (no toggle / no
+    user block); queue panel stays an overlay.
+  - **expanded** (≥1200): full labelled sidebar; `RightPanel` **docks** as a flex
+    child of `.app-body` (no backdrop, reserves `clamp(300px,26vw,380px)` only
+    when open, content column shrinks); closed by default, header toggle.
+  - **tv**: `data-layout="tv"` selector reserved for WS-TV.
+  - Container queries: `.main-content` is a `main-col` query container; the
+    artist/album/skeleton grids step column-min (150 → 180 → 200) off the
+    *content column* width, so docking the panel / the rail reflows cards with no
+    viewport media query. Dropped the `min-width:1366px !important` grid override.
+  - Verified via Playwright at 390/760/900/1100/1440, light + dark, panel
+    open/closed. On-device compact check (iPhone 15 Pro Max) still pending.
 - [x] **`100vh` → `100dvh`** (2026-09-07) — the 6 full-height container
       declarations (`.app`, `.login-container` × incl. media queries, `.App`,
       `.mini-player`) now emit `height: 100vh; height: 100dvh;` so `dvh` wins
@@ -368,11 +376,12 @@ kept optimisation has a before/after number in the ledger.
       skeletons for the right-hand panel tabs + Discover.
 
 ### Should
-- [ ] Persistent right-hand **queue panel** on expanded layout with drag-reorder
-      and "playing from <context>" — the main ergonomic gap vs. reference apps.
-- [ ] Design-craft research pass (per `design-craft` skill) before the expanded
-      layout: 3–4 real reference players, a locked direction, a decision ledger
-      in `docs/design/`.
+- [~] Persistent right-hand **queue panel** on expanded layout (2026-09-07) —
+      the panel now docks at `expanded` (`docs/design/0001`). `QueueTab` already
+      has drag-reorder; **"playing from <context>"** header is still to do.
+- [x] Design-craft research pass (2026-09-07) — `docs/design/0001-responsive-
+      layouts.md`: Navidrome demo inspected live at 3 widths + YouTube Music /
+      Spotify / Apple Music structural traits; locked direction + decision ledger.
 - [ ] Motion pass — `prefers-reduced-motion` honoured everywhere; one deliberate
       now-playing transition rather than scattered effects.
 - [ ] Contrast check both themes against WCAG AA; ship a high-contrast variant

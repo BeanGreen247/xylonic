@@ -28,12 +28,18 @@ WS-TV last). 127 tests green, `npm run lint` 0 errors, `npm run build` clean.
 - **Skeleton loaders** (HEAD `8b20f73`): `components/common/Skeleton.tsx`
   (`grid`/`list`, reduced-motion + performance-mode aware, `role=status`)
   replaces the `.loading` spinner in the 6 Library list/grid views.
+- **Three responsive layouts** (HEAD `602d9ed`, `docs/design/0001`): design-craft
+  research pass (Navidrome demo inspected live + YTM/Spotify/Apple structural
+  traits) → locked ledger. `LayoutModeContext` now consumed: `App` sets
+  `data-layout` on `.app`. **medium** = `AppNav` 64 px icon rail; **expanded** =
+  `RightPanel` docks into `.app-body` flow (no backdrop, reserves width only when
+  open); **compact** unchanged. Card grids reflow via `@container` on
+  `.main-content`. Verified Playwright 390–1440, light+dark, panel open/closed.
 
-**WS-UX remaining:** 3 container-query layouts via `LayoutModeContext` (**big —
-needs the design-craft research pass first**); eslint rule vs new static inline
-styles; explicit offline "here's what's available" state + skeletons for
-RightPanel tabs / Discover; component-by-component light-mode hardcoded-colour
-audit.
+**WS-UX remaining:** "playing from <context>" header on the queue panel; eslint
+rule vs new static inline styles; explicit offline "here's what's available"
+state + skeletons for RightPanel tabs / Discover; component-by-component
+light-mode hardcoded-colour audit; on-device compact check (iPhone 15 Pro Max).
 
 ---
 

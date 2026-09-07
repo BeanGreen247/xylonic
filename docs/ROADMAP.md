@@ -55,6 +55,22 @@ Phase 6  WS-FEAT + WS-DOCS (rolling, low-risk, fill gaps)
 Phase 0 is do-first (key rotation can't wait). Phases 1a (lint/CI) and 1b
 (test harness) run in parallel. TV work depends on the responsive refactor.
 
+### Execution order in effect (2026-09-07, revised by owner)
+
+The dependency graph above is the *ideal*. The order actually being worked:
+
+```
+WS-QUAL core ✅ → WS-TEST harness ✅ → WS-ARCH (now) → WS-PERF → WS-UX leftovers
+  → WS-FEAT/DOCS → WS-QUAL remainder (near-last) → WS-SEC leftovers → WS-TV
+  → WS-TEST full coverage (very last)
+```
+
+Consequence: the WS-ARCH god-object splits run **before** their WS-TEST
+coverage — "tests before refactors" (principle 1) is consciously suspended.
+Each split is gated on `npm run build` + the existing suite + `electron:serve`;
+device-only behaviours (MPRIS, Android/iOS media notifications, native download
+pools, D-pad) are verified with the owner on-device afterwards.
+
 ---
 
 ## WS-SEC — Security → 9.5

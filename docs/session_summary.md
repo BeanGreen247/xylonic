@@ -1,9 +1,21 @@
 # Session Summary
 
-## Current Focus (Sept 7, 2026 — WS-UX, roadmap execution)
+## Current Focus (Sept 7, 2026 — WS-ARCH, roadmap execution)
 
-**RESUME HERE.** Still executing `docs/ROADMAP.md` in order (SEC-leftovers +
-WS-TV last). 127 tests green, `npm run lint` 0 errors, `npm run build` clean.
+**RESUME HERE.** Revised order (2026-09-07, per user): **WS-ARCH now → WS-PERF →
+WS-UX leftovers → WS-FEAT/DOCS → WS-QUAL (near-last) → WS-SEC leftovers → WS-TV →
+WS-TEST (very last).** Note: this runs the god-object splits *before* their WS-TEST
+coverage — the roadmap's "tests before refactors" principle is consciously
+overridden; each split is verified by `npm run build` + the existing 127 tests +
+`electron:serve`, with on-device (MPRIS / Android notif / iOS) verification
+deferred.
+
+127 tests green, `npm run lint` 0 errors, `npm run build` clean. Version
+`26.09.07` (`npm run version:date`).
+
+**WS-ARCH remaining (safest first):** provider-tree memoization → `ARCHITECTURE.md`
+physical split → `SettingsView` section split → `react-router` → `PlayerContext`
+→ hooks → `downloadManagerService` → transport/queue split.
 
 **WS-UX done & committed this pass:**
 - `100vh` → `100dvh` (index.css / App.css / MiniPlayer.css).

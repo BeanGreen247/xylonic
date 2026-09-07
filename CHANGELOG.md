@@ -12,6 +12,13 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
+- **`downloadManagerService` pure helpers extracted (WS-ARCH, split slice 1)** —
+  `qualityToBitrate`, `formatSpeed`, `sanitizeFilename` (was dead), the rolling
+  speed-window math, the "which songs to actually enqueue" filter and the numeric
+  half of `getProgress()` moved to `src/services/downloadManagerHelpers.ts` (pure,
+  +10 tests). The 2064-line god-object now calls these; behaviour unchanged
+  (queue-dedup / getProgress-invariant tests still pass). Next slices split the
+  stateful class into `downloadQueue` / `downloadTransport` / `downloadReconciler`.
 - **`getAllSongs` fetches pages concurrently (WS-PERF)** — was a fully serial
   `while` loop (one 500-song page after another — ~50 round-trips of latency for a
   25k library). Now probes page 0 serially (small libraries finish in one

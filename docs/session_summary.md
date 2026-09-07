@@ -2,13 +2,14 @@
 
 ## Current Focus (September 6, 2026 — WS-ARCH / WS-PERF in progress)
 
-**RESUME HERE (next session):** last uncommitted change is the `getAllSongs`
-concurrency (`subsonicApi.ts` + test + CHANGELOG + ROADMAP box) — user commits it
-as `perf(subsonic): fetch getAllSongs pages in concurrent batches of 4`. Then
-continue **WS-ARCH: split `downloadManagerService` (2064)** → `downloadQueue` /
-`downloadTransport` / `downloadReconciler` (the reconciler unblocks the
-idempotent-`songDownloaded`/`songFailed` + orphan-recovery tests). Order for the
-rest: finish `downloadManagerService`, then `PlayerContext` hooks
+**RESUME HERE:** `downloadManagerService` split **slice 1** done —
+`src/services/downloadManagerHelpers.ts` (pure `qualityToBitrate` / `formatSpeed`
+/ `sanitizeFilename` / `computeSpeedBps` / `filterUnqueuedSongs` / `computeProgress`,
+10 tests) + service wired to them, behaviour-preserving, 110 tests green. Commit:
+`refactor(downloads): extract pure helpers from downloadManagerService; +10 tests`.
+Next: continue splitting the stateful class → `downloadQueue` / `downloadTransport`
+/ `downloadReconciler` (the reconciler unblocks the idempotent-`songDownloaded`/
+`songFailed` + orphan-recovery tests). Then `PlayerContext` hooks
 (`useMediaSession` / `usePlaybackEngine` / `useQueue`), then `electron.js` →
 `ipc/*` (user smoke-tests — no Electron on Linux), `SettingsView` split,
 `react-router` + `LayoutModeContext`. Then WS-PERF proper, WS-UX, WS-FEAT/DOCS,

@@ -19,6 +19,13 @@ import { Capacitor, registerPlugin, PluginListenerHandle } from '@capacitor/core
 import md5 from 'md5';
 import { getMaxConcurrentDownloads } from '../utils/settingsManager';
 import { credentialsService } from './credentialsService';
+import {
+  qualityToBitrate,
+  formatSpeed,
+  computeSpeedBps,
+  filterUnqueuedSongs,
+  computeProgress,
+} from './downloadManagerHelpers';
 
 // Cryptographically-random hex salt for Subsonic auth params (16 bytes).
 const randomSalt = (): string => {
@@ -433,8 +440,11 @@ class DownloadManagerService {
         .map(i => i.song.id)
     );
 
-    const newItems: DownloadQueueItem[] = request.songs
-      .filter(song => !offlineCacheService.isCached(song.id) && !activeIds.has(song.id))
+    const newItems: DownloadQueueItem[] = filterUnqueuedSongs(
+      request.songs,
+      id => offlineCacheService.isCached(id),
+      activeIds,
+    )
       .map(song => ({
         id: `${song.id}_${Date.now()}_${Math.random()}`,
         song,
@@ -729,7 +739,7 @@ class DownloadManagerService {
     if (toDownload.length === 0) return;
 
     const batchItems = toDownload.map(item => ({
-      url:    getStreamUrl(serverUrl, username, password, item.song.id, this.qualityToBitrate(item.quality)),
+      url:    getStreamUrl(serverUrl, username, password, item.song.id, qualityToBitrate(item.quality)),
       hash:   offlineCacheService.getAudioHash(item.song.id),
       songId: item.song.id,
       title:  item.song.title,
@@ -934,7 +944,7 @@ class DownloadManagerService {
     if (toDownload.length === 0) return;
 
     const batchItems = toDownload.map(item => ({
-      url:       getStreamUrl(serverUrl, username, password, item.song.id, this.qualityToBitrate(item.quality)),
+      url:       getStreamUrl(serverUrl, username, password, item.song.id, qualityToBitrate(item.quality)),
       songId:    item.song.id,
       audioHash: offlineCacheService.getAudioHash(item.song.id),
     }));
@@ -1134,7 +1144,7 @@ class DownloadManagerService {
         return;
       }
 
-      const bitrate   = this.qualityToBitrate(item.quality);
+      const bitrate   = qualityToBitrate(item.quality);
       const streamUrl = getStreamUrl(serverUrl, username, password, item.song.id, bitrate);
 
       // Show "starting" notification immediately (also starts DownloadService on Android)
@@ -1533,11 +1543,6 @@ class DownloadManagerService {
     }
   }
 
-  private formatSpeed(bps: number): string {
-    if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(0)} KB/s`;
-    return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
-  }
-
   private pushDownloadNotification(receivedBytes: number, indeterminate: boolean = false): void {
     const now = Date.now();
     this.lastProgressMs = now;
@@ -1545,18 +1550,14 @@ class DownloadManagerService {
     this.lastNotifMs = now;
 
     // Rolling 3-second speed window
-    this.speedSamples.push({ time: now, bytes: receivedBytes });
-    this.speedSamples = this.speedSamples.filter(s => now - s.time <= 3000);
-    if (this.speedSamples.length >= 2) {
-      const oldest = this.speedSamples[0];
-      const dt = (now - oldest.time) / 1000;
-      this.downloadSpeedBps = dt > 0 ? (receivedBytes - oldest.bytes) / dt : 0;
-    }
+    const speed = computeSpeedBps(this.speedSamples, now, receivedBytes, 3000);
+    this.speedSamples = speed.samples;
+    if (speed.samples.length >= 2) this.downloadSpeedBps = speed.bps;
 
     const current = this.currentDownload;
     if (!current) return;
 
-    const text = this.downloadSpeedBps > 1024 ? this.formatSpeed(this.downloadSpeedBps) : '';
+    const text = this.downloadSpeedBps > 1024 ? formatSpeed(this.downloadSpeedBps) : '';
 
     getBridge().showDownloadNotification({
       title: current.song.title,
@@ -1569,20 +1570,6 @@ class DownloadManagerService {
 
   private hideDownloadNotificationNow(): void {
     getBridge().hideDownloadNotification().catch(() => {});
-  }
-
-  /**
-   * Convert quality to bitrate
-   */
-  private qualityToBitrate(quality: DownloadQuality): number | undefined {
-    switch (quality) {
-      case 'original': return undefined; // No transcoding
-      case '320': return 320;
-      case '256': return 256;
-      case '128': return 128;
-      case '64': return 64;
-      default: return undefined;
-    }
   }
 
   private startStuckCheck(): void {
@@ -1668,17 +1655,6 @@ class DownloadManagerService {
       clearTimeout(timeout);
       this.autoClearTimeouts.delete(itemId);
     }
-  }
-
-  /**
-   * Sanitize filename for safe file system storage
-   */
-  private sanitizeFilename(name: string): string {
-    return name
-      .replace(/[<>:"/\\|?*]/g, '_') // Replace invalid chars
-      .replace(/\s+/g, ' ')           // Normalize spaces
-      .trim()
-      .substring(0, 100);             // Limit length
   }
 
   /**
@@ -1842,33 +1818,21 @@ class DownloadManagerService {
    * Get current download progress
    */
   getProgress(): DownloadProgress {
-    const totalSongs     = this.sessionTotal;
-    const completedSongs = this.sessionCompleted;
-    const failedSongs    = this.sessionFailed;
-    // pending = everything not yet done (includes any currently-downloading items)
-    const pendingSongs   = Math.max(0, totalSongs - completedSongs - failedSongs);
-
-    // All items currently downloading — one with single-song modes, potentially several
-    // with concurrent JS downloads or a native batch mid-flight.
+    // All items currently downloading — one with single-song modes, potentially
+    // several with concurrent JS downloads or a native batch mid-flight.
     const currentDownloads = this.queue.filter(i => i.status === 'downloading');
 
-    let overallProgress = 0;
-    if (totalSongs > 0) {
-      // Sum in-flight progress across every currently-downloading item. A completed
-      // song is already counted in completedSongs × 100; adding its progress again
-      // would make overallProgress exceed 100%, so only 'downloading' items count here.
-      const downloadingProgress = currentDownloads.reduce((sum, i) => sum + (i.progress ?? 0), 0);
-      overallProgress = Math.min(100, Math.round((completedSongs * 100 + downloadingProgress) / totalSongs));
-    }
+    const nums = computeProgress({
+      sessionTotal:     this.sessionTotal,
+      sessionCompleted: this.sessionCompleted,
+      sessionFailed:    this.sessionFailed,
+      downloadingProgress: currentDownloads.map(i => i.progress ?? 0),
+    });
 
     return {
-      totalSongs,
-      completedSongs,
-      failedSongs,
-      pendingSongs,
+      ...nums,
       currentSong: currentDownloads[0] || undefined,
       currentDownloads,
-      overallProgress,
       isPaused: this.isPaused,
       isDownloading: this.isDownloading,
       pendingClear: this.pendingClear,

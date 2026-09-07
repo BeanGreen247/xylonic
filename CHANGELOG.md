@@ -21,6 +21,12 @@ All notable changes to Xylonic are documented here.
   (first RTL component test in the suite). Nothing reads it yet.
 
 ### Changed
+- **`SettingsView` split, first pass (WS-ARCH)** — three self-contained,
+  props-only pieces lifted into `src/components/common/settings/`:
+  `LicensesDialog`, `TechStackDialog` (the two portal modals) and
+  `PerformanceCacheSection` (the read-only cache-stats block). **`SettingsView.tsx`
+  1226 → 953 lines.** The remaining sections are small and tightly coupled to the
+  component's state/handlers — left inline for now.
 - **`PlayerContext` → `useMediaSession` hook (WS-ARCH)** — the eight OS
   media-session effects (`navigator.mediaSession` action handlers + metadata +
   playback/position state, plus the Capacitor foreground-service / notification

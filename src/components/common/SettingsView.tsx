@@ -25,6 +25,9 @@ import ThemeSelector from './ThemeSelector';
 import FirewallSetupDialog from './FirewallSetupDialog';
 import SleepTimerPicker, { fmtSleepRemaining } from './SleepTimerPicker';
 import DownloadManagerWindow from '../Library/DownloadManagerWindow';
+import LicensesDialog from './settings/LicensesDialog';
+import TechStackDialog from './settings/TechStackDialog';
+import PerformanceCacheSection from './settings/PerformanceCacheSection';
 import './SettingsView.css';
 
 const PREF_KEY = (username: string) => `xylonic_library_view_${username}`;
@@ -421,190 +424,10 @@ const SettingsView: React.FC = () => {
       </section>
 
       {/* ── Performance Cache ─────────────────────────────── */}
-      <section className="settings-section">
-        <h3 className="settings-section-title">
-          Performance Cache
-          <button
-            className="settings-section-refresh"
-            onClick={() => setPerfCacheRefreshTick(t => t + 1)}
-            title="Refresh stats"
-            aria-label="Refresh performance cache stats"
-          >
-            <i className={`fas fa-sync-alt${perfCacheStats === null ? ' fa-spin' : ''}`} />
-          </button>
-        </h3>
-        <div className="settings-card">
-
-          {/* ── Overall summary ── */}
-          {perfCacheStats ? (() => {
-            const cached   = perfCacheStats.memoryHits + perfCacheStats.idbHits;
-            const internet = perfCacheStats.serverFetches + perfCacheStats.internetArtFetches + perfCacheStats.metadataFetches;
-            const total    = cached + internet;
-            const cachedPct   = total === 0 ? 50 : Math.round((cached   / total) * 100);
-            const internetPct = 100 - cachedPct;
-            return (
-              <div className="perf-overview">
-                <div className="perf-overview-numbers">
-                  <span className="perf-overview-cached">
-                    <i className="fas fa-check-circle" />
-                    {cached.toLocaleString()} cached
-                  </span>
-                  <span className="perf-overview-internet">
-                    {internet.toLocaleString()} internet
-                    <i className="fas fa-wifi" />
-                  </span>
-                </div>
-                <div className="perf-overview-bar" title={`${cachedPct}% served from cache`}>
-                  <div className="perf-overview-bar-cached"   style={{ width: `${cachedPct}%` }} />
-                  <div className="perf-overview-bar-internet" style={{ width: `${internetPct}%` }} />
-                </div>
-                <div className="perf-overview-label">
-                  {total === 0
-                    ? 'No requests yet this session'
-                    : `${cachedPct}% served from cache · ${internetPct}% used the network`}
-                </div>
-              </div>
-            );
-          })() : (
-            <div className="perf-overview perf-overview-loading">
-              <i className="fas fa-spinner fa-spin" /> Loading stats…
-            </div>
-          )}
-          <div className="settings-divider" />
-
-          {/* Image disk cache size */}
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon"><i className="fas fa-images" /></span>
-            <span className="settings-row-label">
-              Image Cache (IndexedDB)
-              <span className="settings-row-sub">Cover art blobs persisted across sessions</span>
-            </span>
-            <span className="settings-row-action perf-cache-stat-group">
-              {perfCacheStats ? (
-                <>
-                  <span className="perf-cache-stat">
-                    <span className="perf-cache-stat-value">{perfCacheStats.totalImages.toLocaleString()}</span>
-                    <span className="perf-cache-stat-label">images</span>
-                  </span>
-                  <span className="perf-cache-stat">
-                    <span className="perf-cache-stat-value">{fmtBytes(perfCacheStats.cacheSize)}</span>
-                    <span className="perf-cache-stat-label">on disk</span>
-                  </span>
-                </>
-              ) : <span className="perf-cache-stat-loading"><i className="fas fa-spinner fa-spin" /></span>}
-            </span>
-          </div>
-          <div className="settings-divider" />
-
-          {/* Search index size */}
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon"><i className="fas fa-list-alt" /></span>
-            <span className="settings-row-label">
-              Search Index (IndexedDB)
-              <span className="settings-row-sub">
-                {perfCacheStats && perfCacheStats.searchIndexSongs > 0
-                  ? `${perfCacheStats.searchIndexArtists.toLocaleString()} artists · ${perfCacheStats.searchIndexAlbums.toLocaleString()} albums · ${perfCacheStats.searchIndexSongs.toLocaleString()} songs`
-                  : 'Library metadata for instant search'}
-              </span>
-            </span>
-            <span className="settings-row-action perf-cache-stat-group">
-              {perfCacheStats ? (
-                perfCacheStats.searchIndexSizeBytes > 0 ? (
-                  <span className="perf-cache-stat">
-                    <span className="perf-cache-stat-value">{fmtBytes(perfCacheStats.searchIndexSizeBytes)}</span>
-                    <span className="perf-cache-stat-label">on disk</span>
-                  </span>
-                ) : (
-                  <span className="perf-cache-stat">
-                    <span className="perf-cache-stat-value" style={{ color: 'var(--text-muted)' }}>—</span>
-                    <span className="perf-cache-stat-label">not built</span>
-                  </span>
-                )
-              ) : <span className="perf-cache-stat-loading"><i className="fas fa-spinner fa-spin" /></span>}
-            </span>
-          </div>
-          <div className="settings-divider" />
-
-          {/* Images — no network */}
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon perf-icon-ok"><i className="fas fa-check-circle" /></span>
-            <span className="settings-row-label">
-              Images — No Network
-              <span className="settings-row-sub">
-                {perfCacheStats
-                  ? `${perfCacheStats.memoryHits.toLocaleString()} from RAM · ${perfCacheStats.idbHits.toLocaleString()} from disk`
-                  : '—'}
-              </span>
-            </span>
-            <span className="settings-row-action perf-cache-stat-group">
-              {perfCacheStats && (
-                <span className="perf-cache-stat">
-                  <span className="perf-cache-stat-value">
-                    {(perfCacheStats.memoryHits + perfCacheStats.idbHits).toLocaleString()}
-                  </span>
-                  <span className="perf-cache-stat-label">served</span>
-                </span>
-              )}
-            </span>
-          </div>
-          <div className="settings-divider" />
-
-          {/* Images — used internet */}
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon perf-icon-warn"><i className="fas fa-wifi" /></span>
-            <span className="settings-row-label">
-              Images — Internet Used
-              <span className="settings-row-sub">
-                {perfCacheStats
-                  ? `${perfCacheStats.serverFetches.toLocaleString()} from Subsonic server · ${perfCacheStats.internetArtFetches.toLocaleString()} from art service`
-                  : '—'}
-              </span>
-            </span>
-            <span className="settings-row-action perf-cache-stat-group">
-              {perfCacheStats ? (() => {
-                const total = perfCacheStats.memoryHits + perfCacheStats.idbHits
-                  + perfCacheStats.serverFetches + perfCacheStats.internetArtFetches;
-                const hit = perfCacheStats.memoryHits + perfCacheStats.idbHits;
-                const pct = total === 0 ? null : Math.round((hit / total) * 100);
-                return (
-                  <>
-                    <span className="perf-cache-stat">
-                      <span className="perf-cache-stat-value">
-                        {(perfCacheStats.serverFetches + perfCacheStats.internetArtFetches).toLocaleString()}
-                      </span>
-                      <span className="perf-cache-stat-label">fetched</span>
-                    </span>
-                    {pct !== null && (
-                      <span className={`settings-badge ${pct >= 80 ? 'on' : pct >= 50 ? '' : 'danger'}`}>
-                        {pct}% cached
-                      </span>
-                    )}
-                  </>
-                );
-              })() : null}
-            </span>
-          </div>
-          <div className="settings-divider" />
-
-          {/* Metadata — always internet */}
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon perf-icon-warn"><i className="fas fa-server" /></span>
-            <span className="settings-row-label">
-              Metadata — Internet Used
-              <span className="settings-row-sub">Artist lists, album details, song lists, search — always from server</span>
-            </span>
-            <span className="settings-row-action perf-cache-stat-group">
-              {perfCacheStats && (
-                <span className="perf-cache-stat">
-                  <span className="perf-cache-stat-value">{perfCacheStats.metadataFetches.toLocaleString()}</span>
-                  <span className="perf-cache-stat-label">API calls</span>
-                </span>
-              )}
-            </span>
-          </div>
-
-        </div>
-      </section>
+      <PerformanceCacheSection
+        stats={perfCacheStats}
+        onRefresh={() => setPerfCacheRefreshTick(t => t + 1)}
+      />
 
       {/* ── Offline & Cache ────────────────────────────────── */}
       <section className="settings-section">
@@ -1071,116 +894,20 @@ const SettingsView: React.FC = () => {
         document.body,
       )}
 
-      {/* Licenses dialog */}
-      {showLicenses && ReactDOM.createPortal(
-        <>
-          <div className="quality-picker-backdrop" onClick={() => setShowLicenses(false)} />
-          <div className="quality-picker-modal lic-modal" role="dialog" aria-label="Licenses">
-            <div className="quality-picker-header">
-              <span className="quality-picker-title">
-                <i className="fas fa-balance-scale" /> Licenses
-              </span>
-              <button className="quality-picker-close" onClick={() => setShowLicenses(false)} aria-label="Close">
-                <i className="fas fa-times" />
-              </button>
-            </div>
-            {(() => {
-              const isAndroid = Capacitor.isNativePlatform();
-              const tabs: { key: string; label: string }[] = [
-                { key: 'xylonic',         label: 'Xylonic' },
-                ...(isAndroid ? [
-                  { key: 'capacitor',     label: 'Capacitor' },
-                ] : [
-                  { key: 'electron',        label: 'Electron' },
-                  { key: 'electronBuilder', label: 'electron-builder' },
-                ]),
-                { key: 'react',           label: 'React' },
-                { key: 'typescript',      label: 'TypeScript' },
-                { key: 'vite',            label: 'Vite' },
-                { key: 'axios',           label: 'Axios' },
-                { key: 'fontawesome',     label: 'FontAwesome' },
-              ];
-              const entry = licenses?.[licTab];
-              return (
-                <div className="lic-layout">
-                  <div className="lic-tabs">
-                    {tabs.map(t => (
-                      <button
-                        key={t.key}
-                        className={`lic-tab${licTab === t.key ? ' active' : ''}`}
-                        onClick={() => setLicTab(t.key)}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="lic-body">
-                    {entry ? (
-                      <>
-                        <span className="lic-spdx">{entry.spdx}</span>
-                        <pre className="lic-text">{entry.text}</pre>
-                      </>
-                    ) : (
-                      <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Loading…</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </>,
-        document.body,
-      )}
+      <LicensesDialog
+        open={showLicenses}
+        onClose={() => setShowLicenses(false)}
+        activeTab={licTab}
+        onTabChange={setLicTab}
+        licenses={licenses}
+      />
 
-      {/* Tech Stack dialog */}
-      {showTechStack && ReactDOM.createPortal(
-        <>
-          <div className="quality-picker-backdrop" onClick={() => setShowTechStack(false)} />
-          <div className="quality-picker-modal" role="dialog" aria-label="Tech Stack">
-            <div className="quality-picker-header">
-              <span className="quality-picker-title">
-                <i className={`fas fa-${Capacitor.isNativePlatform() ? 'mobile-alt' : 'desktop'}`} /> Tech Stack
-              </span>
-              <button className="quality-picker-close" onClick={() => setShowTechStack(false)} aria-label="Close">
-                <i className="fas fa-times" />
-              </button>
-            </div>
-            <div className="quality-picker-list">
-              {(() => {
-                const d = buildInfo?.deps;
-                const isAndroid = Capacitor.isNativePlatform();
-                const items: { label: string; value: string | null }[] = [
-                  ...(isAndroid
-                    ? [{ label: 'Capacitor', value: d?.capacitor ?? null }]
-                    : [
-                        { label: 'Electron',         value: d?.electron ?? null },
-                        { label: 'electron-builder', value: d?.electronBuilder ?? null },
-                      ]
-                  ),
-                  { label: 'React',       value: d?.react       ?? null },
-                  { label: 'TypeScript',  value: d?.typescript  ?? null },
-                  { label: 'Vite',        value: d?.vite        ?? null },
-                  { label: 'Axios',       value: d?.axios       ?? null },
-                  { label: 'FontAwesome', value: d?.fontawesome ?? null },
-                  ...(isAndroid ? [
-                    { label: 'Android minSdk',    value: d?.androidMinSdk    ?? null },
-                    { label: 'Android targetSdk', value: d?.androidTargetSdk ?? null },
-                  ] : []),
-                ];
-                return items.map(({ label, value }) => (
-                  <div key={label} className="quality-picker-item" style={{ cursor: 'default' }}>
-                    <div className="quality-picker-info">
-                      <span className="quality-picker-name">{label}</span>
-                      <span className="quality-picker-desc">{value ?? '—'}</span>
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-          </div>
-        </>,
-        document.body,
-      )}
+      <TechStackDialog
+        open={showTechStack}
+        onClose={() => setShowTechStack(false)}
+        deps={buildInfo?.deps}
+      />
+
 
       {/* Switch server password prompt */}
       {switchPassConn && ReactDOM.createPortal(

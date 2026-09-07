@@ -20,6 +20,8 @@ electron:serve` bg, scan for main-process exceptions (memory
   player-state + MPRIS art). Each has a plain-node functional test; `electron:serve`
   clean per step.
 
+- WS-ARCH `SettingsView` first-pass split → `components/common/settings/`
+  (LicensesDialog, TechStackDialog, PerformanceCacheSection); 1226 → 953 lines.
 - WS-ARCH `LayoutModeContext.tsx` (compact|medium|expanded|tv; provider wired;
   6 tests) — WS-UX/WS-TV will consume it.
 - WS-ARCH `PlayerContext` → `useMediaSession.ts` (8 media-session effects moved

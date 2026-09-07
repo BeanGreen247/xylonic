@@ -65,15 +65,19 @@ Sizes: **S** ≈ half-day · **M** ≈ 1–2 days · **L** ≈ 3+ days / needs i
       button that fades/scales in over the art (keyboard-focusable, hidden from
       AT when the card itself is the control). Gated by `prefers-reduced-motion`
       and `isCoarsePointer` (always-visible on touch). Reference: Spotify card.
-- [ ] **UI-03 · Type scale tokens** (S) — add `--font-size-xs…2xl`,
-      `--tracking-tight`, `--leading-*`; apply to headings / section titles /
-      card text; `text-wrap: balance` on headings. Reference: Apple Music.
+- [~] **UI-03 · Type scale tokens** (2026-09-07) — `--font-size-xs…2xl`,
+      `--tracking-{tight,normal,wide}`, `--leading-{tight,normal}` added to
+      `:root`; `text-wrap: balance` on `h1–h4` + heading classes, tight tracking
+      on display headings (not the uppercase wide-tracked labels). **Remaining:**
+      migrate component `font-size` literals onto the ramp.
 - [x] **UI-04 · Tabular figures** (2026-09-07) — `font-variant-numeric:
       tabular-nums` + `font-feature-settings: "tnum"` on `.progress-time`,
       `.song-duration`, track-number, `.panel-song-time`, `.progress-stats`,
       `.library-stats`, `.download-progress-text`, `.stat-value`,
       `.mini-player-time`. One grouped rule in `index.css`.
-- [ ] **UI-05 · Focus-ring polish** (S) — the WS-a11y `:focus-visible` ring is
+- [~] **UI-05 · Focus-ring polish** (2026-09-07) — bumped `outline-offset` to
+      3px so the surrounding colour separates the accent ring from album art;
+      a true two-tone ring needs a pseudo-element and is deferred. Original:
       functional but blunt; give it `border-radius` inheritance and a 2-layer
       ring (accent + 1px contrast) so it reads on both light art and dark chrome.
 

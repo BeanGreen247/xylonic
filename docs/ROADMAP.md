@@ -253,10 +253,11 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       fresh object each render (need `useCallback` on their handlers first). Collapse
       `RemoteModeProvider`/`ImageCacheProvider` into leaner hooks if they don't
       need to be context.
-- [ ] `ARCHITECTURE.md` — physical per-subsystem split into `docs/architecture/*.md`
-      still pending. Interim (2026-09-07): `docs/architecture/README.md` index
-      with a per-section freshness table; the IPC section carries a
-      structure-note pointing at ADR 0006.
+- [x] `ARCHITECTURE.md` physical split (2026-09-07) — the 2614-line monolith is
+      now 14 per-subsystem docs under `docs/architecture/` (`01-overview` …
+      `14-android-native`) with a rewritten index; `ARCHITECTURE.md` is a
+      redirect stub so existing links still resolve. `Conclusion` / `Table of
+      Contents` dropped (the index replaces them).
 - [x] ADRs (`docs/decisions/NNNN-*.md`) (2026-09-07) — 0001 platform bridge,
       0002 offline-cache v2 hashing, 0003 download orphan reconciliation, 0004
       single credential service, 0005 Vitest + CI gate, 0006 electron.js →
@@ -515,8 +516,8 @@ Low-risk, fills competitive gaps. Pick opportunistically between big workstreams
 **Now 8.0.** Huge but sprawling; `CLAUDE.md` empty; some stale.
 
 - [x] Populate `CLAUDE.md` (WS-QUAL) — done (was the "empty" item).
-- [ ] Split `ARCHITECTURE.md` into `docs/architecture/*.md` — pending; interim
-      `docs/architecture/README.md` index exists (2026-09-07).
+- [x] Split `ARCHITECTURE.md` into `docs/architecture/*.md` (2026-09-07) — 14
+      per-subsystem docs + index; old path is a redirect stub.
 - [x] ADR set in `docs/decisions/` (2026-09-07) — 7 ADRs (0001–0007).
 - [ ] Prune / date-stamp `CACHE_V21_*.md`, `IMAGE_CACHE_*.md`,
       `QUALITY_VERIFICATION.md` — mark historical, move under `docs/history/`.

@@ -29,7 +29,7 @@ Screenshots are available on the [GitHub Releases page](https://github.com/BeanG
 
 ## System Architecture
 
-> **For Developers:** Detailed technical documentation is available in [ARCHITECTURE.md](ARCHITECTURE.md)
+> **For Developers:** Detailed technical documentation is available in [`docs/architecture/`](docs/architecture/README.md)
 
 Xylonic is built on **Electron 27** with **React 18.2.0** and **TypeScript 4.9.5**, featuring:
 
@@ -68,7 +68,8 @@ Main Process (electron.js)           Renderer Process (React)
 
 ### Architecture Documentation
 
-For comprehensive technical details, see [ARCHITECTURE.md](ARCHITECTURE.md):
+For comprehensive technical details, see [`docs/architecture/`](docs/architecture/README.md)
+— 14 per-subsystem docs covering:
 - Multi-process architecture and IPC patterns (with interactive diagrams)
 - Offline cache system with reference counting (v2.1)
 - Remote control LAN discovery and command architecture
@@ -78,7 +79,7 @@ For comprehensive technical details, see [ARCHITECTURE.md](ARCHITECTURE.md):
 - Design patterns and best practices
 - Performance optimizations and security
 
-> **💡 Tip:** ARCHITECTURE.md uses interactive Mermaid diagrams that render beautifully on GitHub. Click to zoom and explore the system design visually.
+> **💡 Tip:** the architecture docs use interactive Mermaid diagrams that render beautifully on GitHub. Click to zoom and explore the system design visually.
 
 ## Quick Start
 

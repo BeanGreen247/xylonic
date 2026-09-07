@@ -13,6 +13,16 @@ All notable changes to Xylonic are documented here.
 - **Content-Security-Policy (partial, Electron production)** — `session.defaultSession.onHeadersReceived` injects a CSP (`default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, no `unsafe-eval`) on production desktop builds. Dev is skipped so the Vite dev server keeps working; `script-src`/`style-src` still allow `'unsafe-inline'` and the `index.html` meta-CSP for Capacitor is deferred pending the `xylonic://` protocol + `webSecurity:true` work and a 4-target desktop device pass.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
+### Changed
+- **`ARCHITECTURE.md` split (WS-ARCH / WS-DOCS)** — the 2614-line monolith is now
+  14 per-subsystem docs under `docs/architecture/` (`01-overview` …
+  `14-android-native`) with a rewritten index table. The root `ARCHITECTURE.md`
+  is a redirect stub so existing links keep working; README / CLAUDE.md pointers
+  updated. Provider contexts `Auth` / `UI` / `OfflineMode` / `ImageCache` now
+  memoize their context value (`useMemo` + `useCallback`), completing the
+  provider-tree memoization pass. `SettingsView` shed its About and Advanced
+  sections to `components/common/settings/` (974 → 745 lines).
+
 ### Added
 - **`npm run version:date`** — `scripts/set-version-date.js` stamps
   `package.json` `version` with today's local date as `YY.MM.DD` (the project's

@@ -12,7 +12,7 @@ All notable changes to Xylonic are documented here.
 - **Removed credential logging** — `subsonicApi.search()` no longer `console.log`s `localStorage` contents (including the password) and no longer duplicates the auth-param logic.
 
 ### Changed
-- **`electron.js` split (WS-ARCH, slices 1–5)** — five cohesive subsystems moved
+- **`electron.js` split (WS-ARCH, slices 1–7)** — seven cohesive subsystems moved
   out of the 2232-line main file into `public/ipc/*`:
   - `public/ipc/remote.js` (~400 lines) — Remote Mode: LAN discovery (UDP 7766),
     HTTP command server (7767), 8 `remote-*` IPC handlers. Injected
@@ -28,14 +28,19 @@ All notable changes to Xylonic are documented here.
     cache-location code) and are injected.
   - `public/ipc/credentials.js` — `safe-storage-available` / `-encrypt` /
     `-decrypt` (Electron `safeStorage`).
-  - `public/ipc/system.js` — per-process priority / CPU-affinity
-    (`set-power-saver-priority` / `restore-process-priority` /
-    `set-performance-priority`) + `get-system-stats` (app CPU/RAM via
-    `app.getAppMetrics()`).
-  `public/electron.js` **2232 → 1409 lines**. `electron-builder.json` `files`
+  - `public/ipc/system.js` — per-process priority / CPU-affinity + `get-system-stats`.
+  - `public/ipc/misc.js` — `get-os-platform`, `detect-linux-firewall`,
+    `save-song`, `get-download-dir`.
+  - `public/ipc/downloadNotification.js` — dock/taskbar progress bar + Tray
+    tooltip + macOS dock badge (`set-download-progress` / `clear-download-progress`)
+    and `set-download-active` (drives the power-save blocker via an injected
+    callback).
+  `public/electron.js` **2232 → 1332 lines**. `electron-builder.json` `files`
   now includes `public/ipc/**/*.js`. Verified: `npm run electron:serve` starts
   the main process with no exception; each module also has a standalone
-  plain-node functional check.
+  plain-node functional check. Remaining in `electron.js`: window creation,
+  app lifecycle, protocol/CSP, the mini-player + MPRIS-art + player-state IPC
+  (couples to both windows), and the ~30-handler cache-filesystem block.
 - **`vite.config.ts` → `vite.config.mts`** — native ESM config load; silences the
   Vite `configLoader: 'native'` / "ESM syntax in a file loaded as CommonJS"
   warning. `__dirname` → `import.meta.dirname` (Node 22).

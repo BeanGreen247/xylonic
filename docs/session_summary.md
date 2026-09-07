@@ -11,9 +11,9 @@ uses `mergePendingBatch`. 121 tests green, build + lint clean.
 Commit: `refactor(downloads): extract orphan-reconciliation planner; +11 tests`.
 **`electron.js` split — committed through `46416d5`:** .mts rename (`cbab461`),
 `remote.js` (`4a995ba`), `logging.js` (`84eab73`), `settings.js` (`46416d5`).
-**UNCOMMITTED — slices 5–6:** `public/ipc/credentials.js` (safe-storage, 3
-handlers) + `public/ipc/system.js` (priority/affinity + `get-system-stats`, 4
-handlers). `electron.js` 2232 → **1409**. Verified: `npm run electron:serve`
+committed `1b1587f` (`credentials.js` + `system.js`). **UNCOMMITTED — slices
+6–7:** `public/ipc/misc.js` (4 handlers) + `public/ipc/downloadNotification.js`
+(dock/tray progress + `set-download-active`). `electron.js` 2232 → **1332**. Verified: `npm run electron:serve`
 main process starts with no exception; each module has a standalone plain-node
 functional check. **Git: user authorized Claude to commit/push directly now
 (memory `feedback_git_authorization`) — single-line messages, no attribution.**

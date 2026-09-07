@@ -12,6 +12,8 @@ const { registerLoggingIpc } = require('./ipc/logging');
 const { registerSettingsIpc } = require('./ipc/settings');
 const { registerCredentialsIpc } = require('./ipc/credentials');
 const { registerSystemIpc } = require('./ipc/system');
+const { registerMiscIpc } = require('./ipc/misc');
+const { registerDownloadNotificationIpc } = require('./ipc/downloadNotification');
 
 let mpris = null;
 if (process.platform === 'linux') {
@@ -364,67 +366,15 @@ const _remoteIpc = registerRemoteIpc({
   getLastPlayerState: () => lastPlayerState,
 });
 
-// OS platform (for firewall setup UI)
-ipcMain.handle('get-os-platform', () => process.platform);
+// Small one-off IPC (extracted to ./ipc/misc.js)
+registerMiscIpc({ ipcMain, app });
 
-// Background download keep-alive
-ipcMain.handle('set-download-active', (_event, active) => {
-    _activeDownloads = !!active;
-    _updatePowerSave();
+// Download progress surface — dock/taskbar bar, tray, dock badge (./ipc/downloadNotification.js)
+registerDownloadNotificationIpc({
+  ipcMain, app, Tray, nativeImage,
+  getMainWindow: () => mainWindow,
+  onDownloadActiveChange: (v) => { _activeDownloads = v; _updatePowerSave(); },
 });
-
-// Dock/taskbar progress bar + tray tooltip for background downloads.
-let downloadTray = null;
-ipcMain.handle('set-download-progress', (_event, { progress = 0, indeterminate = false, title = '', text = '' } = {}) => {
-    if (!mainWindow) return;
-    try {
-        mainWindow.setProgressBar(
-            indeterminate ? 2 : Math.min(Math.max(progress, 0), 100) / 100,
-            { mode: indeterminate ? 'indeterminate' : 'normal' }
-        );
-    } catch { /* setProgressBar unsupported on this platform build */ }
-
-    if (!downloadTray) {
-        try {
-            downloadTray = new Tray(nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'icon-tray.png')));
-        } catch { downloadTray = null; }
-    }
-    if (downloadTray) {
-        const pct = indeterminate ? '…' : `${Math.round(progress)}%`;
-        downloadTray.setToolTip(`${title || 'Downloading'}${text ? `: ${text}` : ''} (${pct})`);
-    }
-
-    if (process.platform === 'darwin' && app.dock) {
-        app.dock.setBadge(indeterminate ? '…' : `${Math.round(progress)}%`);
-    }
-});
-
-ipcMain.handle('clear-download-progress', () => {
-    if (mainWindow) {
-        try { mainWindow.setProgressBar(-1); } catch { /* ignore */ }
-    }
-    if (downloadTray) {
-        downloadTray.destroy();
-        downloadTray = null;
-    }
-    if (process.platform === 'darwin' && app.dock) {
-        app.dock.setBadge('');
-    }
-});
-
-// Detect which Linux firewall tools are present (for the firewall setup dialog)
-ipcMain.handle('detect-linux-firewall', async () => {
-    if (process.platform !== 'linux') return [];
-    const { execSync } = require('child_process');
-    const found = [];
-    const probe = (cmd) => { try { execSync(cmd, { timeout: 2000, stdio: 'ignore' }); return true; } catch { return false; } };
-    if (probe('which ufw'))          found.push('ufw');
-    if (probe('which firewall-cmd')) found.push('firewalld');
-    if (probe('which nft'))          found.push('nftables');
-    if (probe('which iptables'))     found.push('iptables');
-    return found;
-});
-
 // Register file protocol before app is ready
 app.whenReady().then(() => {
     // Ensure both main settings file and color_settings exist when app is ready
@@ -548,33 +498,6 @@ app.whenReady().then(() => {
         }
     }
 });
-
-// Handle song saving
-ipcMain.handle('save-song', async (event, { buffer, filePath, artist, album, title }) => {
-    try {
-        const musicDir = app.getPath('music');
-        const downloadDir = path.join(musicDir, 'SubsonicDownloads');
-        
-        const fullPath = path.join(downloadDir, filePath);
-        const dir = path.dirname(fullPath);
-
-        await fs.mkdir(dir, { recursive: true });
-        await fs.writeFile(fullPath, buffer);
-
-        console.log(`Saved: ${fullPath}`);
-        return { success: true, path: fullPath };
-    } catch (error) {
-        console.error('Failed to save song:', error);
-        throw error;
-    }
-});
-
-// Get download directory
-ipcMain.handle('get-download-dir', async () => {
-    const musicDir = app.getPath('music');
-    return path.join(musicDir, 'SubsonicDownloads');
-});
-
 
 // Secure credential storage (extracted to ./ipc/credentials.js)
 registerCredentialsIpc({ ipcMain, safeStorage });

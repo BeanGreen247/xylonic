@@ -67,6 +67,14 @@ All notable changes to Xylonic are documented here.
   libimobiledevice, zsign, iLoader/isideload, apple-codesign-quick/Sideloader,
   Impactor) are in `IOS_SETUP.md` → "One-command auto-load on Linux" and
   `README.md` → Acknowledgments. Verified end-to-end on an iPhone 15 Pro Max.
+- **`scripts/ios-debug.sh` — packaged WebView debugging on Linux** — auto-starts
+  the RSD tunnel (shared `scripts/ios-tunnel.sh`) + a `pymobiledevice3
+  webinspector cdp` server, waits for the `capacitor://localhost` WebView, and
+  drives it via `scripts/ios-cdp.py`: `eval '<js>'`, `listen`/`net` console/network
+  streams, and `verify` (a canned health check — `scripts/ios-verify.js`: plugin
+  registration, `localStorage`, DOM render, and a cache-integrity pass that
+  `stat`s the newest cached audio files against the index). `ios-autoload.sh` now
+  auto-starts the same tunnel (`XYLONIC_AUTO_TUNNEL=0` to opt out).
 
 ### Fixed
 - **CI `lint · test · build` job was red on every push** — `npm ci

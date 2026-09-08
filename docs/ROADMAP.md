@@ -596,8 +596,10 @@ Low-risk, fills competitive gaps. Pick opportunistically between big workstreams
 - [x] Split `ARCHITECTURE.md` into `docs/architecture/*.md` (2026-09-07) — 14
       per-subsystem docs + index; old path is a redirect stub.
 - [x] ADR set in `docs/decisions/` (2026-09-07) — 7 ADRs (0001–0007).
-- [ ] Prune / date-stamp `CACHE_V21_*.md`, `IMAGE_CACHE_*.md`,
-      `QUALITY_VERIFICATION.md` — mark historical, move under `docs/history/`.
+- [x] Prune / date-stamp `CACHE_V21_*.md`, `IMAGE_CACHE_*.md`,
+      `QUALITY_VERIFICATION.md` (2026-09-08) — moved to `docs/history/` with a
+      README marking them frozen; no code/CLAUDE.md refs, internal cross-links
+      preserved.
 - [ ] `README.md` — trim to quick-start + feature list + platform matrix;
       link out to the split architecture docs. Add the Android TV row.
 - [ ] `CONTRIBUTING.md` — test/lint/build commands, the credential-service rule,

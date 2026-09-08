@@ -38,6 +38,23 @@ the 3 cross-cutting destructive cache/data handlers). Dropped dead `fmtBytes` /
 `handleOpenSupport`. Build clean; lint warnings 6 → 2 (the 2 left are pre-existing
 `(window as any).require`). ROADMAP marks the `SettingsView` god-object split done.
 
+**Also this session — WS-ARCH tail, on review branches (NOT on main):**
+- `arch/player-engine-split` — `PlayerContext` `<audio>` element + media-event
+  wiring → `src/context/usePlaybackEngine.ts`; the 5 queue-mutation callbacks →
+  `src/context/useQueueActions.ts`. Verbatim lift-and-shift behind params objects.
+  `PlayerContext.tsx` 1023 → 924. build + 127 tests green. **Needs on-device
+  playback / gapless / MPRIS verification before merge.**
+- `arch/download-transport-split` — `downloadManagerService` `downloadCoverArt` +
+  its 4 dedup Sets/Maps + `randomSalt` → `CoverArtDownloader` class in
+  `src/services/coverArtDownloader.ts`. Method body verbatim (sync claim-before-await
+  race guards intact). `downloadManagerService.ts` 2012 → 1894. build + 127 tests
+  green. **Needs an on-device bulk-download pass before merge.**
+- `react-router` (last WS-ARCH item) — genuinely blocked here: needs
+  `npm i react-router-dom`, which the hard rules forbid me from running. Install it
+  and the migration + Android `backbutton` rewire can be done.
+- `RemoteModeProvider` — decided to stay a context (consumes `useAuth`, device-only
+  discovery state); not a mechanical collapse.
+
 **Also this session — WS-PERF QueueTab (partial):** added `content-visibility: auto`
 + `contain-intrinsic-size` (`auto 49px`, `auto 60px` on the touch breakpoint) to
 `.panel-song-row` in `RightPanel.css` — the Queue tab renders every queued song

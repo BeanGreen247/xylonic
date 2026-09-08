@@ -255,6 +255,15 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       `handleClearAllData`) which are genuinely cross-cutting (offlineCache +
       imageCache + searchCache + downloadManager + reload). Also dropped two dead
       helpers (`fmtBytes`, `handleOpenSupport`).
+- [~] **`PlayerContext` → hooks** (branch `arch/player-engine-split`, not merged) —
+      `usePlaybackEngine` (the `<audio>` element + media-event wiring) and
+      `useQueueActions` (the 5 queue-mutation callbacks) extracted verbatim;
+      1023 → 924. Awaiting on-device playback/gapless/MPRIS verification. The
+      deeper `playSong`/`playNext` engine + `useQueue` state split is still open.
+- [~] **`downloadManagerService` → transport** (branch `arch/download-transport-split`,
+      not merged) — `CoverArtDownloader` extracted (artwork fetch + dedup state);
+      2012 → 1894, race guards intact. Awaiting on-device bulk-download pass. The
+      song-byte transport (`downloadSong*` / `processQueue`) split is still open.
 - [ ] **Add routing** — `react-router` with memory history on native. Replaces
       the `appSection` / `navigation` / `topView` / `sectionHistory` machine in
       `App.tsx` (`MainApp.tsx` is dead code). Enables deep-linking, desktop

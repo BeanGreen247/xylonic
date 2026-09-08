@@ -111,17 +111,33 @@ Once SideStore is running, you can install and refresh Xylonic directly from Sid
 
 ## One-command auto-load on Linux (`scripts/ios-autoload.sh`)
 
-Fully scripted **download → sign → install** onto a USB-connected iPhone, no
-Mac, no Windows, no Sideloadly:
+Fully scripted **download → sign → install** onto a USB-connected iPhone — no
+Mac, no Windows, no Sideloadly, no manual cert wrangling:
 
 ```bash
 bash scripts/ios-autoload.sh
 ```
 
-It runs `download-ios-ipa.sh` for the latest CI build, signs it with
-[`zsign`](https://github.com/zhlynn/zsign), and installs it via
-`pymobiledevice3 apps install` over the RSD tunnel. Installing over an existing
-copy updates in place — app data is preserved.
+Steps, in order:
+
+1. **`scripts/ios-extract-signing.py`** rebuilds `~/.xylonic-sign/` from what's
+   already on the machine:
+   - the **private key** from the Secret Service keyring, where **iLoader**
+     ([github.com/nab138/iloader](https://github.com/nab138/iloader)) stashes it
+     under service `iloader`;
+   - the **certificate** — the leaf in `DeveloperCertificates[]` inside the
+     provisioning profile;
+   - the **profile** itself, pulled live off the phone with
+     `pymobiledevice3 provision dump`.
+   It writes `cert.p12`, `app.mobileprovision`, `p12.pass`, `bundle_id` and
+   prints the cert validity + profile expiry.
+2. `download-ios-ipa.sh` fetches the latest unsigned IPA from CI.
+3. [`zsign`](https://github.com/zhlynn/zsign) signs it, **rewriting the bundle id
+   to `<bundleid>.<teamid>`** (`-b`) — iLoader mangles it that way and the
+   profile is issued for the mangled id; without this you get
+   `0xe8008016 invalid entitlements`.
+4. `pymobiledevice3 apps install` installs over the RSD tunnel; installing over
+   the existing copy updates in place, app data preserved.
 
 **One-time setup:**
 
@@ -130,19 +146,41 @@ copy updates in place — app data is preserved.
 | `gh` authenticated | `gh auth login` |
 | `zsign` on PATH | `git clone --depth 1 https://github.com/zhlynn/zsign && cd zsign/build/linux && make && install -m755 ../../bin/zsign ~/.local/bin/` |
 | `pymobiledevice3` on PATH | `pipx install pymobiledevice3` |
+| `python3-gi` + `gir1.2-secret-1` | `sudo apt install python3-gi gir1.2-secret-1` (keyring read) |
 | RSD tunnel running | `sudo pymobiledevice3 remote tunneld` (leave running) |
-| Signing assets in `~/.xylonic-sign/` | `cert.p12` + `app.mobileprovision` (see below), optional `p12.pass` (chmod 600) |
+| A current dev cert + profile | run **iLoader** once — it provisions the key into the keyring and installs a profile onto the device |
 
-**Signing assets.** You need an Apple signing certificate (`.p12`) and a
-provisioning profile (`.mobileprovision`) whose device list includes this
-iPhone's UDID. Easiest source: do one AltStore/Sideloadly install of *any* app
-with your Apple ID, then export the cert from that machine's keychain and pull
-the `embedded.mobileprovision` out of the signed `.app`. Free Apple ID
-certs/profiles **expire after 7 days** — refresh both files and re-run.
-Override the location with `XYLONIC_SIGN_DIR`; supply the `.p12` password via
-`~/.xylonic-sign/p12.pass`, `$XYLONIC_P12_PASS`, or the interactive prompt.
+**The 7-day cycle.** The `iPhone Developer:` cert is valid ~1 year, but the
+provisioning profile lasts **7 days**. Run iLoader once a week (or whenever an
+install fails with `0xe8008018`); `ios-autoload.sh` handles everything in
+between and re-pulls the fresh profile each run.
 
-`*.p12`, `*.mobileprovision`, and `*.ipa` are git-ignored — never commit them.
+Overrides: `XYLONIC_SIGN_DIR` (asset dir), `XYLONIC_P12_PASS` (p12 password,
+default `xylonic`), `XYLONIC_KEYRING_SERVICE` (default `iloader`),
+`XYLONIC_SKIP_EXTRACT=1` (reuse existing `~/.xylonic-sign/` without touching the
+keyring/device). `*.p12`, `*.mobileprovision`, `*.ipa` are git-ignored.
+
+### Credits — the projects that make this possible
+
+This flow is glue around other people's work:
+
+- **[pymobiledevice3](https://github.com/doronz88/pymobiledevice3)** (doronz88) —
+  device discovery, the RSD tunnel, `provision dump`, `apps install`.
+- **[libimobiledevice](https://libimobiledevice.org/)** — the underlying
+  usbmux/lockdown stack.
+- **[zsign](https://github.com/zhlynn/zsign)** (zhlynn) — the Linux codesigner.
+- **[iLoader](https://github.com/nab138/iloader)** and
+  **[isideload](https://github.com/nab138/isideload)** (nab138) — the Apple-ID
+  sideloader that actually obtains the cert + profile from Apple; this script
+  just borrows the key/profile it already set up.
+- **[apple-codesign-quick](https://github.com/Dadoum/apple-codesign-quick)** and
+  the broader **[Sideloader](https://github.com/Dadoum/Sideloader)** work
+  (Dadoum) — the Apple provisioning/anisette groundwork iLoader builds on.
+- **[Impactor](https://github.com/claration/Impactor)** (claration) — referenced
+  by iLoader for the signing crypto.
+
+`ios-autoload.sh` / `ios-extract-signing.py` are ~150 lines of shell + Python
+tying these together for this repo; they don't reimplement any of it.
 
 ---
 

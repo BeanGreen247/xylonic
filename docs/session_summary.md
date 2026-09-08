@@ -49,7 +49,10 @@ Secret Service keyring (private key that **iLoader** — github.com/nab138/iload
 stashes under service `iloader`) + the leaf cert inside the provisioning profile,
 which `pymobiledevice3 provision dump` pulls off the phone → `download-ios-ipa.sh`
 → `zsign` → `pymobiledevice3 apps install`. Verified end-to-end on device
-("Installation succeed"). Gotchas: iLoader mangles the bundle id to
+("Installation succeed") — and **owner-confirmed the full cycle**: iLoader
+install once (anisette server must be a real v3 one, `ani.sidestore.io`; the
+shipped `ani.yourserver.com` placeholder hangs before the 2FA prompt), then
+`scripts/ios-autoload.sh` for every build after. Gotchas: iLoader mangles the bundle id to
 `<bundleid>.<teamid>` so zsign must `-b xylonic.beangreen247xyz.musicplayer.35JNC989T5`
 (else `0xe8008016`); the `iPhone Developer:` cert is ~1yr but the profile is 7-day,
 so iLoader must be run weekly. Built `zsign` v1.1.2 into `~/.local/bin/`. Full

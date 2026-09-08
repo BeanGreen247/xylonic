@@ -73,11 +73,24 @@
       rotation + `git filter-repo` history purge — **user**; (g) `npm audit`
       CI gate.
 - [ ] **Android concurrent downloads** — `DownloadService.java` still downloads one song at a time (`Executors.newSingleThreadExecutor()`); making it match the new Electron/iOS concurrency cap needs a careful rework since its notification/wakelock/cancellation state currently assumes exactly one active transfer. Not started — no device available to test against this session.
-- [ ] **iOS downloads still broken (Aug 5)** — batch-download queue fix + `CAPBridgedPlugin` registration migration both shipped, but a download still failed on the latest installed build. Plugin registration itself is confirmed fixed via CDP; the remaining bug is in the download flow itself. Next session: reconnect `pymobiledevice3 webinspector cdp` (see `IOS_SETUP.md`), re-test `BackgroundDownload.startBatch`, and watch the `xyDebugTrace` event stream (already wired into `BackgroundDownloadPlugin.swift`) to see how far native code actually gets.
+- [x] **iOS downloads — RESOLVED (Sep 8, verified on device via CDP)** — the Aug 5
+      batch-download queue fix + `CAPBridgedPlugin` registration migration did fix
+      it; it was just never re-verified on a build carrying them. On the `26.08.01`
+      build (which has both): `BackgroundDownload.startBatch` of a 19-track album →
+      Download Manager "Done: 19, 0 errors"; on-disk
+      `permanent_cache/audio/<hash>/audio.ogg` files present with byte sizes
+      exactly matching `cache_index.json` `fileSize`; 60-dir sample = 0 empty / 0
+      zero-byte; offline playback of a just-downloaded track confirmed working by
+      the owner. Nothing to fix in the download flow.
 - [ ] Re-download library to populate `artistCoverArtId` in cache metadata for existing songs
       (songs downloaded before the Jul 3 fix have null — re-downloading stores ar-xxx so offline artist photos work)
 - [ ] **iOS auto-offline on cellular** — needs device test on cellular data (was on WiFi during testing)
-- [ ] **iOS infinite "Loading…" on offline→online (Sep 6)** — fix shipped (axios timeout + native `Network` drives `isOnline` + `toggleOfflineMode` re-checks connectivity); needs an iOS device test to confirm the stuck spinner is gone
+- [x] **iOS infinite "Loading…" on offline→online (Sep 6) — verified on device (Sep 8)** —
+      all three fix markers confirmed present in the `26.08.01` build's bundle
+      (`ECONNABORTED` handling, `toggleOfflineMode`→`checkConnectivity`, `axios`
+      15s timeout as `15e3`). Owner toggled offline→online on Wi-Fi and navigated
+      Discover / Artists / album / song with no stuck spinner. (Cellular path
+      still covered by the separate auto-offline item below.)
 
 ## Backlog
 - [ ] Replace `npm test` — no test runner configured after removing react-scripts; add Vitest if needed

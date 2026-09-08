@@ -181,8 +181,8 @@ The web layer (React/TypeScript) runs on iOS immediately. Native Swift plugin st
 
 | Feature | Android plugin | iOS status |
 |---|---|---|
-| Background downloads | `NativeDownloaderPlugin.java` | Written (`BackgroundDownloadPlugin.swift`, `URLSession` background tasks) — **currently broken end-to-end, actively being debugged** (see `docs/todos.md` → In Progress). Plugin registration was fixed Aug 5 (`CAPBridgedPlugin` migration) but downloads still fail for a separate, not-yet-found reason. |
-| Background keep-alive | — (Android uses a foreground service) | Written (`BackgroundKeepAlivePlugin.swift`, silent `AVAudioEngine` loop) — registration fixed alongside the downloads plugin above, functional status not yet re-verified |
+| Background downloads | `NativeDownloaderPlugin.java` | **Working** (`BackgroundDownloadPlugin.swift`, `URLSession` background tasks). Verified end-to-end on device Sep 8 via CDP: batch download of an album writes `permanent_cache/audio/<hash>/audio<ext>` with correct byte sizes, index stays consistent, offline playback of a downloaded track works. The Aug 5 `CAPBridgedPlugin` migration + native batch queue were the fix. |
+| Background keep-alive | — (Android uses a foreground service) | Written (`BackgroundKeepAlivePlugin.swift`, silent `AVAudioEngine` loop) — registration fixed alongside the downloads plugin; downloads completing while backgrounded implies it functions, not independently stress-tested |
 | Lock-screen controls | `MediaControlPlugin.java` | Planned — `MPNowPlayingInfoCenter` |
 | Background audio | `MusicService.java` | Planned — `AVAudioSession` + Info.plist |
 | Download notifications | `DownloadNotificationPlugin.java` | Planned — `UNUserNotificationCenter` |

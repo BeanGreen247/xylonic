@@ -1,6 +1,52 @@
 # Session Summary
 
-## Current Focus (Sept 8, 2026 — WS-QUAL, Subsonic response typing)
+## Current Focus (Sept 8, 2026 — on-device iOS verification + CI fix)
+
+**Context:** owner connected the iPhone 15 Pro Max (iOS 26.6.1) and lifted the
+device-tooling hard stop **for `pymobiledevice3` this session**. Set up:
+`remote tunneld` (owner, sudo) + `pymobiledevice3 webinspector cdp` on
+`127.0.0.1:9222` + a small websocket CDP client (`Runtime.evaluate` /
+`Filesystem` probes). Installed build: `xylonic.beangreen247xyz.musicplayer`
+version `26.08.01` (version string stale — bundle contains post-Aug-5 work
+including the Sep-6 offline→online fix).
+
+**iOS downloads — RESOLVED (not actually broken on a fixed build).** Earlier false
+alarm: probed `permanent_cache/audio/<hash>` and saw "directory, 96 bytes" —
+that's the *intended* layout; the audio file is `audio.<ext>` **inside** the hash
+dir. Verified properly: 19-track album batch download → "Done: 19, 0 errors";
+`audio/<hash>/audio.ogg` sizes match `cache_index.json` `fileSize` exactly; 60-dir
+sample 0 empty / 0 zero-byte; owner confirmed offline playback of a fresh download.
+`offlineCacheService` path (`audio/${hash}/audio${ext}`) matches disk. The Aug 5
+`CAPBridgedPlugin` migration + native batch queue were the fix; it just needed a
+build that has them. `docs/todos.md` + `IOS_SETUP.md` updated.
+
+**iOS offline→online "Loading…" (Sep 6) — verified.** All three fix markers in the
+device bundle (`ECONNABORTED`, `toggleOfflineMode`→`checkConnectivity`, `axios`
+`15e3` timeout). Owner toggled offline→online on Wi-Fi, navigated Discover /
+Artists / album / song, no stuck spinner. Cellular path still open (separate item).
+
+**CI fix (commit `3b25969`, pushed, CI now green).** The `CI` workflow (lint·test·
+build) had been red on every push: `LayoutModeContext.test.tsx` →
+`Cannot find module '@testing-library/dom'`. Root cause: `@testing-library/react@16`
+makes `@testing-library/dom` a *peer*, the lockfile records the whole subtree
+(`@testing-library/dom`, `@types/aria-query`, `dom-accessibility-api`, `lz-string`,
+`pretty-format@27`) as `peer: true`, and `ci.yml` ran `npm ci --legacy-peer-deps`
+which skips peer-only entries. Fix: drop `--legacy-peer-deps` from `ci.yml` only
+(`npm ci --dry-run` against the committed lockfile is conflict-free; verified
+green after push — CI + Android + iOS all pass on `3b25969`). Other workflows keep
+the flag (they don't run `npm test`). Chose this over promoting the dep in
+`package.json`, which triggers a 205-line lockfile reconcile that prunes the
+Windows electron-builder optional-peer subtree.
+
+**Latest iOS IPA delivered to owner** — `iOS Build` was never blocked by the red
+`CI` (separate workflow; `download-ios-ipa.sh` filters on `ios.yml` success only).
+Pulled `Xylonic-debug-unsigned.ipa` from run `34246141210` (main @ `de8074c`) and
+sent it; owner signs via their Sideloadly/SideStore flow (unsigned IPA can't be
+installed from Linux — `pymobiledevice3 apps install` needs a signed bundle).
+
+---
+
+## Prev (Sept 8, 2026 — WS-QUAL, Subsonic response typing)
 
 **Task:** WS-QUAL solo pass — type the Subsonic 1.16.1 response envelope and burn
 down `no-explicit-any`.

@@ -264,12 +264,14 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       not merged) — `CoverArtDownloader` extracted (artwork fetch + dedup state);
       2012 → 1894, race guards intact. Awaiting on-device bulk-download pass. The
       song-byte transport (`downloadSong*` / `processQueue`) split is still open.
-- [ ] **Add routing** — `react-router` with memory history on native. Replaces
-      the `appSection` / `navigation` / `topView` / `sectionHistory` machine in
-      `App.tsx` (`MainApp.tsx` is dead code). Enables deep-linking, desktop
-      back-stack (subsumes the custom Android `backbutton` handler), scroll
-      restore. **Blocked:** new runtime dependency + rewrites Android
-      hardware-back — needs an on-device pass.
+- [ ] **Add routing** — `react-router` with memory history. `react-router-dom@7`
+      installed (2026-09-08); plan + route table in **ADR 0008**. Replaces the
+      `appSection` / `navigation` / `topView` / `sectionHistory` machine in
+      `App.tsx` (`MainApp.tsx` is dead). Enables deep-linking + scroll restore;
+      `navigate(-1)` subsumes the custom back-stack. **Dedicated task** — ~250–350
+      lines of `App.tsx`, and the Android hardware-back path + overlay-dismissal
+      ordering need an Electron + Android + iOS click-through before it lands on
+      `main`. Not bundled with other work.
 - [x] **`LayoutModeContext`** (2026-09-07) — `src/context/LayoutModeContext.tsx`,
       `'compact' | 'medium' | 'expanded' | 'tv'` from viewport `matchMedia`
       (767 / 1199 breakpoints) + `(hover:none) and (pointer:coarse)`. `forceMode`

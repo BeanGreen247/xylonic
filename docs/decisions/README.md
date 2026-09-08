@@ -15,3 +15,4 @@ accepted ADR; supersede it with a new one and link back.
 | [0005](0005-vitest-and-ci-gate.md) | Vitest for unit tests; CI gates on lint + test + build | Accepted |
 | [0006](0006-electron-main-split-into-ipc-modules.md) | `electron.js` is wiring only; domains live in `public/ipc/*` | Accepted |
 | [0007](0007-layout-mode-context.md) | `LayoutModeContext` is the one seam for form-factor branching | Accepted |
+| [0008](0008-react-router-memory-history.md) | Navigation moves to `react-router` (memory history) | Proposed |

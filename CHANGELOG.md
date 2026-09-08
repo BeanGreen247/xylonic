@@ -4,6 +4,14 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Changed
+- **Image cache is a hook, not a provider (WS-ARCH)** — `ImageCacheContext.tsx`
+  collapsed from a React context provider wrapping the whole app to a module-level
+  singleton store read through a `useSyncExternalStore` hook. `useImageCache()`
+  keeps the exact same API (`isInitialized` + `getCachedImage`/`clearCache`/
+  `getCacheStats`), so `AlbumArt`/`AlbumList`/`ArtistList` are untouched; the
+  `App.tsx` provider tree loses one layer. No behaviour change.
+
 ## [26.09.07] - 2026-09-07
 
 ### Security

@@ -262,10 +262,13 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
 
 ### Should
 - [~] Provider tree — `ThemeContext`/`SearchContext`/`RemoteModeContext` values
-      now `useMemo`'d (2026-09-07); UI/OfflineMode/ImageCache/Auth still build a
-      fresh object each render (need `useCallback` on their handlers first). Collapse
-      `RemoteModeProvider`/`ImageCacheProvider` into leaner hooks if they don't
-      need to be context.
+      now `useMemo`'d (2026-09-07); UI/OfflineMode/Auth still build a
+      fresh object each render (need `useCallback` on their handlers first).
+      `ImageCacheProvider` collapsed (2026-09-08) — `ImageCacheContext.tsx` is now a
+      module store + `useSyncExternalStore` hook (`useImageCache()` API unchanged),
+      one fewer wrapper in `App.tsx`. `RemoteModeProvider` stays a context for now
+      (depends on `useAuth()` + carries device-only UDP discovery state — needs a
+      device pass, not a mechanical collapse).
 - [x] `ARCHITECTURE.md` physical split (2026-09-07) — the 2614-line monolith is
       now 14 per-subsystem docs under `docs/architecture/` (`01-overview` …
       `14-android-native`) with a rewritten index; `ARCHITECTURE.md` is a

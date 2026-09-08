@@ -1,9 +1,11 @@
 /**
- * Image Cache Context
- * Provides image caching functionality across the app
+ * Image Cache
+ * App-lifetime singleton (was a context provider) exposing image-cache
+ * readiness + helpers. Collapsed to a module store + useSyncExternalStore
+ * hook so it no longer needs to wrap the provider tree.
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { imageCacheService } from '../services/imageCacheService';
 import { searchCacheService } from '../services/searchCacheService';
 import { logger } from '../utils/logger';
@@ -15,114 +17,100 @@ interface ImageCacheContextType {
   getCacheStats: () => Promise<any>;
 }
 
-const ImageCacheContext = createContext<ImageCacheContextType | undefined>(undefined);
+let initialized = false;
+let started = false;
+const listeners = new Set<() => void>();
 
-export const ImageCacheProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    logger.log('%cIMAGE CACHE useEffect FIRED!', 'background: blue; color: white; font-size: 16px;');
-    
-    const initializeCache = async () => {
-      const username = localStorage.getItem('username');
-      const serverUrl = localStorage.getItem('serverUrl');
-
-      if (!window.indexedDB) {
-        logger.warn('[ImageCacheContext] IndexedDB not supported');
-        return;
-      }
-
-      if (username && serverUrl) {
-        try {
-          // Parallel init — they open separate IDB databases
-          await Promise.all([
-            imageCacheService.initialize(username, serverUrl),
-            searchCacheService.initialize(username, serverUrl),
-          ]);
-
-          // Build alias map + proactive memory warm (non-critical)
-          try {
-            const index = searchCacheService.getIndex();
-            if (index && index.albums.length > 0) {
-              imageCacheService.buildAliasMap(index.albums, index.songs);
-              const topArtistIds = index.artists
-                .slice(0, 80)
-                .map((a: any) => a.coverArt)
-                .filter(Boolean) as string[];
-              imageCacheService.prewarmBatch(topArtistIds).catch(() => {});
-            }
-          } catch (aliasErr) {
-            logger.warn('[ImageCacheContext] Could not build coverArt alias map:', aliasErr);
-          }
-
-          setIsInitialized(true);
-        } catch (error) {
-          logger.error('[ImageCacheContext] Initialization failed:', error);
-          setIsInitialized(false);
-        }
-      } else {
-        setIsInitialized(false);
-      }
-    };
-
-    // Initialize on mount
-    initializeCache();
-
-    const handleAuthChanged = () => {
-      initializeCache();
-    };
-
-    const handleLogout = () => {
-      setIsInitialized(false);
-    };
-
-    // Re-initialize only when auth credentials change in another tab
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'username' || e.key === 'serverUrl') {
-        initializeCache();
-      }
-    };
-
-    window.addEventListener('auth-changed', handleAuthChanged);
-    window.addEventListener('logout', handleLogout);
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('auth-changed', handleAuthChanged);
-      window.removeEventListener('logout', handleLogout);
-      window.removeEventListener('storage', handleStorageChange as EventListener);
-    };
-  }, []);
-
-  const getCachedImage = useCallback(async (coverArtId: string, serverFetchFn: () => string): Promise<string> => {
-    if (!isInitialized) {
-      return serverFetchFn();
-    }
-    return imageCacheService.getImage(coverArtId, serverFetchFn);
-  }, [isInitialized]);
-
-  const clearCache = useCallback(async () => {
-    await imageCacheService.clearCache();
-  }, []);
-
-  const getCacheStats = useCallback(async () => {
-    return imageCacheService.getCacheStats();
-  }, []);
-
-  const value = useMemo<ImageCacheContextType>(
-    () => ({ isInitialized, getCachedImage, clearCache, getCacheStats }),
-    [isInitialized, getCachedImage, clearCache, getCacheStats],
-  );
-
-  return <ImageCacheContext.Provider value={value}>{children}</ImageCacheContext.Provider>;
+const setInitialized = (value: boolean) => {
+  if (initialized === value) return;
+  initialized = value;
+  for (const l of listeners) l();
 };
 
-export const useImageCache = () => {
-  const context = useContext(ImageCacheContext);
-  if (!context) {
-    throw new Error('useImageCache must be used within ImageCacheProvider');
+const runInit = async () => {
+  const username = localStorage.getItem('username');
+  const serverUrl = localStorage.getItem('serverUrl');
+
+  if (!window.indexedDB) {
+    logger.warn('[ImageCacheContext] IndexedDB not supported');
+    return;
   }
-  return context;
+
+  if (username && serverUrl) {
+    try {
+      // Parallel init — they open separate IDB databases
+      await Promise.all([
+        imageCacheService.initialize(username, serverUrl),
+        searchCacheService.initialize(username, serverUrl),
+      ]);
+
+      // Build alias map + proactive memory warm (non-critical)
+      try {
+        const index = searchCacheService.getIndex();
+        if (index && index.albums.length > 0) {
+          imageCacheService.buildAliasMap(index.albums, index.songs);
+          const topArtistIds = index.artists
+            .slice(0, 80)
+            .map((a: any) => a.coverArt)
+            .filter(Boolean) as string[];
+          imageCacheService.prewarmBatch(topArtistIds).catch(() => {});
+        }
+      } catch (aliasErr) {
+        logger.warn('[ImageCacheContext] Could not build coverArt alias map:', aliasErr);
+      }
+
+      setInitialized(true);
+    } catch (error) {
+      logger.error('[ImageCacheContext] Initialization failed:', error);
+      setInitialized(false);
+    }
+  } else {
+    setInitialized(false);
+  }
+};
+
+/** Kick off init + wire auth listeners exactly once, on first hook use. */
+const ensureStarted = () => {
+  if (started) return;
+  started = true;
+
+  runInit();
+
+  // Re-initialize when auth credentials change (this tab or another)
+  window.addEventListener('auth-changed', () => { runInit(); });
+  window.addEventListener('logout', () => { setInitialized(false); });
+  window.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key === 'username' || e.key === 'serverUrl') runInit();
+  });
+};
+
+const subscribe = (cb: () => void) => {
+  listeners.add(cb);
+  return () => { listeners.delete(cb); };
+};
+const getSnapshot = () => initialized;
+
+async function getCachedImage(coverArtId: string, serverFetchFn: () => string): Promise<string> {
+  if (!initialized) {
+    return serverFetchFn();
+  }
+  return imageCacheService.getImage(coverArtId, serverFetchFn);
+}
+
+function clearCache(): Promise<void> {
+  return imageCacheService.clearCache();
+}
+
+function getCacheStats(): Promise<any> {
+  return imageCacheService.getCacheStats();
+}
+
+const helpers = { getCachedImage, clearCache, getCacheStats };
+
+export const useImageCache = (): ImageCacheContextType => {
+  ensureStarted();
+  const isInitialized = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useMemo(() => ({ isInitialized, ...helpers }), [isInitialized]);
 };
 
 export default useImageCache;

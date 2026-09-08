@@ -50,7 +50,10 @@
       add `react-router` (memory history on native, replaces the
       `topView/drillView/...` machine + custom back-stack); `LayoutModeContext`
       (`compact|medium|expanded|tv`); provider `useMemo` audit; split
-      `ARCHITECTURE.md`; ADRs in `docs/decisions/`.
+      `ARCHITECTURE.md`; ADRs in `docs/decisions/`. `ImageCacheProvider` collapsed
+      (2026-09-08) to a module store + `useSyncExternalStore` hook — one fewer
+      wrapper in `App.tsx`, `useImageCache()` API unchanged; `RemoteModeProvider`
+      left as context (auth-context dependency + device-only discovery state).
 - [ ] **WS-SEC phase 2 — remove plaintext-at-rest** — `credentialsService` +
       `useCredentials()` landed and every app-code `localStorage.getItem('password')`
       now routes through `credentialsService.getCached()` (see Done). Still to do:

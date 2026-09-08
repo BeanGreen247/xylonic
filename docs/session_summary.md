@@ -1,5 +1,33 @@
 # Session Summary
 
+## Current Focus (Sept 8, 2026 — WS-ARCH, provider-tree collapse)
+
+**Task:** WS-ARCH "Should" item — collapse `RemoteModeProvider` / `ImageCacheProvider`
+into leaner hooks where they don't need to be context.
+
+**Done:** `ImageCacheProvider` collapsed. `src/context/ImageCacheContext.tsx` is now a
+module-level singleton store (init + `auth-changed`/`logout`/`storage` listeners wired
+once on first hook use) read through a `useSyncExternalStore` hook. `useImageCache()`
+returns the same shape as before (`isInitialized` + stable `getCachedImage` / `clearCache`
+/ `getCacheStats`), so `AlbumArt` / `AlbumList` / `ArtistList` are unchanged. Removed
+`<ImageCacheProvider>` from the `App.tsx` tree (one fewer wrapper) and its import. Dropped
+a leftover styled `logger.log('%cIMAGE CACHE useEffect FIRED!')` debug line. `npm run build`
+clean.
+
+**Not done — deliberately:** `RemoteModeProvider` stays a context. It consumes `useAuth()`
+for `username`/`serverUrl` (→ `myAccountId`) and carries device-only UDP-discovery state
+(pairing, remote player mirror) that the handoff flags for a hardware pass — a mechanical
+singleton collapse isn't safe here without device verification.
+
+**Files:** `src/context/ImageCacheContext.tsx` (rewritten), `src/App.tsx` (−import, −wrapper),
+`CHANGELOG.md`, `docs/todos.md`, `docs/ROADMAP.md`, `docs/module_notes.md`.
+
+**Cross-platform check still needed:** browser QA that album art still loads/caches in the
+Electron renderer and the Android WebView (init now fires on first `useImageCache()` call
+rather than at provider mount — effectively the same moment, but unverified on-device).
+
+---
+
 ## Current Focus (Sept 7, 2026 — WS-ARCH, roadmap execution)
 
 **RESUME HERE.** Revised order (2026-09-07, per user): **WS-ARCH now → WS-PERF →

@@ -5,7 +5,6 @@ import { OfflineModeProvider, useOfflineMode } from './context/OfflineModeContex
 import { PlayerProvider } from './context/PlayerContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SearchProvider, useSearch } from './context/SearchContext';
-import { ImageCacheProvider } from './context/ImageCacheContext';
 import { UIProvider } from './context/UIContext';
 import { useAuth } from './context/AuthContext';
 import { RemoteModeProvider, useRemoteMode } from './context/RemoteModeContext';
@@ -929,14 +928,12 @@ function App() {
           <PlayerProvider>
             <RemoteModeProvider>
               <ThemeProvider>
-                <ImageCacheProvider>
-                  <UIProvider>
-                    <SearchProvider>
-                      <AppHooksMount />
-                      <AppContent />
-                    </SearchProvider>
-                  </UIProvider>
-                </ImageCacheProvider>
+                <UIProvider>
+                  <SearchProvider>
+                    <AppHooksMount />
+                    <AppContent />
+                  </SearchProvider>
+                </UIProvider>
               </ThemeProvider>
             </RemoteModeProvider>
           </PlayerProvider>

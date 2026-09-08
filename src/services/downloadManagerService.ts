@@ -16,7 +16,6 @@ import { offlineCacheService } from './offlineCacheService';
 import { logger } from '../utils/logger';
 import { getBridge } from '../platform/bridge';
 import { Capacitor, registerPlugin, PluginListenerHandle } from '@capacitor/core';
-import md5 from 'md5';
 import { getMaxConcurrentDownloads } from '../utils/settingsManager';
 import { credentialsService } from './credentialsService';
 import {
@@ -33,13 +32,7 @@ import {
   pendingBatchFromQueueArray,
   type CompletionEntry,
 } from './downloadReconciler';
-
-// Cryptographically-random hex salt for Subsonic auth params (16 bytes).
-const randomSalt = (): string => {
-  const bytes = new Uint8Array(16);
-  globalThis.crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-};
+import { CoverArtDownloader } from './coverArtDownloader';
 
 interface NativeDownloaderPlugin {
   startDownload(opts: {
@@ -171,15 +164,8 @@ class DownloadManagerService {
   // to finish (avoiding file corruption) then the queue is wiped.
   private pendingClear: boolean = false;
 
-  // Track which albums and artists have had cover art downloaded in this session
-  private downloadedAlbumCovers: Set<string> = new Set();
-  private downloadedArtistCovers: Set<string> = new Set();
-
-  // Track the primary cover art ID for each album (first one downloaded)
-  private albumCoverArtMap: Map<string, string> = new Map();
-
-  // Cover art IDs waiting to be aliased once the album's primary art finishes downloading
-  private pendingCoverArtAliases: Map<string, string[]> = new Map();
+  // Album/artist artwork downloading + per-batch dedup (extracted to ./coverArtDownloader)
+  private coverArt = new CoverArtDownloader();
 
   // Track auto-clear timeouts for completed downloads
   private autoClearTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
@@ -557,10 +543,7 @@ class DownloadManagerService {
       this.notifyDownloadActive(false);
       BackgroundKeepAlive?.disarm().catch(() => {});
 
-      this.downloadedAlbumCovers.clear();
-      this.downloadedArtistCovers.clear();
-      this.albumCoverArtMap.clear();
-      this.pendingCoverArtAliases.clear();
+      this.coverArt.reset();
 
       const completed  = this.queue.filter(i => i.status === 'completed');
       const hasFailed  = this.queue.some(i => i.status === 'failed');
@@ -775,7 +758,7 @@ class DownloadManagerService {
             songRef, quality, entry.hash, entry.extension, entry.bytesReceived, artistId, artistCoverArtId
           ))
           .catch(e => logger.warn('[DownloadManager] rescue registration failed:', e));
-        this.downloadCoverArt(item, serverUrl, username, password)
+        this.coverArt.download(item, serverUrl, username, password)
           .catch(() => {});
         rescued++;
       }
@@ -835,7 +818,7 @@ class DownloadManagerService {
           ))
           .catch(e => logger.warn('[DownloadManager] registerNativeDownload failed:', e));
 
-        this.downloadCoverArt(item, serverUrl, username, password)
+        this.coverArt.download(item, serverUrl, username, password)
           .catch(e => logger.warn('[DownloadManager] Cover art download failed:', e));
 
         songsProcessed++;
@@ -984,7 +967,7 @@ class DownloadManagerService {
             songRef, quality, entry.audioHash, entry.extension, entry.fileSize, artistId, artistCoverArtId
           ))
           .catch(e => logger.warn('[DownloadManager] rescue registration failed:', e));
-        this.downloadCoverArt(item, serverUrl, username, password)
+        this.coverArt.download(item, serverUrl, username, password)
           .catch(() => {});
         rescued++;
       }
@@ -1049,7 +1032,7 @@ class DownloadManagerService {
           ))
           .catch(e => logger.warn('[DownloadManager] registerNativeDownload failed:', e));
 
-        this.downloadCoverArt(item, serverUrl, username, password)
+        this.coverArt.download(item, serverUrl, username, password)
           .catch(e => logger.warn('[DownloadManager] Cover art download failed:', e));
 
         songsProcessed++;
@@ -1234,7 +1217,7 @@ class DownloadManagerService {
       this.emit({ type: 'cache-updated' });
       this.scheduleAutoClear(item.id);
 
-      await this.downloadCoverArt(item, serverUrl, username, password);
+      await this.coverArt.download(item, serverUrl, username, password);
 
     } finally {
       if (progressHandle) progressHandle.remove();
@@ -1438,106 +1421,11 @@ class DownloadManagerService {
       this.emit({ type: 'cache-updated' });
       this.scheduleAutoClear(item.id);
 
-      await this.downloadCoverArt(item, serverUrl, username, password);
+      await this.coverArt.download(item, serverUrl, username, password);
     } finally {
       this.currentAbortController = null;
       this.activeAbortControllers.delete(item.id);
       this.activeLastProgressMs.delete(item.id);
-    }
-  }
-
-  /**
-   * Download and cache album + artist cover art for a completed song download.
-   *
-   * IMPORTANT: claim the dedup slot (add to the tracking Set) BEFORE any await
-   * so that rapid concurrent songDownloaded events from the same album/artist
-   * don't all pass the !has() check simultaneously and fire duplicate fetches.
-   */
-  private async downloadCoverArt(
-    item: DownloadQueueItem,
-    serverUrl: string,
-    username: string,
-    password: string
-  ): Promise<void> {
-    // ── Album cover art ──────────────────────────────────────────────────────
-    if (item.song.coverArt) {
-      const alreadyClaimed = this.downloadedAlbumCovers.has(item.albumId);
-
-      // Claim the slot synchronously before any await so concurrent events
-      // from the same album don't race past this guard.
-      if (!alreadyClaimed) {
-        this.downloadedAlbumCovers.add(item.albumId);
-        this.albumCoverArtMap.set(item.albumId, item.song.coverArt);
-      }
-
-      if (!alreadyClaimed && !offlineCacheService.isCoverArtCached(item.song.coverArt)) {
-        try {
-          const salt  = randomSalt();
-          const token = md5(password + salt);
-          const url   = `${serverUrl}/rest/getCoverArt.view?id=${item.song.coverArt}&u=${username}&t=${token}&s=${salt}&v=1.16.1&c=SubsonicMusicApp&f=json&size=500`;
-          const res   = await fetch(url);
-          if (res.ok) {
-            const data = await res.arrayBuffer();
-            const ct   = res.headers.get('content-type') || 'image/jpeg';
-            const ext  = ct.includes('png') ? '.png' : ct.includes('webp') ? '.webp' : '.jpg';
-            await offlineCacheService.cacheCoverArt(item.song.coverArt, new Uint8Array(data), ext);
-            // Apply any aliases that raced ahead before this download completed
-            const pending = this.pendingCoverArtAliases.get(item.albumId) || [];
-            this.pendingCoverArtAliases.delete(item.albumId);
-            for (const aliasId of pending) {
-              offlineCacheService.createCoverArtAlias(aliasId, item.song.coverArt).catch(() => {});
-            }
-          }
-        } catch (e) {
-          logger.warn('[DownloadManager] Failed to cache album cover art:', e);
-        }
-      } else if (alreadyClaimed && !offlineCacheService.isCoverArtCached(item.song.coverArt)) {
-        // Different coverArt ID for the same album — alias to the primary
-        const primaryId = this.albumCoverArtMap.get(item.albumId);
-        if (primaryId && offlineCacheService.isCoverArtCached(primaryId)) {
-          offlineCacheService.createCoverArtAlias(item.song.coverArt, primaryId).catch(() => {});
-        } else {
-          // Primary art is still downloading — buffer for when it completes
-          const pending = this.pendingCoverArtAliases.get(item.albumId) || [];
-          if (!pending.includes(item.song.coverArt)) pending.push(item.song.coverArt);
-          this.pendingCoverArtAliases.set(item.albumId, pending);
-        }
-      }
-    }
-
-    // ── Artist cover art ─────────────────────────────────────────────────────
-    const artistKey = item.artistId || item.artistName;
-    if (item.artistCoverArtId && artistKey) {
-      const alreadyClaimed = this.downloadedArtistCovers.has(artistKey);
-
-      // Claim synchronously before any await.
-      if (!alreadyClaimed) this.downloadedArtistCovers.add(artistKey);
-
-      if (!alreadyClaimed && !offlineCacheService.isCoverArtCached(item.artistCoverArtId)) {
-        let artistArtCached = false;
-        try {
-          const salt  = randomSalt();
-          const token = md5(password + salt);
-          const url   = `${serverUrl}/rest/getCoverArt.view?id=${item.artistCoverArtId}&u=${username}&t=${token}&s=${salt}&v=1.16.1&c=SubsonicMusicApp&f=json&size=500`;
-          const res   = await fetch(url);
-          if (res.ok) {
-            const data = await res.arrayBuffer();
-            const ct   = res.headers.get('content-type') || 'image/jpeg';
-            const ext  = ct.includes('png') ? '.png' : ct.includes('webp') ? '.webp' : '.jpg';
-            await offlineCacheService.cacheCoverArt(item.artistCoverArtId, new Uint8Array(data), ext);
-            artistArtCached = true;
-          }
-        } catch (e) {
-          logger.warn('[DownloadManager] Failed to cache artist cover art:', e);
-        }
-
-        if (!artistArtCached) {
-          const albumCoverId = this.albumCoverArtMap.get(item.albumId) || item.song.coverArt;
-          if (albumCoverId && offlineCacheService.isCoverArtCached(albumCoverId)) {
-            offlineCacheService.createCoverArtAlias(item.artistCoverArtId, albumCoverId).catch(() => {});
-          }
-        }
-      }
     }
   }
 
@@ -1713,10 +1601,7 @@ class DownloadManagerService {
 
     // If queue is now empty, clear cover art tracking
     if (this.queue.length === 0) {
-      this.downloadedAlbumCovers.clear();
-      this.downloadedArtistCovers.clear();
-      this.albumCoverArtMap.clear();
-      this.pendingCoverArtAliases.clear();
+      this.coverArt.reset();
     }
   }
 
@@ -1801,10 +1686,7 @@ class DownloadManagerService {
     this.sessionTotal = 0;
     this.sessionCompleted = 0;
     this.sessionFailed = 0;
-    this.downloadedAlbumCovers.clear();
-    this.downloadedArtistCovers.clear();
-    this.albumCoverArtMap.clear();
-    this.pendingCoverArtAliases.clear();
+    this.coverArt.reset();
     logger.log('[DownloadManager] Queue cleared');
     this.persistQueueNow();
     this.notifyDownloadActive(false);

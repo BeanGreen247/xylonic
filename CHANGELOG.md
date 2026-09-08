@@ -4,6 +4,16 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Changed
+- **`downloadManagerService` — cover-art downloading extracted (WS-ARCH)** — the
+  album/artist artwork fetch + per-batch dedup/alias bookkeeping (`downloadCoverArt`
+  + its 4 tracking Sets/Maps + `randomSalt`) moved to a `CoverArtDownloader` class
+  in `src/services/coverArtDownloader.ts`. The manager now calls
+  `this.coverArt.download(...)` per song and `this.coverArt.reset()` when it clears
+  the queue. Method body is verbatim — the synchronous "claim before await" race
+  guards are unchanged. `downloadManagerService.ts` 2012 → 1894.
+  *(Needs an on-device bulk-download pass before trusting.)*
+
 ### Performance
 - **RightPanel song rows skip off-screen rendering (WS-PERF)** — `.panel-song-row`
   (Queue / Playlists / History tabs) gets `content-visibility: auto` +

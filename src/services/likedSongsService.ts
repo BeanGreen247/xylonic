@@ -70,7 +70,7 @@ const isOfflineMode = (): boolean => {
     try {
       const config = JSON.parse(offlineModeConfig);
       return config.enabled === true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -105,7 +105,7 @@ const fetchStarredSongs = async (): Promise<void> => {
       const cachedLikedSongs = offlineCacheService.getLikedSongs();
       starredSongIds = new Set(cachedLikedSongs);
       logger.log('[LikedSongs] Loaded from offline cache:', starredSongIds.size);
-    } catch (cacheError) {
+    } catch {
       logger.log('[LikedSongs] Cache not available');
     }
     return;
@@ -146,7 +146,7 @@ const fetchStarredSongs = async (): Promise<void> => {
           await offlineCacheService.removeLikedSong(songId);
         }
       }
-    } catch (cacheError) {
+    } catch {
       // Cache not initialized yet, skip sync
       logger.log('[LikedSongs] Cache not initialized, skipping sync');
     }
@@ -163,7 +163,7 @@ const fetchStarredSongs = async (): Promise<void> => {
       const cachedLikedSongs = offlineCacheService.getLikedSongs();
       starredSongIds = new Set(cachedLikedSongs);
       logger.log('[LikedSongs] Loaded from offline cache:', starredSongIds.size);
-    } catch (cacheError) {
+    } catch {
       logger.log('[LikedSongs] Cache not available');
     }
   }
@@ -208,7 +208,7 @@ export const isSongLiked = async (songId: string): Promise<boolean> => {
     try {
       const cachedLikedSongs = offlineCacheService.getLikedSongs();
       starredSongIds = new Set(cachedLikedSongs);
-    } catch (e) {
+    } catch {
       // Cache not available
     }
     return starredSongIds.has(songId);
@@ -233,7 +233,7 @@ export const likeSong = async (song: { id: string; title: string; artist: string
   starredSongIds.add(song.id);
   try {
     await offlineCacheService.addLikedSong(song.id, Date.now());
-  } catch (cacheError) {
+  } catch {
     logger.log('[LikedSongs] Cache not initialized');
   }
   
@@ -277,7 +277,7 @@ export const unlikeSong = async (songId: string): Promise<void> => {
   starredSongIds.delete(songId);
   try {
     await offlineCacheService.removeLikedSong(songId);
-  } catch (cacheError) {
+  } catch {
     logger.log('[LikedSongs] Cache not initialized');
   }
   

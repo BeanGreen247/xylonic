@@ -169,7 +169,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
         return;
       }
 
-      const albumsList: Album[] = subsonicResponse?.artist?.album || [];
+      const albumsList = (subsonicResponse?.artist?.album || []) as Album[];
       const coverArt: string | undefined = subsonicResponse?.artist?.coverArt;
       metadataCache.set(artistCacheKey, { albums: albumsList, coverArt });
       setAlbums(albumsList);

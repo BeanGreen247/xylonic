@@ -99,7 +99,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
 
       const offset = (currentPage - 1) * PAGE_SIZE;
       const data = await searchSongsPaginated(serverUrl, username, password, '', offset, PAGE_SIZE);
-      const coverArtIds = data.map((s: any) => s.coverArt).filter((id: any): id is string => !!id);
+      const coverArtIds = data.map(s => s.coverArt).filter((id): id is string => !!id);
       await imageCacheService.prewarmBatch(coverArtIds);
       setSongs(data);
       setHasMore(data.length === PAGE_SIZE);
@@ -142,7 +142,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
         playPlaylist(all, Math.floor(Math.random() * all.length));
       } else {
         const rawSongs = await getAllSongs(serverUrl, username, password);
-        const playlist: PlayerSong[] = rawSongs.map((s: any) => ({
+        const playlist: PlayerSong[] = rawSongs.map(s => ({
           id: s.id,
           title: s.title,
           artist: s.artist,

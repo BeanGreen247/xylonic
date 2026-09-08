@@ -270,7 +270,7 @@ const AppContent: React.FC = () => {
         let serverArtistCount = 0;
         const subsonicResponse = artistsResponse.data['subsonic-response'];
         if (subsonicResponse?.status === 'ok' && subsonicResponse.artists?.index) {
-          subsonicResponse.artists.index.forEach((index: any) => {
+          subsonicResponse.artists.index.forEach(index => {
             if (index.artist) serverArtistCount += index.artist.length;
           });
         }

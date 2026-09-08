@@ -142,7 +142,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
 
         if (subsonicResponse?.status === 'ok' && subsonicResponse.artists?.index) {
           const allArtists: any[] = [];
-          subsonicResponse.artists.index.forEach((index: any) => {
+          subsonicResponse.artists.index.forEach(index => {
             if (index.artist) allArtists.push(...index.artist);
           });
           allArtistsData = allArtists;

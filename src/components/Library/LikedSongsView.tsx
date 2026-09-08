@@ -89,7 +89,7 @@ const LikedSongsView: React.FC<LikedSongsViewProps> = ({ topView = 'likedSongs',
       const subsonicResponse = response.data['subsonic-response'];
       logger.log(`[LikedSongsView] response status: ${subsonicResponse?.status}`);
       const starred = subsonicResponse?.starred2;
-      const raw: any[] = starred?.song || [];
+      const raw = starred?.song ?? [];
       raw.sort((a, b) => new Date(b.starred || 0).getTime() - new Date(a.starred || 0).getTime());
       logger.log(`[LikedSongsView] starred2.song count: ${raw.length}`);
       const mapped = raw.map(s => ({

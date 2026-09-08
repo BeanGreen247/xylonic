@@ -272,10 +272,10 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
       const artistsList: Artist[] = [];
 
       if (subsonicResponse?.artists?.index) {
-        subsonicResponse.artists.index.forEach((index: any) => {
+        subsonicResponse.artists.index.forEach(index => {
           if (index.artist) {
             // Map artists and use artist ID as coverArt if not provided
-            const mappedArtists = index.artist.map((artist: any) => ({
+            const mappedArtists = index.artist.map(artist => ({
               ...artist,
               // If coverArt is not provided, use the artist ID itself
               // Subsonic API often supports using artist ID with getCoverArt endpoint
@@ -337,7 +337,7 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
       } else {
         const { serverUrl, username, password } = credentialsService.getCached();
         const rawSongs = await getAllSongs(serverUrl, username, password);
-        songs = rawSongs.map((song: any) => ({
+        songs = rawSongs.map(song => ({
           id: song.id,
           title: song.title,
           artist: song.artist,

@@ -57,7 +57,7 @@ const PlaylistsTab: React.FC<PlaylistsTabProps> = ({ searchTerm = '' }) => {
         if (!localPl || localPl.songs.length === 0) {
           try {
             const { entries } = await getServerPlaylist(serverUrl, username, password, sl.id);
-            const songs: Song[] = entries.map((e: any) => ({
+            const songs: Song[] = entries.map(e => ({
               id: e.id,
               title: e.title,
               artist: e.artist ?? '',

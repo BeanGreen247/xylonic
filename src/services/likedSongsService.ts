@@ -120,7 +120,7 @@ const fetchStarredSongs = async (): Promise<void> => {
 
     const starredTimestamps = new Map<string, number>();
     if (starred?.song) {
-      starred.song.forEach((song: any) => {
+      starred.song.forEach(song => {
         starredSongIds.add(song.id);
         starredTimestamps.set(song.id, song.starred ? new Date(song.starred).getTime() : Date.now());
       });
@@ -181,7 +181,7 @@ export const getLikedSongs = async (): Promise<LikedSong[]> => {
     const starred = response.data['subsonic-response']?.starred2;
     
     if (starred?.song) {
-      const songs = starred.song.map((song: any) => ({
+      const songs = starred.song.map(song => ({
         id: song.id,
         title: song.title,
         artist: song.artist,
@@ -422,7 +422,7 @@ export const getStarredSongsDetailed = async (): Promise<LikedSong[]> => {
     }
     
     const songs = starred.starred.song || [];
-    return songs.map((song: any) => ({
+    return songs.map(song => ({
       id: song.id,
       title: song.title,
       artist: song.artist,

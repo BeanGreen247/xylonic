@@ -1,7 +1,7 @@
 import axios from 'axios';
 import md5 from 'md5';
 import { logger } from '../utils/logger';
-import { SearchResult3, SubsonicSearchResponse } from '../types/subsonic';
+import { SearchResult3, SubsonicSearchResponse, SubsonicEnvelope, SubsonicChild } from '../types/subsonic';
 import { offlineCacheService } from './offlineCacheService';
 import { networkStatsService } from './networkStatsService';
 import { credentialsService } from './credentialsService';
@@ -54,7 +54,7 @@ export const testConnection = async (serverUrl: string, username: string, passwo
         
         logger.log('Testing connection to URL:', url);
         
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         return response;
     } catch (error) {
         logger.error('Connection test failed:', error);
@@ -72,7 +72,7 @@ export const getArtists = async (serverUrl: string, username: string, password: 
         
         logger.log('Fetching artists from URL:', url);
         
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         return response;
     } catch (error) {
         logger.error('Failed to fetch artists:', error);
@@ -88,7 +88,7 @@ export const getArtist = async (serverUrl: string, username: string, password: s
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getArtist.view', { ...authParams, id: artistId });
         
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         return response;
     } catch (error) {
         logger.error('Failed to fetch artist:', error);
@@ -104,7 +104,7 @@ export const getAlbum = async (serverUrl: string, username: string, password: st
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getAlbum.view', { ...authParams, id: albumId });
         
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         return response;
     } catch (error) {
         logger.error('Failed to fetch album:', error);
@@ -121,7 +121,7 @@ export const getAllSongs = async (serverUrl: string, username: string, password:
     const PAGE_SIZE = 500;
     const PAGE_CONCURRENCY = 4;
 
-    const fetchPage = async (songOffset: number): Promise<any[]> => {
+    const fetchPage = async (songOffset: number): Promise<SubsonicChild[]> => {
         const url = buildApiUrl(serverUrl, 'search3.view', {
             ...generateAuthParams(username, password),
             query: '',
@@ -130,7 +130,7 @@ export const getAllSongs = async (serverUrl: string, username: string, password:
             albumCount: '0',
             artistCount: '0',
         });
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         const data = response.data['subsonic-response'];
         if (data?.status === 'failed') {
             throw new Error(data.error?.message || 'Failed to fetch songs');
@@ -138,7 +138,7 @@ export const getAllSongs = async (serverUrl: string, username: string, password:
         return data?.searchResult3?.song || [];
     };
 
-    const allSongs: any[] = [];
+    const allSongs: SubsonicChild[] = [];
 
     const first = await fetchPage(0);
     allSongs.push(...first);
@@ -173,7 +173,7 @@ export const getRandomSongs = async (serverUrl: string, username: string, passwo
         
         logger.log('Fetching random songs from URL:', url);
         
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         return response;
     } catch (error) {
         logger.error('Failed to fetch random songs:', error);
@@ -225,7 +225,7 @@ export const getSongCount = async (serverUrl: string, username: string, password
         
         logger.log('Fetching albums to count songs');
         
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         const albums = response.data['subsonic-response']?.albumList2?.album || [];
         
         // Sum up all song counts from albums
@@ -272,8 +272,8 @@ export const getAlbumList2 = async (
             size: size.toString(),
             offset: offset.toString(),
         });
-        const response = await axios.get(url);
-        return response.data['subsonic-response']?.albumList2?.album || [];
+        const response = await axios.get<SubsonicEnvelope>(url);
+        return (response.data['subsonic-response']?.albumList2?.album || []) as AlbumSummary[];
     } catch (error) {
         logger.error(`Failed to get album list (${type}):`, error);
         throw error;
@@ -311,7 +311,7 @@ export const searchSongsPaginated = async (
             albumCount: '0',
             artistCount: '0',
         });
-        const response = await axios.get(url);
+        const response = await axios.get<SubsonicEnvelope>(url);
         const songs = response.data['subsonic-response']?.searchResult3?.song || [];
         return songs as Array<{
             id: string;
@@ -382,7 +382,7 @@ export const getStarred = async (serverUrl: string, username: string, password: 
     
     logger.log('Fetching starred songs from:', url);
     
-    const response = await axios.get(url);
+    const response = await axios.get<SubsonicEnvelope>(url);
     return response;
   } catch (error) {
     logger.error('Failed to get starred songs:', error);
@@ -400,7 +400,7 @@ export const starSong = async (serverUrl: string, username: string, password: st
     
     logger.log('Starring song:', songId);
     
-    const response = await axios.get(url);
+    const response = await axios.get<SubsonicEnvelope>(url);
     return response;
   } catch (error) {
     logger.error('Failed to star song:', error);
@@ -418,7 +418,7 @@ export const unstarSong = async (serverUrl: string, username: string, password: 
 
     logger.log('Unstarring song:', songId);
 
-    const response = await axios.get(url);
+    const response = await axios.get<SubsonicEnvelope>(url);
     return response;
   } catch (error) {
     logger.error('Failed to unstar song:', error);
@@ -434,7 +434,7 @@ export const serverUpdateNowPlaying = async (
   try {
     checkOfflineMode();
     const params = { ...generateAuthParams(username, password), id: songId, submission: 'false' };
-    await axios.get(buildApiUrl(serverUrl, 'scrobble.view', params));
+    await axios.get<SubsonicEnvelope>(buildApiUrl(serverUrl, 'scrobble.view', params));
   } catch { /* fire-and-forget */ }
 };
 
@@ -452,7 +452,7 @@ export const serverScrobble = async (
       time: String(startTimestampSec * 1000), // Subsonic expects milliseconds
       submission: 'true',
     };
-    await axios.get(buildApiUrl(serverUrl, 'scrobble.view', params));
+    await axios.get<SubsonicEnvelope>(buildApiUrl(serverUrl, 'scrobble.view', params));
   } catch { /* fire-and-forget */ }
 };
 
@@ -474,26 +474,27 @@ export const getServerPlaylists = async (
   checkOfflineMode();
   const params = generateAuthParams(username, password);
   const url = buildApiUrl(serverUrl, 'getPlaylists.view', params);
-  const response = await axios.get(url);
+  const response = await axios.get<SubsonicEnvelope>(url);
   const data = response.data['subsonic-response'];
   if (data?.status === 'failed') throw new Error(data.error?.message || 'Failed to fetch playlists');
   const playlists = data?.playlists?.playlist;
   if (!playlists) return [];
-  return Array.isArray(playlists) ? playlists : [playlists];
+  return (Array.isArray(playlists) ? playlists : [playlists]) as ServerPlaylistMeta[];
 };
 
 export const getServerPlaylist = async (
   serverUrl: string, username: string, password: string, playlistId: string,
-): Promise<{ meta: ServerPlaylistMeta; entries: any[] }> => {
+): Promise<{ meta: ServerPlaylistMeta; entries: SubsonicChild[] }> => {
   checkOfflineMode();
   const params = { ...generateAuthParams(username, password), id: playlistId };
   const url = buildApiUrl(serverUrl, 'getPlaylist.view', params);
-  const response = await axios.get(url);
+  const response = await axios.get<SubsonicEnvelope>(url);
   const data = response.data['subsonic-response'];
   if (data?.status === 'failed') throw new Error(data.error?.message || 'Failed to fetch playlist');
   const pl = data?.playlist;
-  const entries = pl?.entry ? (Array.isArray(pl.entry) ? pl.entry : [pl.entry]) : [];
-  return { meta: pl, entries };
+  if (!pl) throw new Error('Playlist not found');
+  const entries = pl.entry ? (Array.isArray(pl.entry) ? pl.entry : [pl.entry]) : [];
+  return { meta: pl as ServerPlaylistMeta, entries };
 };
 
 export const createServerPlaylist = async (
@@ -504,7 +505,7 @@ export const createServerPlaylist = async (
   const sp = new URLSearchParams({ ...generateAuthParams(username, password), name });
   songIds.forEach(id => sp.append('songId', id));
   const baseUrl = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
-  const response = await axios.get(`${baseUrl}/rest/createPlaylist.view?${sp.toString()}`);
+  const response = await axios.get<SubsonicEnvelope>(`${baseUrl}/rest/createPlaylist.view?${sp.toString()}`);
   const data = response.data['subsonic-response'];
   if (data?.status === 'failed') throw new Error(data.error?.message || 'Failed to create playlist');
   return data?.playlist?.id ?? '';
@@ -527,7 +528,7 @@ export const deleteServerPlaylist = async (
   checkOfflineMode();
   const params = { ...generateAuthParams(username, password), id: playlistId };
   const url = buildApiUrl(serverUrl, 'deletePlaylist.view', params);
-  await axios.get(url);
+  await axios.get<SubsonicEnvelope>(url);
 };
 
 export const updateServerPlaylist = async (
@@ -571,7 +572,7 @@ export const getSongMetadata = async (
   try {
     const authParams = generateAuthParams(username, password);
     const url = buildApiUrl(serverUrl, 'getSong.view', { ...authParams, id: songId });
-    const response = await axios.get(url);
+    const response = await axios.get<SubsonicEnvelope>(url);
     const song = response.data?.['subsonic-response']?.song;
     if (!song) return null;
     return {

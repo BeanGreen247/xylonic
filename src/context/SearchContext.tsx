@@ -116,9 +116,9 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const subsonicResponse = artistsResponse.data['subsonic-response'];
 
       if (subsonicResponse?.status === 'ok' && subsonicResponse.artists?.index) {
-        subsonicResponse.artists.index.forEach((index: any) => {
+        subsonicResponse.artists.index.forEach(index => {
           if (index.artist) {
-            index.artist.forEach((artist: Artist) => {
+            index.artist.forEach(artist => {
               artistsMap.set(artist.id, artist);
             });
           }
@@ -137,7 +137,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               const response = await getArtist(serverUrl, username, password, artist.id);
               const artistData = response.data['subsonic-response'];
               if (artistData?.status === 'ok' && artistData.artist?.album) {
-                artistData.artist.album.forEach((album: Album) => {
+                artistData.artist.album.forEach(album => {
                   if (!albumsMap.has(album.id)) albumsMap.set(album.id, album);
                 });
               }
@@ -159,7 +159,7 @@ export const SearchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               const response = await getAlbum(serverUrl, username, password, album.id);
               const albumData = response.data['subsonic-response'];
               if (albumData?.status === 'ok' && albumData.album?.song) {
-                albumData.album.song.forEach((song: any) => {
+                albumData.album.song.forEach(song => {
                   if (!songsMap.has(song.id)) {
                     songsMap.set(song.id, {
                       id: song.id,

@@ -92,7 +92,7 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
       } else {
         const { serverUrl, username, password } = credentialsService.getCached();
         const rawSongs = await getAllSongs(serverUrl, username, password);
-        songs = rawSongs.map((song: any) => ({
+        songs = rawSongs.map(song => ({
           id: song.id,
           title: song.title,
           artist: song.artist,

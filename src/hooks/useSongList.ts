@@ -26,7 +26,7 @@ export const useSongList = () => {
                 const rawSongs = await getAllSongs(serverUrl, username, password);
                 
                 // Transform songs if needed
-                const songs = rawSongs.map((song: any) => ({
+                const songs = rawSongs.map(song => ({
                     id: song.id,
                     title: song.title,
                     artist: song.artist,

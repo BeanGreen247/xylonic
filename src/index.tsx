@@ -6,8 +6,11 @@ import { Capacitor } from '@capacitor/core';
 // (github, lastfm) are inlined in `components/common/BrandGlyph` and the regular
 // family has zero call sites — so we skip `all.min.css` and drop the
 // fa-brands-400 (110 kB) + fa-regular-400 (19 kB) webfonts (WS-PERF).
+// `fa-solid-subset.css` replaces FA's `solid.min.css`: same @font-face rule but
+// pointing at a ~8 kB subset (~104 glyphs the app references) instead of the
+// full 112 kB fa-solid-900 webfont. Regenerate with `npm run fa:subset`.
 import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
-import '@fortawesome/fontawesome-free/css/solid.min.css';
+import './styles/fa-solid-subset.css';
 import './styles/index.css';
 import App from './App';
 import { initPerformanceMode } from './services/performanceModeService';

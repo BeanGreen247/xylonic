@@ -87,6 +87,7 @@
     "prebuild:clean": "node scripts/clean-appdata-prebuild.js",
     "version:date": "node scripts/set-version-date.js",
     "size": "node scripts/check-bundle-size.js",
+    "fa:subset": "node scripts/build-fa-subset.mjs",
     "write-build-info:debug": "node scripts/write-build-info.js debug",
     "write-build-info:release": "node scripts/write-build-info.js release",
     "electron:build": "node scripts/build-timed.js \"node scripts/write-build-info.js release && npm run prebuild:clean && npm run build && electron-builder\"",

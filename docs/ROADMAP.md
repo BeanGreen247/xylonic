@@ -329,15 +329,20 @@ ADRs exist for every major decision.
       there — the legacy bundle targets Android 7 / Chrome 56 only; a `@babel/core`
       plugin would close that gap. Needs a packaged build to smoke-test the
       terser output (dev mode is unaffected).
-- [~] **FontAwesome subset** (2026-09-07, first cut) — `src/index.tsx` drops
-      `all.min.css` for `fontawesome.min.css` + `solid.min.css` only; the two
-      brand glyphs (github, lastfm) are inlined as SVG in
-      `components/common/BrandGlyph`; the regular family had zero call sites.
-      `fa-brands-400.woff2` (110 kB) + `fa-regular-400.woff2` (19 kB) gone, CSS
-      254 → 232 kB. **Remaining:** subset `fa-solid-900.woff2` (ships whole,
-      115 kB, ~98 of ~1400 glyphs used) — needs a build-time subsetter + a full
-      glyph list incl. every dynamic `fa-${…}` outcome; also closes the
-      MECHEN H1-Pro non-render of high-codepoint glyphs (`feedback_fa7_icon_range`).
+- [x] **FontAwesome subset** — (1) 2026-09-07: dropped `all.min.css` for
+      `fontawesome.min.css` + `solid.min.css`, inlined github/lastfm as SVG
+      (`BrandGlyph`), regular family unused → `fa-brands-400` (110 kB) +
+      `fa-regular-400` (19 kB) gone, CSS 254 → 232 kB. (2) 2026-09-08:
+      `scripts/build-fa-subset.mjs` (`npm run fa:subset`) scans `src/**` for
+      static `fa-*`, dynamic `fa-${…}` / `fa-<stem>-${…}` literals and
+      `icon:'fa-*'` config, resolves against FA7 metadata, runs `subset-font`;
+      `src/index.tsx` imports `styles/fa-solid-subset.css` instead of FA's
+      `solid.min.css`. `fa-solid-900.woff2` 112 kB / ~1400 glyphs →
+      `fa-solid-subset.woff2` **8.5 kB / 104 glyphs** (committed to repo). Also
+      closes the MECHEN H1-Pro high-codepoint non-render (`feedback_fa7_icon_range`).
+      A cross-screen icon QA pass is still advisable. Note: `fa-list-music` /
+      `fa-repeat-1` / `fa-wifi-slash` aren't FA7-Free icons — already broken,
+      unrelated to the subset.
 - [x] **Search index compression** — `searchCacheService` already stores the IDB
       search index as a `deflate`-compressed `ArrayBuffer` (v2.0 records:
       `compress()` / `decompress()` via `CompressionStream`, compress happens

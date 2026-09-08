@@ -20,6 +20,13 @@ All notable changes to Xylonic are documented here.
   guards are unchanged. `downloadManagerService.ts` 2012 → 1894.
 
 ### Performance
+- **Font Awesome solid subset (WS-PERF)** — `scripts/build-fa-subset.mjs` scans
+  the source for every `fa-*` reference (static classes, `fa-${…}` /
+  `fa-<stem>-${…}` dynamic literals, `icon: 'fa-*'` config), resolves them against
+  the FA7 metadata and runs `subset-font`. `src/index.tsx` now imports
+  `styles/fa-solid-subset.css` instead of FA's `solid.min.css`, swapping the full
+  112 kB `fa-solid-900` webfont (~1400 glyphs) for an **8.5 kB** subset of the
+  ~104 glyphs the app uses. Regenerate with `npm run fa:subset`. **−104 kB.**
 - **RightPanel song rows skip off-screen rendering (WS-PERF)** — `.panel-song-row`
   (Queue / Playlists / History tabs) gets `content-visibility: auto` +
   `contain-intrinsic-size`. The Queue tab can hold the entire library (25k+ rows)

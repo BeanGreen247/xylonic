@@ -102,7 +102,7 @@
     .ctx-item {
         padding: 16px 20px;
         min-height: 56px;
-        font-size: 15px;
+        font-size: var(--font-size-md);
     }
 
     .ctx-item i {
@@ -115,12 +115,12 @@
     }
 
     .ctx-song-title {
-        font-size: 15px;
+        font-size: var(--font-size-md);
         max-width: 240px;
     }
 
     .ctx-song-artist {
-        font-size: 13px;
+        font-size: var(--font-size-sm);
         max-width: 240px;
     }
 }

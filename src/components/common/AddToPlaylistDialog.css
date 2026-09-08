@@ -77,7 +77,7 @@
   justify-content: center;
   color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   transition: background 0.15s, color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -98,7 +98,7 @@
   flex-shrink: 0;
 }
 
-.apt-song-label i { color: var(--primary-color); font-size: 11px; }
+.apt-song-label i { color: var(--primary-color); font-size: var(--font-size-xs); }
 
 .apt-song-label span {
   overflow: hidden;
@@ -202,7 +202,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: rgba(255, 255, 255, 0.38);
   margin-top: 2px;
 }
@@ -230,7 +230,7 @@
   background: var(--active-overlay);
 }
 
-.apt-new i { font-size: 13px; flex-shrink: 0; }
+.apt-new i { font-size: var(--font-size-sm); flex-shrink: 0; }
 
 .apt-new-input {
   flex: 1;
@@ -276,7 +276,7 @@
   background: var(--hover-overlay);
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--primary-color);
   text-align: center;
   font-weight: 600;

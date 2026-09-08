@@ -21,7 +21,7 @@
 
 .discover-section-title i {
   color: var(--primary-color);
-  font-size: 18px;
+  font-size: var(--font-size-lg);
 }
 
 .discover-section-actions {
@@ -40,7 +40,7 @@
   border: 1px solid rgba(var(--primary-color-rgb), 0.35);
   border-radius: var(--radius-full);
   color: var(--primary-color);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -58,7 +58,7 @@
 }
 
 .discover-play-btn i {
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .discover-refresh-btn {
@@ -159,7 +159,7 @@
 }
 
 .discover-scroll-arrow i {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 .discover-scroll-arrow-left  { left:  6px; }
@@ -222,7 +222,7 @@
 }
 
 .discover-section-message i {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   color: var(--primary-color);
 }
 

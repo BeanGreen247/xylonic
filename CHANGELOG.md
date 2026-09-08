@@ -5,6 +5,10 @@ All notable changes to Xylonic are documented here.
 ## [Unreleased]
 
 ### Changed
+- **Type scale migration (WS-UX · UI-03)** — all 174 exact-match
+  `font-size: {11,13,15,18,22,28}px` declarations across 28 stylesheets now use
+  `var(--font-size-xs…2xl)`. No rendered change (each token equals the literal it
+  replaced); off-ramp sizes left alone.
 - **`PlayerContext` — playback engine + queue actions extracted (WS-ARCH)** — the
   `<audio>` element creation + media-event wiring moved to
   `src/context/usePlaybackEngine.ts`; the five queue-mutation callbacks

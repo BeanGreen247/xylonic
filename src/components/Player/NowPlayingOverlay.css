@@ -107,7 +107,7 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     transition: background 0.15s, color 0.15s, transform 0.1s;
     -webkit-tap-highlight-color: transparent;
 }
@@ -116,7 +116,7 @@
 .npo-close:active { transform: scale(0.9); }
 
 .npo-label {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 700;
     color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
@@ -265,7 +265,7 @@
     border: none;
     color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
-    font-size: 22px;
+    font-size: var(--font-size-xl);
     width: 44px;
     height: 44px;
     display: flex;
@@ -285,7 +285,7 @@
     border: none;
     color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     width: 44px;
     height: 44px;
     display: flex;
@@ -337,7 +337,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: var(--font-size-xl);
     transition: color 0.1s, transform 0.1s;
     position: relative;
     -webkit-tap-highlight-color: transparent;
@@ -411,7 +411,7 @@
 
 /* ── Quality toast ───────────────────────────── */
 .npo-quality-toast {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     color: var(--primary-color);
     font-weight: 500;
     text-align: center;
@@ -449,7 +449,7 @@
 }
 
 .npo-stat-value {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     color: rgba(255, 255, 255, 0.7);
     font-variant-numeric: tabular-nums;
@@ -512,11 +512,11 @@
 
     .npo-info-row    { padding-top: 4px; padding-bottom: 2px; }
     .npo-song-title  { font-size: 17px; }
-    .npo-song-artist { font-size: 13px; }
+    .npo-song-artist { font-size: var(--font-size-sm); }
 
     .npo-controls     { padding-top: 8px; padding-bottom: 10px; }
     .npo-ctrl         { width: 48px; height: 48px; font-size: 19px; }
-    .npo-ctrl.primary { width: 62px; height: 62px; font-size: 22px; }
+    .npo-ctrl.primary { width: 62px; height: 62px; font-size: var(--font-size-xl); }
 
     .npo-selectors-row { padding: 3px 20px 0; gap: 7px; }
     .npo-selectors-row .streaming-quality-selector,
@@ -546,7 +546,7 @@
     .npo-song-artist { font-size: 12px; margin-top: 1px; }
 
     .npo-progress { padding: 4px 16px 0; }
-    .npo-progress .progress-time { margin-top: 8px; font-size: 11px; }
+    .npo-progress .progress-time { margin-top: 8px; font-size: var(--font-size-xs); }
 
     .npo-controls     { padding: 4px 12px 6px; }
     .npo-ctrl         { width: 50px; height: 50px; font-size: 20px; }
@@ -560,5 +560,5 @@
     .npo-stat-label { font-size: 7px; }
     .npo-stat-value { font-size: 10px; }
 
-    .npo-quality-toast { padding: 0 16px 2px; font-size: 11px; }
+    .npo-quality-toast { padding: 0 16px 2px; font-size: var(--font-size-xs); }
 }

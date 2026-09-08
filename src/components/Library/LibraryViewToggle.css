@@ -18,7 +18,7 @@
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -26,7 +26,7 @@
 }
 
 .view-toggle-btn i {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 .view-toggle-btn:hover:not(.active) {

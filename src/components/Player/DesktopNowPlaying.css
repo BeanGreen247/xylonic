@@ -100,7 +100,7 @@
 }
 
 .dnp-topbar-label {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -117,7 +117,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     border-radius: 50%;
     transition: color 0.15s, background 0.15s;
 }
@@ -183,7 +183,7 @@
 }
 
 .dnp-title {
-    font-size: 22px;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
@@ -194,7 +194,7 @@
 }
 
 .dnp-artist {
-    font-size: 15px;
+    font-size: var(--font-size-md);
     color: var(--text-secondary);
     margin-top: 6px;
     overflow: hidden;
@@ -206,7 +206,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 22px;
+    font-size: var(--font-size-xl);
     color: var(--text-muted);
     transition: color 0.15s, transform 0.1s;
     padding: 4px 8px;
@@ -241,7 +241,7 @@
 }
 
 .dnp-queue-header {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -275,7 +275,7 @@
     height: 120px;
 }
 
-.dnp-queue-empty i { font-size: 28px; }
+.dnp-queue-empty i { font-size: var(--font-size-2xl); }
 
 /* Queue rows */
 .dnp-queue-row {
@@ -376,7 +376,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     border-radius: 50%;
     transition: color 0.12s, background 0.12s;
     position: relative;
@@ -390,7 +390,7 @@
 .dnp-play-btn {
     width: 60px;
     height: 60px;
-    font-size: 22px;
+    font-size: var(--font-size-xl);
     background: var(--primary-color);
     color: #000;
     border-radius: 50%;

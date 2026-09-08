@@ -253,7 +253,7 @@ button.logout-button:hover {
 .mobile-menu-header h3 {
   color: var(--text-primary);
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
 }
 
@@ -311,7 +311,7 @@ button.logout-button:hover {
   border: 2px solid var(--active-overlay);
   border-radius: 10px;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: var(--font-size-md);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -366,7 +366,7 @@ button.logout-button:hover {
   padding: 14px 18px;
   justify-content: flex-start;
   gap: 12px;
-  font-size: 15px;
+  font-size: var(--font-size-md);
   font-weight: 500;
 }
 
@@ -374,7 +374,7 @@ button.logout-button:hover {
   width: 100%;
   padding: 14px 45px 14px 18px;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: var(--font-size-md);
 }
 
 /* Responsive Layout */

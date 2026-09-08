@@ -48,7 +48,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: var(--font-size-md);
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -94,7 +94,7 @@
 }
 
 .fwd-detecting {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   font-style: italic;
   margin: 0;
@@ -220,7 +220,7 @@
   border-radius: 4px;
   padding: 1px 5px;
   font-family: inherit;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .fwd-note code {

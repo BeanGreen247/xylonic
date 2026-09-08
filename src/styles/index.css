@@ -334,7 +334,7 @@ body {
     border-radius: 999px;
     background: var(--border-subtle);
     color: var(--text-secondary, #ffffff);
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     cursor: pointer;
     transition: all 0.1s ease;
 }
@@ -364,7 +364,7 @@ body {
 .server-info {
     display: flex;
     align-items: center;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     min-width: 0;
 }
 
@@ -501,7 +501,7 @@ body {
     gap: 6px;
     margin-bottom: 5px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
 }
 
@@ -512,7 +512,7 @@ body {
     border-radius: var(--radius-sm);
     background: var(--bg-light);
     color: var(--text-primary);
-    font-size: 15px;
+    font-size: var(--font-size-md);
     transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -535,7 +535,7 @@ body {
     display: block;
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--font-size-xs);
 }
 
 .test-button,
@@ -544,7 +544,7 @@ body {
     padding: 12px 20px;
     border: none;
     border-radius: var(--radius-full);
-    font-size: 15px;
+    font-size: var(--font-size-md);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -622,7 +622,7 @@ body {
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     cursor: pointer;
     transition: color 0.12s;
@@ -716,7 +716,7 @@ body {
     padding: 10px 16px;
     background-color: var(--surface-variant);
     border-radius: var(--radius-full);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     border: 1px solid var(--hover-overlay);
 }
@@ -786,7 +786,7 @@ body {
     gap: 16px;
     padding: 60px;
     color: var(--text-secondary);
-    font-size: 18px;
+    font-size: var(--font-size-lg);
 }
 
 .loading i {
@@ -928,7 +928,7 @@ body {
 
 .artist-album-count {
     text-align: center;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
 }
 
@@ -996,7 +996,7 @@ body {
 }
 
 .album-artist {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -1012,7 +1012,7 @@ body {
     border: none;
     padding: 0;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     font-weight: 600;
     transition: color 0.12s, text-decoration 0.12s;
@@ -1132,7 +1132,7 @@ body {
 }
 
 .missing-banner-icon {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     opacity: 0.95;
     flex-shrink: 0;
 }
@@ -1169,7 +1169,7 @@ body {
     border: 1px solid rgba(255,255,255,0.35);
     border-radius: 20px;
     color: #fff;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -1191,7 +1191,7 @@ body {
     border-radius: 50%;
     color: #fff;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     transition: background 0.15s ease;
     flex-shrink: 0;
 }
@@ -1231,7 +1231,7 @@ body {
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     cursor: pointer;
     padding: 4px 0;
@@ -1269,7 +1269,7 @@ body {
 }
 
 .album-hero-label {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -1289,7 +1289,7 @@ body {
     align-items: center;
     gap: 4px;
     flex-wrap: wrap;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     margin-top: 4px;
 }
@@ -1386,7 +1386,7 @@ body {
 
 .song-hover-play {
     position: absolute;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-primary);
     opacity: 0;
     transition: opacity 0.12s;
@@ -1454,7 +1454,7 @@ body {
 }
 
 .song-artist {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -1466,7 +1466,7 @@ body {
     align-items: center;
     gap: 16px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
 }
 
 .song-duration {
@@ -1482,7 +1482,7 @@ body {
 }
 
 .downloaded-badge {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
 }
 
 /* All Songs view - thumbnail in song row */
@@ -1588,7 +1588,7 @@ body {
     cursor: pointer;
     padding: 5px 8px;
     border-radius: var(--radius-sm);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     transition: color 0.15s, background 0.15s;
     line-height: 1;
 }
@@ -1673,7 +1673,7 @@ body {
 }
 
 .current-song-artist {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -1972,7 +1972,7 @@ body {
 }
 
 .quality-picker-title {
-    font-size: 15px;
+    font-size: var(--font-size-md);
     font-weight: 700;
     color: var(--text-primary);
     display: flex;
@@ -2002,7 +2002,7 @@ body {
 .quality-picker-close:hover { color: var(--text-primary); }
 
 .quality-picker-hint {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     color: var(--text-muted);
     padding: 4px 18px 10px;
 }
@@ -2073,7 +2073,7 @@ body {
 }
 
 .quality-picker-name {
-    font-size: 15px;
+    font-size: var(--font-size-md);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -2146,7 +2146,7 @@ body {
     background: rgba(var(--primary-color-rgb), 0.1);
     border: 1px solid rgba(var(--primary-color-rgb), 0.3);
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     cursor: pointer;
     transition: background 0.1s, border-color 0.1s;
@@ -2194,7 +2194,7 @@ body {
     }
 
     .quality-picker-desc {
-        font-size: 13px;
+        font-size: var(--font-size-sm);
     }
 
     .quality-picker-bars {
@@ -2226,7 +2226,7 @@ body {
     border-radius: var(--radius-lg);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-strong);
     color: white;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     z-index: 1000;
     animation: slideInRight 0.15s ease-out;
@@ -2394,12 +2394,12 @@ body {
 
 .quality-selector .quality-selector-header i {
     color: var(--primary-color);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     opacity: 0.9;
 }
 
 .quality-selector .quality-type-label {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -2409,7 +2409,7 @@ body {
 
 .quality-selector i {
     color: var(--primary-color);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     opacity: 0.9;
 }
 
@@ -2419,7 +2419,7 @@ body {
     border: 1.5px solid var(--border-strong);
     background-color: var(--scrim);
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.1s ease;
@@ -2511,7 +2511,7 @@ body {
     }
 
     .quality-current-label {
-        font-size: 11px;
+        font-size: var(--font-size-xs);
         min-width: 40px;
     }
 
@@ -2643,7 +2643,7 @@ body {
     .offline-mode-button,
     .download-manager-button {
         padding: 8px 12px !important;
-        font-size: 13px !important;
+        font-size: var(--font-size-sm) !important;
     }
 
     /* Reserve space at the bottom of .app for the fixed mobile-bottom-nav */
@@ -2694,7 +2694,7 @@ body {
     }
 
     .artist-name, .album-name {
-        font-size: 11px !important;
+        font-size: var(--font-size-xs) !important;
         margin-bottom: 2px !important;
     }
 
@@ -2748,7 +2748,7 @@ body {
 
     .album-hero-info { align-items: center; }
 
-    .album-hero-title { font-size: 22px !important; text-align: center; }
+    .album-hero-title { font-size: var(--font-size-xl) !important; text-align: center; }
 
     .album-action-bar {
         padding: 16px;
@@ -2758,16 +2758,16 @@ body {
     .album-play-circle {
         width: 52px !important;
         height: 52px !important;
-        font-size: 18px !important;
+        font-size: var(--font-size-lg) !important;
         margin-left: auto;
     }
 
     /* "More by this artist" link */
-    .album-artist-link { font-size: 15px; }
+    .album-artist-link { font-size: var(--font-size-md); }
 
     /* Song title / artist text — slightly larger */
-    .song-title { font-size: 15px; }
-    .song-artist { font-size: 13px; }
+    .song-title { font-size: var(--font-size-md); }
+    .song-artist { font-size: var(--font-size-sm); }
 
     /* ── Library header ── */
     /* Stack the header vertically on mobile */
@@ -2800,7 +2800,7 @@ body {
         width: 100%;
         justify-content: center;
         padding: 12px 16px !important;
-        font-size: 15px !important;
+        font-size: var(--font-size-md) !important;
         min-height: 48px;
     }
 
@@ -2821,7 +2821,7 @@ body {
         flex: 1;
         justify-content: center;
         padding: 13px 0 !important;
-        font-size: 18px !important;
+        font-size: var(--font-size-lg) !important;
         min-height: 44px;
         gap: 0 !important;
     }
@@ -2834,7 +2834,7 @@ body {
     .mobile-page-indicator { display: inline-flex !important; }
     .pagination-button {
         padding: 12px 20px !important;
-        font-size: 15px !important;
+        font-size: var(--font-size-md) !important;
         min-height: 48px;
     }
     .pagination-controls {
@@ -3278,7 +3278,7 @@ body.power-saver-mode .album-art {
 @media (max-width: 360px) {
     /* Slimmer app title so it doesn't crowd header buttons */
     .app-title {
-        font-size: 18px !important;
+        font-size: var(--font-size-lg) !important;
         gap: 8px !important;
     }
     /* Compact login box padding */

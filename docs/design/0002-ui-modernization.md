@@ -65,11 +65,14 @@ Sizes: **S** ≈ half-day · **M** ≈ 1–2 days · **L** ≈ 3+ days / needs i
       button that fades/scales in over the art (keyboard-focusable, hidden from
       AT when the card itself is the control). Gated by `prefers-reduced-motion`
       and `isCoarsePointer` (always-visible on touch). Reference: Spotify card.
-- [~] **UI-03 · Type scale tokens** (2026-09-07) — `--font-size-xs…2xl`,
+- [x] **UI-03 · Type scale tokens** — (2026-09-07) `--font-size-xs…2xl`,
       `--tracking-{tight,normal,wide}`, `--leading-{tight,normal}` added to
       `:root`; `text-wrap: balance` on `h1–h4` + heading classes, tight tracking
-      on display headings (not the uppercase wide-tracked labels). **Remaining:**
-      migrate component `font-size` literals onto the ramp.
+      on display headings (not the uppercase wide-tracked labels). (2026-09-08)
+      all 174 exact-match `font-size: {11,13,15,18,22,28}px` declarations across
+      28 CSS files migrated to `var(--font-size-*)` — zero rendered-pixel change
+      (each token equals the literal it replaced). Off-ramp sizes (10/12/14/16/…)
+      left as-is.
 - [x] **UI-04 · Tabular figures** (2026-09-07) — `font-variant-numeric:
       tabular-nums` + `font-feature-settings: "tnum"` on `.progress-time`,
       `.song-duration`, track-number, `.panel-song-time`, `.progress-stats`,

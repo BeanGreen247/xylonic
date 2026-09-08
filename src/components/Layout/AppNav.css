@@ -41,7 +41,7 @@
   background: transparent;
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 6px;
@@ -49,7 +49,7 @@
 }
 
 .app-nav-collapse-btn i {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   width: 16px;
   text-align: center;
   flex-shrink: 0;

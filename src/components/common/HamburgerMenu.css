@@ -285,7 +285,7 @@
 .switch-pass-input:focus { border-color: var(--primary-color); }
 
 .switch-pass-error {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: #f44;
   margin: 0;
   display: flex;

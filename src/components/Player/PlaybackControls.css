@@ -13,7 +13,7 @@
 }
 
 .remote-mode-bar i {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
 }
 
 .remote-mode-bar--controlled {
@@ -199,11 +199,11 @@
     }
 
     .current-song-title {
-        font-size: 13px !important;
+        font-size: var(--font-size-sm) !important;
     }
 
     .current-song-artist {
-        font-size: 11px !important;
+        font-size: var(--font-size-xs) !important;
     }
 
     /* Controls pinned to the right */
@@ -221,7 +221,7 @@
     .playback-controls button {
         width: 44px !important;
         height: 44px !important;
-        font-size: 18px !important;
+        font-size: var(--font-size-lg) !important;
     }
 
     .playback-controls .play-pause-btn {

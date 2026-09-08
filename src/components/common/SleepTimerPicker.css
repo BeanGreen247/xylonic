@@ -42,7 +42,7 @@
   border: 1px solid var(--active-overlay);
   border-radius: var(--radius-full);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   cursor: pointer;
   transition: all 0.12s ease;
 }

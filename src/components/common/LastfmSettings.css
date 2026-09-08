@@ -71,7 +71,7 @@
 }
 
 .lfm-hint {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     margin: 0;
     line-height: 1.5;
@@ -151,7 +151,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     padding: 10px 12px;
     border-radius: 8px;
     margin: 0 20px 16px;
@@ -178,7 +178,7 @@
 }
 
 .lfm-connected-name {
-    font-size: 15px;
+    font-size: var(--font-size-md);
     font-weight: 700;
     color: var(--text-primary);
 }

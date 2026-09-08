@@ -62,7 +62,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  font-size: 15px;
+  font-size: var(--font-size-md);
   flex-shrink: 0;
   pointer-events: none;
   user-select: none;
@@ -202,7 +202,7 @@ button.mini-player-button[disabled] .btn-label,
   gap: 6px;
   padding: 8px 14px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   transition: all 0.1s ease;
 }

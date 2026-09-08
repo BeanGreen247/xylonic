@@ -238,17 +238,23 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       `system.js`, `misc.js`, `downloadNotification.js`, `cache.js` (~31 handlers),
       `playerWindow.js` (mini-player + player-state + MPRIS art). Each module has
       a plain-node functional test; `electron:serve` verified clean per step.
-- [~] **Split `SettingsView`** — 1226 → **603** (2026-09-08). Extracted:
+- [x] **Split `SettingsView`** — 1226 → **359** (2026-09-08). It is now a thin
+      shell composing section components under `components/common/settings/`:
       `LicensesDialog`, `TechStackDialog`, `PerformanceCacheSection`,
-      `AboutSection` (owns build-info/licenses fetch + both dialogs),
-      `AdvancedSection` (owns perf-mode / power-saver / render-timer / debug-log
-      toggles), `SwitchServerSection` (2026-09-08 — owns the Account "Switch
-      Server" row + its connection-picker / password-prompt portals + all 6 of
-      its own state vars; only needs `login` from `AuthContext`) →
-      `components/common/settings/`. Remaining sections (Appearance, Playback,
-      Account/Last.fm, Offline&Cache, Remote, Streaming, Downloads, Library,
-      Danger Zone) are state/handler-coupled to the parent — a full split wants a
-      shared props shape or a tab UI.
+      `AboutSection` (build-info/licenses fetch + both dialogs), `AdvancedSection`
+      (perf-mode / power-saver / render-timer / debug-log toggles),
+      `SwitchServerSection` (Account "Switch Server" row + connection-picker /
+      password-prompt portals), `RemoteSettingsSection` (be-controlled /
+      control-others toggles + firewall dialog; reads `RemoteModeContext`),
+      `StreamingDownloadsSection` (streaming bitrate + download quality/concurrency;
+      owns its own state), `LibrarySection` (per-user default view). Each new
+      section owns its own state and hooks — no shared props shape needed. What
+      stays inline in the shell: the small Appearance / Playback / Account-Last.fm /
+      Offline&Cache toggle rows + the Danger Zone, and the three destructive
+      cache/data handlers (`handleRebuildCache` / `handleClearAllCaches` /
+      `handleClearAllData`) which are genuinely cross-cutting (offlineCache +
+      imageCache + searchCache + downloadManager + reload). Also dropped two dead
+      helpers (`fmtBytes`, `handleOpenSupport`).
 - [ ] **Add routing** — `react-router` with memory history on native. Replaces
       the `appSection` / `navigation` / `topView` / `sectionHistory` machine in
       `App.tsx` (`MainApp.tsx` is dead code). Enables deep-linking, desktop

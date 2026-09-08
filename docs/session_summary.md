@@ -29,6 +29,15 @@ connection-picker / password-prompt portals + all 6 switch-server state vars →
 clean, no new lint warnings. Files: `SettingsView.tsx`, `SwitchServerSection.tsx` (new),
 `CHANGELOG.md`, `docs/ROADMAP.md`.
 
+**Also this session — `SettingsView` split finished:** extracted
+`RemoteSettingsSection`, `StreamingDownloadsSection`, `LibrarySection` (on top of
+this session's earlier `SwitchServerSection`) into `components/common/settings/`.
+Each owns its own state / context hooks — no shared props shape. `SettingsView.tsx`
+1226 → **359** (a shell composing 9 section components + small inline toggle rows +
+the 3 cross-cutting destructive cache/data handlers). Dropped dead `fmtBytes` /
+`handleOpenSupport`. Build clean; lint warnings 6 → 2 (the 2 left are pre-existing
+`(window as any).require`). ROADMAP marks the `SettingsView` god-object split done.
+
 **Also this session — WS-PERF QueueTab (partial):** added `content-visibility: auto`
 + `contain-intrinsic-size` (`auto 49px`, `auto 60px` on the touch breakpoint) to
 `.panel-song-row` in `RightPanel.css` — the Queue tab renders every queued song

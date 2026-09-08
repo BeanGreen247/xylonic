@@ -6,25 +6,21 @@ import { useOfflineMode } from '../../context/OfflineModeContext';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
-import { useRemoteMode } from '../../context/RemoteModeContext';
 import { offlineCacheService } from '../../services/offlineCacheService';
 import { imageCacheService, type PerformanceCacheStats } from '../../services/imageCacheService';
 import { downloadManager } from '../../services/downloadManagerService';
 import { searchCacheService } from '../../services/searchCacheService';
-import { TopLevelView } from '../Library/LibraryViewToggle';
-import { DownloadQuality } from '../../types/offline';
-import { getDefaultDownloadQuality, saveDefaultDownloadQuality, saveStreamingQuality, getMaxConcurrentDownloads, saveMaxConcurrentDownloads, MAX_CONCURRENT_DOWNLOADS_LIMIT } from '../../utils/settingsManager';
 import ThemeSelector from './ThemeSelector';
-import FirewallSetupDialog from './FirewallSetupDialog';
 import SleepTimerPicker, { fmtSleepRemaining } from './SleepTimerPicker';
 import DownloadManagerWindow from '../Library/DownloadManagerWindow';
 import PerformanceCacheSection from './settings/PerformanceCacheSection';
 import AboutSection from './settings/AboutSection';
 import AdvancedSection from './settings/AdvancedSection';
 import SwitchServerSection from './settings/SwitchServerSection';
+import RemoteSettingsSection from './settings/RemoteSettingsSection';
+import StreamingDownloadsSection from './settings/StreamingDownloadsSection';
+import LibrarySection from './settings/LibrarySection';
 import './SettingsView.css';
-
-const PREF_KEY = (username: string) => `xylonic_library_view_${username}`;
 
 function makeCacheKey(key: string, user: string, server: string): string {
   const hash = server.split('').reduce((acc, c) => ((acc << 5) - acc) + c.charCodeAt(0), 0);
@@ -36,37 +32,12 @@ function clearPrecacheFlags(user: string, server: string) {
   localStorage.removeItem(makeCacheKey('cachePreloadTimestamp', user, server));
 }
 
-function fmtBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
-
-const VIEW_OPTIONS: { view: TopLevelView; label: string; icon: string }[] = [
-  { view: 'artists',    label: 'Artists', icon: 'fa-users' },
-  { view: 'allAlbums',  label: 'Albums',  icon: 'fa-compact-disc' },
-  { view: 'allSongs',   label: 'Songs',   icon: 'fa-music' },
-  { view: 'likedSongs', label: 'Liked',   icon: 'fa-heart' },
-];
-
 const SettingsView: React.FC = () => {
   const { offlineModeEnabled, toggleOfflineMode, config: offlineConfig, updateConfig: updateOfflineConfig } = useOfflineMode();
   const { username } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
-  const { sleepTimerRemaining, bitrate, setBitrate } = usePlayer();
-  const {
-    isRemoteModeAvailable,
-    remoteControlEnabled,  setRemoteControlEnabled,
-    remoteControllerEnabled, setRemoteControllerEnabled,
-    availableDevices,
-    remoteTarget,
-    isOnWifi,
-  } = useRemoteMode();
-  const [showFirewallDialog, setShowFirewallDialog] = useState(false);
+  const { sleepTimerRemaining } = usePlayer();
 
-  const [defaultDlQuality, setDefaultDlQuality] = useState<DownloadQuality>(getDefaultDownloadQuality);
-  const [maxConcurrentDownloads, setMaxConcurrentDownloads] = useState<number>(getMaxConcurrentDownloads);
   const [showThemeSelector,  setShowThemeSelector]  = useState(false);
   const [showDownloadManager,setShowDownloadManager] = useState(false);
   const [isRebuildingCache,  setIsRebuildingCache]   = useState(false);
@@ -74,42 +45,11 @@ const SettingsView: React.FC = () => {
   const [isClearingAllData,  setIsClearingAllData]   = useState(false);
   const [perfCacheStats,     setPerfCacheStats]      = useState<PerformanceCacheStats | null>(null);
   const [perfCacheRefreshTick, setPerfCacheRefreshTick] = useState(0);
-  const [preferredView,      setPreferredView]       = useState<TopLevelView>('artists');
 
   useEffect(() => {
     setPerfCacheStats(null);
     imageCacheService.getPerformanceStats().then(setPerfCacheStats).catch(() => {});
   }, [perfCacheRefreshTick]);
-
-  useEffect(() => {
-    if (!username) return;
-    const saved = localStorage.getItem(PREF_KEY(username)) as TopLevelView | null;
-    if (saved && ['artists', 'allAlbums', 'allSongs', 'likedSongs'].includes(saved)) {
-      setPreferredView(saved as TopLevelView);
-    }
-  }, [username]);
-
-  const handleQualityChange = (q: DownloadQuality) => {
-    setDefaultDlQuality(q);
-    saveDefaultDownloadQuality(q);
-  };
-
-  const handleMaxConcurrentChange = (count: number) => {
-    setMaxConcurrentDownloads(count);
-    saveMaxConcurrentDownloads(count);
-    downloadManager.syncMaxConcurrentDownloads();
-  };
-
-  const handleStreamingQualityChange = (raw: string) => {
-    const value = raw === '' ? null : Number(raw);
-    setBitrate(value);
-    saveStreamingQuality(value);
-  };
-
-  const handlePreferredViewChange = (view: TopLevelView) => {
-    setPreferredView(view);
-    if (username) localStorage.setItem(PREF_KEY(username), view);
-  };
 
   const handleRebuildCache = async () => {
     if (isRebuildingCache) return;
@@ -185,16 +125,6 @@ const SettingsView: React.FC = () => {
 
   const handleOpenGitHub = () => {
     const url = 'https://github.com/BeanGreen247/xylonic';
-    if ((window as any).require) {
-      const { shell } = (window as any).require('electron');
-      shell.openExternal(url);
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const handleOpenSupport = () => {
-    const url = 'https://github.com/sponsors/BeanGreen247';
     if ((window as any).require) {
       const { shell } = (window as any).require('electron');
       shell.openExternal(url);
@@ -387,184 +317,11 @@ const SettingsView: React.FC = () => {
         </div>
       </section>
 
-      {/* ── Remote ────────────────────────────────────────── */}
-      {isRemoteModeAvailable && (
-        <section className="settings-section">
-          <h3 className="settings-section-title">Remote</h3>
-          <div className="settings-card">
-            <button
-              className={`settings-row${remoteControlEnabled ? ' active' : ''}`}
-              onClick={() => setRemoteControlEnabled(!remoteControlEnabled)}
-            >
-              <span className="settings-row-icon"><i className="fas fa-satellite-dish" /></span>
-              <span className="settings-row-label">
-                Be Controlled
-                <span className="settings-row-sub">Let other Xylonic devices on your network control playback here</span>
-              </span>
-              <span className="settings-row-action">
-                <span className={`settings-badge ${remoteControlEnabled ? 'on' : 'off'}`}>
-                  {remoteControlEnabled ? 'On' : 'Off'}
-                </span>
-              </span>
-            </button>
+      <RemoteSettingsSection />
 
-            <>
-              <div className="settings-divider" />
-              <button
-                className={`settings-row${remoteControllerEnabled ? ' active' : ''}`}
-                onClick={() => setRemoteControllerEnabled(!remoteControllerEnabled)}
-              >
-                <span className="settings-row-icon"><i className="fas fa-gamepad" /></span>
-                <span className="settings-row-label">
-                  Control Others
-                  <span className="settings-row-sub">Discover and control other Xylonic devices on your network</span>
-                </span>
-                <span className="settings-row-action">
-                  <span className={`settings-badge ${remoteControllerEnabled ? 'on' : 'off'}`}>
-                    {remoteControllerEnabled ? 'On' : 'Off'}
-                  </span>
-                </span>
-              </button>
-            </>
+      <StreamingDownloadsSection />
 
-            <div className="settings-divider" />
-            <button
-              className="settings-row"
-              onClick={() => window.dispatchEvent(new Event('xylonic-open-remote-picker'))}
-            >
-              <span className="settings-row-icon">
-                <i className="fas fa-network-wired" />
-              </span>
-              <span className="settings-row-label">
-                Remote Devices
-                <span className="settings-row-sub">
-                  {remoteTarget
-                    ? 'Currently controlling a remote device'
-                    : availableDevices.length > 0
-                      ? `${availableDevices.length} device${availableDevices.length !== 1 ? 's' : ''} found`
-                      : isOnWifi ? 'No devices found yet' : 'Requires Wi-Fi / LAN'}
-                </span>
-              </span>
-              <span className="settings-row-action">
-                {remoteTarget
-                  ? <span className="settings-badge on">Connected</span>
-                  : <i className="fas fa-chevron-right" />}
-              </span>
-            </button>
-
-            {!Capacitor.isNativePlatform() && (
-              <>
-                <div className="settings-divider" />
-                <button
-                  className="settings-row"
-                  onClick={() => setShowFirewallDialog(true)}
-                >
-                  <span className="settings-row-icon"><i className="fas fa-fire-alt" /></span>
-                  <span className="settings-row-label">
-                    Firewall Setup
-                    <span className="settings-row-sub">Open ports 7766 (UDP) and 7767 (TCP) for remote discovery</span>
-                  </span>
-                  <span className="settings-row-action"><i className="fas fa-chevron-right" /></span>
-                </button>
-              </>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ── Streaming ─────────────────────────────────────── */}
-      <section className="settings-section">
-        <h3 className="settings-section-title">Streaming</h3>
-        <div className="settings-card">
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon"><i className="fas fa-signal" /></span>
-            <span className="settings-row-label">Streaming Quality
-              <span className="settings-row-sub">Applies to the next track loaded</span>
-            </span>
-            <span className="settings-row-action">
-              <select
-                className="settings-select"
-                value={bitrate === null ? '' : String(bitrate)}
-                onChange={e => handleStreamingQualityChange(e.target.value)}
-              >
-                <option value="">Original</option>
-                <option value="320">320 kbps</option>
-                <option value="256">256 kbps</option>
-                <option value="192">192 kbps</option>
-                <option value="128">128 kbps</option>
-                <option value="64">64 kbps</option>
-              </select>
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Downloads ─────────────────────────────────────── */}
-      <section className="settings-section">
-        <h3 className="settings-section-title">Downloads</h3>
-        <div className="settings-card">
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon"><i className="fas fa-sliders-h" /></span>
-            <span className="settings-row-label">Download Quality</span>
-            <span className="settings-row-action">
-              <select
-                className="settings-select"
-                value={defaultDlQuality}
-                onChange={e => handleQualityChange(e.target.value as DownloadQuality)}
-              >
-                <option value="original">Original</option>
-                <option value="320">320 kbps</option>
-                <option value="256">256 kbps</option>
-                <option value="128">128 kbps</option>
-                <option value="64">64 kbps</option>
-              </select>
-            </span>
-          </div>
-          <div className="settings-divider" />
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon"><i className="fas fa-layer-group" /></span>
-            <span className="settings-row-label">Concurrent Downloads
-              <span className="settings-row-sub">
-                {maxConcurrentDownloads === 1 ? 'One song at a time' : `Up to ${maxConcurrentDownloads} songs at once`}
-                {Capacitor.getPlatform() === 'ios' ? ' — iOS applies this from next app launch' : ''}
-              </span>
-            </span>
-            <span className="settings-row-action">
-              <select
-                className="settings-select"
-                value={maxConcurrentDownloads}
-                onChange={e => handleMaxConcurrentChange(Number(e.target.value))}
-              >
-                {Array.from({ length: MAX_CONCURRENT_DOWNLOADS_LIMIT }, (_, i) => i + 1).map(n => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Library ────────────────────────────────────────── */}
-      <section className="settings-section">
-        <h3 className="settings-section-title">Library</h3>
-        <div className="settings-card">
-          <div className="settings-row non-interactive">
-            <span className="settings-row-icon"><i className="fas fa-book-open" /></span>
-            <span className="settings-row-label">Default View</span>
-            <span className="settings-row-action">
-              <select
-                className="settings-select"
-                value={preferredView}
-                onChange={e => handlePreferredViewChange(e.target.value as TopLevelView)}
-              >
-                {VIEW_OPTIONS.map(({ view, label }) => (
-                  <option key={view} value={view}>{label}</option>
-                ))}
-              </select>
-            </span>
-          </div>
-        </div>
-      </section>
+      <LibrarySection />
 
       <AdvancedSection />
 
@@ -594,7 +351,6 @@ const SettingsView: React.FC = () => {
 
       {/* ── Modals ─────────────────────────────────────────── */}
       {showThemeSelector && <ThemeSelector onClose={() => setShowThemeSelector(false)} />}
-      {showFirewallDialog && <FirewallSetupDialog onClose={() => setShowFirewallDialog(false)} />}
       <DownloadManagerWindow isOpen={showDownloadManager} onClose={() => setShowDownloadManager(false)} />
     </div>
   );

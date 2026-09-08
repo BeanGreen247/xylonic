@@ -38,22 +38,32 @@ the 3 cross-cutting destructive cache/data handlers). Dropped dead `fmtBytes` /
 `handleOpenSupport`. Build clean; lint warnings 6 → 2 (the 2 left are pre-existing
 `(window as any).require`). ROADMAP marks the `SettingsView` god-object split done.
 
-**Also this session — WS-ARCH tail, on review branches (NOT on main):**
-- `arch/player-engine-split` — `PlayerContext` `<audio>` element + media-event
-  wiring → `src/context/usePlaybackEngine.ts`; the 5 queue-mutation callbacks →
-  `src/context/useQueueActions.ts`. Verbatim lift-and-shift behind params objects.
-  `PlayerContext.tsx` 1023 → 924. build + 127 tests green. **Needs on-device
-  playback / gapless / MPRIS verification before merge.**
-- `arch/download-transport-split` — `downloadManagerService` `downloadCoverArt` +
-  its 4 dedup Sets/Maps + `randomSalt` → `CoverArtDownloader` class in
-  `src/services/coverArtDownloader.ts`. Method body verbatim (sync claim-before-await
-  race guards intact). `downloadManagerService.ts` 2012 → 1894. build + 127 tests
-  green. **Needs an on-device bulk-download pass before merge.**
-- `react-router` (last WS-ARCH item) — genuinely blocked here: needs
-  `npm i react-router-dom`, which the hard rules forbid me from running. Install it
-  and the migration + Android `backbutton` rewire can be done.
+**Also this session — WS-ARCH tail (merged to main on owner's instruction):**
+- `usePlaybackEngine` + `useQueueActions` extracted from `PlayerContext`
+  (1023 → 924); `CoverArtDownloader` extracted from `downloadManagerService`
+  (2012 → 1894). Both verbatim lift-and-shift, build + 127 tests green.
+  **Still need on-device verification** (playback/gapless/MPRIS; a bulk download) —
+  merged unverified per owner.
+- `react-router-dom@7.18.3` + `subset-font@2.7` (dev) installed on owner's
+  instruction (overrides the standing no-install rule for this session).
+- `react-router` migration itself — **not done.** App.tsx has a ~340-line bespoke
+  nav machine (`navigation`/`topView`/`appSection`/`sectionHistory` + a
+  render-fresh `backHandlerRef` + "Back to X" label logic + logout/offline/search
+  resets). A faithful migration is a from-scratch redesign of the nav model with
+  the Android hardware-back path as a core dependency — a dedicated focused effort
+  + device pass, not a mechanical extraction. Dep is installed; it's unblocked.
 - `RemoteModeProvider` — decided to stay a context (consumes `useAuth`, device-only
-  discovery state); not a mechanical collapse.
+  discovery state).
+
+**Also this session — WS-PERF fa-solid subset (WS-PERF item done):**
+`scripts/build-fa-subset.mjs` (`npm run fa:subset`) scans `src/**` for static
+`fa-*`, dynamic `fa-${…}` / `fa-<stem>-${…}` literals and `icon:'fa-*'` config,
+resolves against FA7 metadata, runs `subset-font`. `src/index.tsx` imports
+`styles/fa-solid-subset.css` instead of FA's `solid.min.css`. `fa-solid-900.woff2`
+112 kB / ~1400 glyphs → `fa-solid-subset.woff2` **8.5 kB / 104 glyphs** (committed).
+`npm run build` + `npm run size` + 127 tests green; cross-screen icon QA still
+advisable. Found: `fa-list-music` / `fa-repeat-1` / `fa-wifi-slash` aren't FA7-Free
+icons — pre-existing breakage, unrelated.
 
 **Also this session — WS-PERF QueueTab (partial):** added `content-visibility: auto`
 + `contain-intrinsic-size` (`auto 49px`, `auto 60px` on the touch breakpoint) to

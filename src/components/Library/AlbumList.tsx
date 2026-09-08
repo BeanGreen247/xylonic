@@ -213,7 +213,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
     if (!imageCacheReady) return;
     const ids = paginatedAlbums.map(a => a.coverArt).filter(Boolean) as string[];
     if (ids.length > 0) imageCacheService.prewarmBatch(ids);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginatedAlbums, imageCacheReady]);
   // ─────────────────────────────────────────────────────────────────────────
 

@@ -161,7 +161,7 @@ export const OfflineModeProvider: React.FC<{ children: ReactNode }> = ({ childre
       networkListenerHandle?.then(h => h.remove()).catch(() => {});
       if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Check internet connectivity (ping test)

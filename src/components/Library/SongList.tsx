@@ -185,7 +185,6 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       }
 
       const albumCacheKey = `album_${albumId}`;
-      // eslint-disable-next-line prefer-const
       let album = metadataCache.get<any>(albumCacheKey);
 
       if (!album) {

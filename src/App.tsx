@@ -101,7 +101,6 @@ const AppContent: React.FC = () => {
   const [showRemotePicker, setShowRemotePicker] = useState(false);
   const remoteDeviceId = React.useMemo(
     () => typeof localStorage !== 'undefined' ? (localStorage.getItem('_xylonic_remote_device_id') || '') : '',
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const [navigation, setNavigation] = useState<NavigationState>({ view: 'artists' });

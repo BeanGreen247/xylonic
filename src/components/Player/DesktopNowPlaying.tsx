@@ -179,7 +179,7 @@ const DesktopNowPlaying: React.FC = () => {
     } else if (elTop < listTop) {
       list.scrollTop = elTop;
     }
-  }, [currentSong?.id, desktopNowPlayingOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentSong?.id, desktopNowPlayingOpen]);
 
   // Cleanup on unmount
   useEffect(() => () => {

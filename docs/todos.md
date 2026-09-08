@@ -14,8 +14,10 @@
       pass, not yet done; ~43 `no-unused-vars` (dead local vars/handlers — several
       flag incomplete wiring, check per-site); 37 `no-empty` (silent-`catch {}` →
       `logger.error` + retry affordances; PlayerContext/downloadManagerService
-      ones fold into WS-ARCH); 29 `react-hooks/exhaustive-deps`; then flip each
-      rule warn→error;
+      ones fold into WS-ARCH); 29 `react-hooks/exhaustive-deps` (2026-09-08: 6 of
+      the ~17 dead `eslint-disable` directives removed — App/AlbumList/ArtistList/
+      SongList/DesktopNowPlaying/OfflineModeContext; PlayerContext's 8 left for
+      its WS-ARCH split); then flip each rule warn→error;
       (b) one-time `prettier --write` + commit; (c) wire `lint` + `format:check`
       into CI as required checks; (d) Vite `define`/transform to strip
       `logger.log`/`info` in prod bundles.

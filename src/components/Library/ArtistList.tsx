@@ -409,7 +409,6 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
     const ids = paginatedArtists.map(a => a.coverArt).filter(Boolean) as string[];
     if (ids.length > 0) imageCacheService.prewarmBatch(ids);
   // paginatedArtists changes when page or filter changes; imageCacheReady changes once on init
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginatedArtists, imageCacheReady]);
 
   const handlePreviousPage = () => {

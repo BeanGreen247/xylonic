@@ -602,8 +602,10 @@ Low-risk, fills competitive gaps. Pick opportunistically between big workstreams
       preserved.
 - [ ] `README.md` — trim to quick-start + feature list + platform matrix;
       link out to the split architecture docs. Add the Android TV row.
-- [ ] `CONTRIBUTING.md` — test/lint/build commands, the credential-service rule,
-      build-only-validation rule, PR checklist.
+- [x] `CONTRIBUTING.md` (2026-09-08) — getting-started, the 4 pre-PR checks
+      (`build` / `test` / `lint` / `size`), house rules (platform bridge,
+      credentialsService, logger, style tokens, FA subset), conventional-commit
+      rule, docs-to-keep-current list.
 - [ ] Keep `docs/PERF_LEDGER.md` (WS-PERF) and `docs/design/` (WS-UX) current.
 
 ### Definition of Done

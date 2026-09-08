@@ -22,7 +22,12 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        # Plain `npm ci` (no --legacy-peer-deps): the lockfile records
+        # @testing-library/dom & co. only as peers of @testing-library/react@16,
+        # and --legacy-peer-deps skips peer-only entries → LayoutModeContext.test.tsx
+        # fails with "Cannot find module '@testing-library/dom'". Plain resolution
+        # against the committed lockfile is conflict-free (verified via npm ci --dry-run).
+        run: npm ci
 
       - name: Lint
         run: npm run lint

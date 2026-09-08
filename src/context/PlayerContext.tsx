@@ -5,6 +5,8 @@ import { useMediaSession } from './useMediaSession';
 import { useSleepTimer } from './useSleepTimer';
 import { usePlaybackPrefs } from './usePlaybackPrefs';
 import { useNeighborSongs } from './useNeighborSongs';
+import { usePlaybackEngine } from './usePlaybackEngine';
+import { useQueueActions } from './useQueueActions';
 import { isSongLiked, toggleLike as toggleLikeSong } from '../services/likedSongsService';
 import { offlineCacheService } from '../services/offlineCacheService';
 import { useOfflineMode } from './OfflineModeContext';
@@ -240,62 +242,17 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         return () => { preload.src = ''; preloadRef.current = null; };
     }, []);
 
-    useEffect(() => {
-        const audio = new Audio();
-        audioRef.current = audio;
-
-        // Buffer the latest playback position and flush it to state via RAF so
-        // render frequency is capped by the RAF throttle (60 / 30 / 5 fps per
-        // mode) rather than firing on every timeupdate event (~4×/s always).
-        let pendingTime: number | null = null;
-        let rafId: number | null = null;
-
-        const handleTimeUpdate = () => {
-            pendingTime = audio.currentTime;
-            if (rafId === null) {
-                rafId = requestAnimationFrame(() => {
-                    if (pendingTime !== null) setCurrentTime(pendingTime);
-                    pendingTime = null;
-                    rafId = null;
-                });
-            }
-        };
-        const handleDurationChange = () => setDuration(audio.duration);
-
-        const handleEnded = () => {
-            logger.log('Song ended, calling playNext');
-            playNextWithRefsRef.current();
-        };
-
-        const handlePlay = () => setIsPlaying(true);
-        const handlePause = () => { setIsPlaying(false); setIsLoading(false); };
-        const handleWaiting = () => setIsLoading(true);
-        const handlePlaying = () => setIsLoading(false);
-        const handleError = () => setIsLoading(false);
-
-        audio.addEventListener('timeupdate', handleTimeUpdate);
-        audio.addEventListener('durationchange', handleDurationChange);
-        audio.addEventListener('ended', handleEnded);
-        audio.addEventListener('play', handlePlay);
-        audio.addEventListener('pause', handlePause);
-        audio.addEventListener('waiting', handleWaiting);
-        audio.addEventListener('playing', handlePlaying);
-        audio.addEventListener('error', handleError);
-
-        return () => {
-            if (rafId !== null) cancelAnimationFrame(rafId);
-            audio.removeEventListener('timeupdate', handleTimeUpdate);
-            audio.removeEventListener('durationchange', handleDurationChange);
-            audio.removeEventListener('ended', handleEnded);
-            audio.removeEventListener('play', handlePlay);
-            audio.removeEventListener('pause', handlePause);
-            audio.removeEventListener('waiting', handleWaiting);
-            audio.removeEventListener('playing', handlePlaying);
-            audio.removeEventListener('error', handleError);
-            audio.pause();
-            audioRef.current = null;
-        };
-    }, []);
+    // Owns the <audio> element + its media-event → state wiring (extracted to
+    // ./usePlaybackEngine). `playNextWithRefsRef` is passed as the ended-handler
+    // ref so the engine stays decoupled from the queue logic below.
+    usePlaybackEngine({
+        audioRef,
+        setCurrentTime,
+        setDuration,
+        setIsPlaying,
+        setIsLoading,
+        onEnded: playNextWithRefsRef,
+    });
 
     // Keep audio properties in sync with state (no re-creation)
     useEffect(() => {
@@ -888,70 +845,14 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         logger.log('Playback cleared');
     }, []);
 
-    const addToQueue = useCallback((song: Song) => {
-        const next = [...playlistRef.current, song];
-        playlistRef.current = next;
-        setPlaylist(next);
-    }, []);
-
-    const insertNext = useCallback((song: Song) => {
-        const list = [...playlistRef.current];
-        const insertAt = currentIndexRef.current + 1;
-        list.splice(insertAt, 0, song);
-        playlistRef.current = list;
-        setPlaylist(list);
-    }, []);
-
-    const removeFromQueue = useCallback((index: number) => {
-        const next = [...playlistRef.current];
-        next.splice(index, 1);
-        playlistRef.current = next;
-        setPlaylist(next);
-        const currentIdx = currentIndexRef.current;
-        if (index < currentIdx) {
-            const newIdx = currentIdx - 1;
-            currentIndexRef.current = newIdx;
-            setCurrentIndex(newIdx);
-        }
-    }, []);
-
-    const moveInQueue = useCallback((from: number, to: number) => {
-        if (from === to) return;
-        const next = [...playlistRef.current];
-        const [item] = next.splice(from, 1);
-        next.splice(to, 0, item);
-        playlistRef.current = next;
-        setPlaylist(next);
-        const currentIdx = currentIndexRef.current;
-        let newIdx = currentIdx;
-        if (currentIdx === from) {
-            newIdx = to;
-        } else if (from < to) {
-            if (currentIdx > from && currentIdx <= to) newIdx = currentIdx - 1;
-        } else {
-            if (currentIdx >= to && currentIdx < from) newIdx = currentIdx + 1;
-        }
-        if (newIdx !== currentIdx) {
-            currentIndexRef.current = newIdx;
-            setCurrentIndex(newIdx);
-        }
-    }, []);
-
-    const clearQueue = useCallback(() => {
-        const currentIdx = currentIndexRef.current;
-        const current = playlistRef.current[currentIdx];
-        if (current) {
-            playlistRef.current = [current];
-            currentIndexRef.current = 0;
-            setPlaylist([current]);
-            setCurrentIndex(0);
-        } else {
-            playlistRef.current = [];
-            currentIndexRef.current = 0;
-            setPlaylist([]);
-            setCurrentIndex(0);
-        }
-    }, []);
+    // Queue mutation actions (extracted to ./useQueueActions) — pure array/index
+    // bookkeeping against playlistRef / currentIndexRef.
+    const { addToQueue, insertNext, removeFromQueue, moveInQueue, clearQueue } = useQueueActions<Song>({
+        playlistRef,
+        currentIndexRef,
+        setPlaylist,
+        setCurrentIndex,
+    });
 
     // ── Neighbor songs + look-ahead preload (extracted to ./useNeighborSongs) ──
     const { nextSong, prevSong } = useNeighborSongs({

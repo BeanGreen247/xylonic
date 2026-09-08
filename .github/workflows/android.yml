@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Stamp version from build date (CalVer YY.MM.DD)
+        run: node scripts/set-version-date.js
+
       - name: Write build info
         run: node scripts/write-build-info.js ${{ github.event.inputs.build_type || 'debug' }}
 

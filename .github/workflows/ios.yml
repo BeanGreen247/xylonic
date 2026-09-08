@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Stamp version from build date (CalVer YY.MM.DD)
+        run: node scripts/set-version-date.js
+
       - name: Write build info
         run: node scripts/write-build-info.js ${{ github.event.inputs.build_type || 'debug' }}
 
@@ -57,9 +60,12 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           PLIST="ios/App/App/Info.plist"
+          # Short string = the CalVer date; build number = the run number so it is
+          # strictly monotonic across same-day rebuilds (iOS rejects a lower one
+          # when updating in place).
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$PLIST"
-          echo "Set iOS version to $VERSION"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" "$PLIST"
+          echo "Set iOS version to $VERSION (build ${{ github.run_number }})"
 
       - name: Lock iPhone to portrait, keep iPad all orientations
         run: |

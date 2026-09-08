@@ -106,6 +106,13 @@ All notable changes to Xylonic are documented here.
   `(song: any)` / `(artist: any)` callback annotations dropped across ~10
   consumers. `no-explicit-any` lint warnings 132 → 111. No behaviour change.
 - **`likedSongsService` — 7 unused `catch (e)` bindings removed** (bare `catch {`).
+- **CI stamps the version from the build date** — the Android, iOS and desktop
+  workflows now run `node scripts/set-version-date.js` before packaging, so every
+  artifact carries `YY.MM.DD` of the CI run instead of whatever `package.json`
+  was last hand-bumped to. `package.json` in the repo is untouched (still the
+  "last released" marker, bumped with the CHANGELOG). iOS `CFBundleVersion` is
+  now the workflow run number (strictly monotonic for same-day rebuilds);
+  `CFBundleShortVersionString` stays the CalVer date.
 
 ## [26.09.07] - 2026-09-07
 

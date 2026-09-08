@@ -1,6 +1,53 @@
 # Session Summary
 
-## Current Focus (Sept 8, 2026 — WS-ARCH, provider-tree collapse)
+## Current Focus (Sept 8, 2026 — WS-QUAL, Subsonic response typing)
+
+**Task:** WS-QUAL solo pass — type the Subsonic 1.16.1 response envelope and burn
+down `no-explicit-any`.
+
+**Done:**
+- `src/types/subsonic.ts` — added a full typed response envelope: `SubsonicEnvelope`
+  (`{ 'subsonic-response': SubsonicResponseBody }`) with `SubsonicChild`,
+  `SubsonicAlbum`, `SubsonicArtistSummary`, `SubsonicArtistWithAlbums`,
+  `SubsonicStarred2`, `SubsonicAlbumList2`, `SubsonicSearchResult3Raw`,
+  `SubsonicPlaylist*`, `SubsonicArtistsContainer`/`SubsonicIndex`. Body is one
+  interface with every container optional (matches how the code probes it).
+  Existing `SubsonicResponse` / `SubsonicSearchResponse` / `Song` / `Artist` /
+  `Album` / `SearchResultSong` kept for current consumers.
+- `subsonicApi.ts` — every `axios.get(url)` → `axios.get<SubsonicEnvelope>(url)`;
+  `getAllSongs` / `fetchPage` / `getServerPlaylist.entries` now `SubsonicChild[]`;
+  `getAlbumList2` / `getServerPlaylists` cast to their local summary types (their
+  `artist` / `owner` are required, envelope's optional).
+- Consumer `any` cleanup: dropped `(index: any)` / `(artist: any)` / `(song: any)` /
+  `(album: Album)` / `(e: any)` callback annotations in `App.tsx`, `ArtistList`,
+  `SearchContext`, `likedSongsService`, `LikedSongsView`, `AllSongsGrid`,
+  `AllAlbumsGrid`, `useSongList`, `PlaylistsTab`, `CachePreloadDialog` — inference
+  now covers them. `AlbumList` drill-down cast to local `Album[]`.
+- `likedSongsService` — 7 unused `catch (e)` / `catch (cacheError)` bindings → bare
+  `catch {`.
+- Lint: `no-explicit-any` 132 → 111, `no-unused-vars` 42 → 35, total 222 → ~201.
+  `npm run build` clean, `npm test` 127 green.
+
+**Verification note:** `npm run typecheck` is non-functional in this tree (tsconfig
+`moduleResolution: "bundler"` needs TS ≥ 5, installed tsc is 4.9.5 → every import
+"cannot find module"). Typed work was gated with a throwaway `npx typescript@5.6.3
+tsc --noEmit`; that also surfaced pre-existing latent type errors unrelated to this
+change (`offlineCacheService.ts` undefined-index ~L268-278, `remoteDiscoveryService.ts`
+`accountId` not in payload type ×3, `capacitorBridge.ts` `preloadNextArtwork` missing
+from `MediaControlPlugin`, `SongList.tsx` react-window v2 row-type mismatch) — left
+for the TS 5.x bump / their owning skills.
+
+**Commits (main):** `e84a93e` refactor(subsonicApi): typed response envelope;
+`0db2f9f` style(likedSongsService): drop unused catch bindings.
+
+**Not done:** react-router migration (ADR 0008) — read through App.tsx + AppNav +
+MobileBottomNav; it's a ~400-line multi-file rewrite the ADR itself says must be a
+dedicated task with an Electron + Android + iOS click-through before landing. Not
+started — needs the owner's device loop, deferred to its own session.
+
+---
+
+## Prev (Sept 8, 2026 — WS-ARCH, provider-tree collapse)
 
 **Task:** WS-ARCH "Should" item — collapse `RemoteModeProvider` / `ImageCacheProvider`
 into leaner hooks where they don't need to be context.

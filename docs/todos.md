@@ -6,12 +6,16 @@
 ## In Progress
 - [ ] **WS-QUAL phase 1a cont.** — console sweep, dead-file deletion, ESLint/Prettier
       config + scripts, and the roadmap-named silent-`catch {}` starting points all
-      done (see Done). `npm run lint` passes (0 errors, **245 warnings**; trivial `any`→`unknown` +
+      done (see Done). `npm run lint` passes (0 errors, **~201 warnings**; trivial `any`→`unknown` +
       unused-import cleanup done). Remaining tail (roadmap frames as warn→error
-      gradual, much folds into ARCH/UX): 135 `no-explicit-any` — the structured
-      piece is properly typing the Subsonic response surface in
-      `src/types/subsonic.ts` (`response.data['subsonic-response']`), ~1 focused
-      pass, not yet done; ~43 `no-unused-vars` (dead local vars/handlers — several
+      gradual, much folds into ARCH/UX): **111** `no-explicit-any` — the Subsonic
+      response envelope is now typed in `src/types/subsonic.ts` (`SubsonicEnvelope`
+      + `axios.get<SubsonicEnvelope>` across `subsonicApi.ts`, consumer callback
+      `any`s dropped — commit `e84a93e`); the remaining 111 are spread across
+      unrelated files (`global.d.ts`, `RemoteModeContext`, `platform/bridge`,
+      `colorConfigManager`, `settingsManager`, `ImageCacheContext`, download-queue
+      buffer `songs: any[]` in App/MainApp/ArtistList, `(s as any)` audio-meta
+      casts in `AllSongsGrid`) — per-site, not a single pass; **35** `no-unused-vars` (several
       flag incomplete wiring, check per-site); 37 `no-empty` (silent-`catch {}` →
       `logger.error` + retry affordances; PlayerContext/downloadManagerService
       ones fold into WS-ARCH); 29 `react-hooks/exhaustive-deps` (2026-09-08: 6 of

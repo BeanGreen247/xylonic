@@ -250,6 +250,33 @@ Useful for native-side `NSLog()` tracing (e.g. inside a Capacitor Swift plugin) 
 
 This combination (`idevicesyslog` for native logs + the CDP bridge for JS-side state) is enough to diagnose most native-plugin bugs on a sideloaded build without ever needing Xcode or a Mac.
 
+### `scripts/ios-debug.sh` — the above, packaged
+
+```bash
+bash scripts/ios-debug.sh                 # ensure RSD tunnel + CDP server, list targets
+bash scripts/ios-debug.sh verify          # canned Xylonic health check (see below)
+bash scripts/ios-debug.sh eval '<js>'     # one Runtime.evaluate in the WebView, prints JSON
+bash scripts/ios-debug.sh listen [secs]   # stream console + exceptions
+bash scripts/ios-debug.sh net    [secs]   # stream console + network
+bash scripts/ios-debug.sh stop            # stop the CDP server (tunnel stays)
+```
+
+It auto-starts the RSD tunnel (`scripts/ios-tunnel.sh`, one `sudo` prompt) and a
+`pymobiledevice3 webinspector cdp` server, waits for the `capacitor://localhost`
+WebView, and drives it through `scripts/ios-cdp.py` (needs `websocket-client`:
+`pip install websocket-client`). Still requires **Web Inspector + Remote
+Automation ON** on the phone and Xylonic foregrounded.
+
+`verify` runs `scripts/ios-verify.js`: platform, every expected Capacitor plugin
+present (flags missing ones), key `localStorage` values, whether the DOM
+rendered, then an async **cache-integrity** pass — reads `cache_index.json` and
+`stat`s the 8 newest `permanent_cache/audio/<hash>/audio<ext>` files, checking
+each is a real file whose size matches the index — then a short console-error
+watch.
+
+The tunnel helper is shared: `scripts/ios-autoload.sh` calls the same
+`ios-tunnel.sh` (set `XYLONIC_AUTO_TUNNEL=0` to require a pre-existing tunnel).
+
 ---
 
 ## Native Plugin Status

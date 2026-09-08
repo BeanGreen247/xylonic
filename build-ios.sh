@@ -76,6 +76,7 @@ ok "Dependencies ready"
 # ── Build React bundle ────────────────────────────────────────────────────────
 echo ""
 info "Building React production bundle ($BUILD_TYPE)..."
+node scripts/set-version-date.js
 node scripts/write-build-info.js "$BUILD_TYPE" 2>/dev/null || true
 VITE_BUILD_TYPE="$BUILD_TYPE" npm run build
 ok "React build complete"

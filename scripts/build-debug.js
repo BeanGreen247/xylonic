@@ -118,6 +118,7 @@ console.log(`║    XYLONIC v${pkg.version} — DEBUG BUILD`.padEnd(47) + '║')
 console.log('╚══════════════════════════════════════════════╝');
 
 step(1, TOTAL, 'Stamp debug build info');
+runFatal('node scripts/set-version-date.js');
 runFatal('node scripts/write-build-info.js debug');
 
 step(2, TOTAL, 'Web build (debug mode)');

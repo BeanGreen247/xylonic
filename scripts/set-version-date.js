@@ -4,18 +4,22 @@
 /**
  * Stamp package.json `version` with today's date as `YY.MM.DD` (local time).
  *
- * This is the project's CalVer scheme: one version per calendar day. Run it when
- * cutting a build, the same way CHANGELOG.md gets its version bump — it is NOT
- * wired into `npm run build` so the working tree stays clean between builds.
+ * This is the project's CalVer scheme: one version per calendar day. It runs at
+ * the start of EVERY build — `npm run build`, every `electron:build:*`,
+ * `build-android.sh`, `build-ios.sh`, `scripts/build-{debug,release}.js`, and the
+ * Android/iOS/desktop CI workflows — so artifacts always carry the build date.
+ * It is idempotent (no-op if package.json already holds today's date), so it
+ * only ever dirties the working tree once per day; `git checkout package.json`
+ * reverts it. The committed package.json version is the "last released" marker,
+ * bumped by hand alongside the CHANGELOG.
  *
  *   node scripts/set-version-date.js          # 26.09.07
  *   node scripts/set-version-date.js --dry    # print, don't write
  *
- * Everything downstream (write-build-info.js, Electron window titles,
- * electron-builder artifact versions) reads package.json, so this stays the
- * single source of truth. Native Android/iOS versions live in
- * android/variables.gradle and the iOS project and are handled by their own
- * build scripts.
+ * Everything downstream (write-build-info.js -> the About screen, Electron window
+ * titles, electron-builder artifact versions, android/app/build.gradle which
+ * parses package.json for versionName/versionCode, and the iOS PlistBuddy step)
+ * reads package.json, so this stays the single source of truth.
  */
 
 const fs = require('fs');

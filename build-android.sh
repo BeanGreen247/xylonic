@@ -176,6 +176,7 @@ if ! $INSTALL_ONLY; then
     build_react_bundle() {
         local btype="$1"
         echo ""
+        node scripts/set-version-date.js
         node scripts/write-build-info.js "$btype"
         info "Building React production bundle ($btype)..."
         VITE_BUILD_TYPE="$btype" npm run build

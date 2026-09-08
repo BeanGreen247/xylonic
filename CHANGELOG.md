@@ -106,13 +106,17 @@ All notable changes to Xylonic are documented here.
   `(song: any)` / `(artist: any)` callback annotations dropped across ~10
   consumers. `no-explicit-any` lint warnings 132 → 111. No behaviour change.
 - **`likedSongsService` — 7 unused `catch (e)` bindings removed** (bare `catch {`).
-- **CI stamps the version from the build date** — the Android, iOS and desktop
-  workflows now run `node scripts/set-version-date.js` before packaging, so every
-  artifact carries `YY.MM.DD` of the CI run instead of whatever `package.json`
-  was last hand-bumped to. `package.json` in the repo is untouched (still the
-  "last released" marker, bumped with the CHANGELOG). iOS `CFBundleVersion` is
-  now the workflow run number (strictly monotonic for same-day rebuilds);
-  `CFBundleShortVersionString` stays the CalVer date.
+- **Every build stamps the version from the build date** — `node
+  scripts/set-version-date.js` now runs at the start of `npm run build`, every
+  `electron:build:*`, `build-android.sh`, `build-ios.sh`,
+  `scripts/build-{debug,release}.js`, and the Android/iOS/desktop CI workflows,
+  so artifacts always carry `YY.MM.DD` of the build instead of whatever
+  `package.json` was last hand-bumped to. The script is idempotent (no-op once
+  it's today's date), so it dirties the tree at most once per day;
+  `git checkout package.json` reverts it. The committed `package.json` version
+  stays the "last released" marker, bumped by hand with the CHANGELOG. iOS
+  `CFBundleVersion` is the workflow run number (monotonic for same-day
+  rebuilds); `CFBundleShortVersionString` is the CalVer date.
 
 ## [26.09.07] - 2026-09-07
 

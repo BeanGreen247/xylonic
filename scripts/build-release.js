@@ -121,6 +121,7 @@ console.log(`║    XYLONIC v${pkg.version} — RELEASE BUILD`.padEnd(47) + '║
 console.log('╚══════════════════════════════════════════════╝');
 
 step(1, TOTAL, 'Stamp release build info');
+runFatal('node scripts/set-version-date.js');
 runFatal('node scripts/write-build-info.js release');
 
 step(2, TOTAL, 'Web build (release mode)');

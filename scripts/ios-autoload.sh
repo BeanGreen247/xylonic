@@ -19,6 +19,7 @@
 #   - pymobiledevice3 on PATH                pipx install pymobiledevice3
 #   - python3-gi + gir1.2-secret-1           (keyring read)
 #   - RSD tunnel running:                    sudo pymobiledevice3 remote tunneld
+#     (or run this script with XYLONIC_AUTO_TUNNEL=1 to have it sudo-start one)
 #   - iLoader used at least once in the last 7 days so a current dev cert +
 #     provisioning profile exist (github.com/nab138/iloader). Re-run iLoader
 #     whenever the profile is within a day of expiry (this script warns).
@@ -41,8 +42,23 @@ command -v gh              >/dev/null || die "gh not found"
 command -v zsign           >/dev/null || die "zsign not found (github.com/zhlynn/zsign)"
 command -v pymobiledevice3 >/dev/null || die "pymobiledevice3 not found"
 gh auth status >/dev/null 2>&1        || die "gh not authenticated — gh auth login"
-curl -sf "$TUNNELD_URL" >/dev/null 2>&1 || \
-  die "RSD tunnel not up at $TUNNELD_URL — sudo pymobiledevice3 remote tunneld"
+
+# RSD tunnel — needs root for the network interface, so it is NOT started
+# automatically by default. Set XYLONIC_AUTO_TUNNEL=1 to let this script bring it
+# up with `sudo` (one sudo prompt; leaves a backgrounded `remote tunneld`).
+PMD3_BIN="$(command -v pymobiledevice3)"
+if ! curl -sf "$TUNNELD_URL" >/dev/null 2>&1; then
+  if [ "${XYLONIC_AUTO_TUNNEL:-0}" = "1" ]; then
+    info "starting RSD tunnel (sudo)…"
+    sudo -b sh -c "'$PMD3_BIN' remote tunneld >/tmp/xylonic-tunneld.log 2>&1" || true
+    for _ in $(seq 1 30); do
+      curl -sf "$TUNNELD_URL" >/dev/null 2>&1 && break
+      sleep 1
+    done
+  fi
+  curl -sf "$TUNNELD_URL" >/dev/null 2>&1 || \
+    die "RSD tunnel not up at $TUNNELD_URL — run: sudo pymobiledevice3 remote tunneld  (or re-run with XYLONIC_AUTO_TUNNEL=1)"
+fi
 
 mkdir -p "$WORK"
 

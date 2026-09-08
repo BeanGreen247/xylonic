@@ -147,7 +147,7 @@ Steps, in order:
 | `zsign` on PATH | `git clone --depth 1 https://github.com/zhlynn/zsign && cd zsign/build/linux && make && install -m755 ../../bin/zsign ~/.local/bin/` |
 | `pymobiledevice3` on PATH | `pipx install pymobiledevice3` |
 | `python3-gi` + `gir1.2-secret-1` | `sudo apt install python3-gi gir1.2-secret-1` (keyring read) |
-| RSD tunnel running | `sudo pymobiledevice3 remote tunneld` (leave running) |
+| RSD tunnel running | `sudo pymobiledevice3 remote tunneld` (leave running) — or run `ios-autoload.sh` with `XYLONIC_AUTO_TUNNEL=1` and it sudo-starts one itself (one password prompt) |
 | A current dev cert + profile | run **iLoader** once — it provisions the key into the keyring and installs a profile onto the device |
 | iLoader anisette server | set it to a real **anisette-v3** server (e.g. `ani.sidestore.io`, or self-host `dadoum/anisette-v3-server`) — the shipped `ani.yourserver.com` placeholder makes login hang before the 2FA prompt |
 

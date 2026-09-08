@@ -53,6 +53,52 @@ All notable changes to Xylonic are documented here.
   `getCacheStats`), so `AlbumArt`/`AlbumList`/`ArtistList` are untouched; the
   `App.tsx` provider tree loses one layer. No behaviour change.
 
+### Added
+- **Headless iOS build → sign → install on Linux (`scripts/ios-autoload.sh` +
+  `scripts/ios-extract-signing.py`)** — one command pulls the latest CI IPA,
+  signs it for the connected iPhone, and installs it over USB — no Mac, no
+  Windows, no Sideloadly. `ios-extract-signing.py` rebuilds the signing assets
+  from what's already on the machine: the private key **iLoader**
+  (github.com/nab138/iloader) keeps in the Secret Service keyring, plus the
+  leaf certificate carried inside the provisioning profile that
+  `pymobiledevice3 provision dump` pulls off the device. `zsign` then signs,
+  rewriting the bundle id to `<bundleid>.<teamid>` (iLoader's mangled form).
+  Full setup and credits to the upstream projects (pymobiledevice3,
+  libimobiledevice, zsign, iLoader/isideload, apple-codesign-quick/Sideloader,
+  Impactor) are in `IOS_SETUP.md` → "One-command auto-load on Linux" and
+  `README.md` → Acknowledgments. Verified end-to-end on an iPhone 15 Pro Max.
+
+### Fixed
+- **CI `lint · test · build` job was red on every push** — `npm ci
+  --legacy-peer-deps` skipped `@testing-library/dom` (a peer of
+  `@testing-library/react@16`, recorded peer-only in the lockfile), so
+  `LayoutModeContext.test.tsx` failed with `Cannot find module
+  '@testing-library/dom'`. `ci.yml` now runs plain `npm ci` (conflict-free
+  against the committed lockfile); the other workflows keep the flag since they
+  don't run the test suite.
+
+### Verified (on device, no code change)
+- **iOS background downloads work end-to-end** — batch download of an album
+  writes `permanent_cache/audio/<hash>/audio<ext>` with byte sizes matching the
+  cache index, and offline playback of a downloaded track plays from cache. The
+  Aug 5 `CAPBridgedPlugin` migration + native batch queue were the fix; the
+  "still broken" note was stale (tested on a build without them).
+- **iOS offline → online no longer hangs on "Loading…"** — the Sep 6 fix
+  (`axios` 15 s timeout + `Network`-driven `isOnline` + `checkConnectivity()` on
+  the offline→online transition) confirmed on device.
+
+### Changed
+- **Subsonic 1.16.1 response envelope is typed (WS-QUAL)** — `src/types/subsonic.ts`
+  gains `SubsonicEnvelope` (`{ 'subsonic-response': SubsonicResponseBody }`) with
+  `SubsonicChild` / `SubsonicAlbum` / `SubsonicArtistSummary` /
+  `SubsonicArtistWithAlbums` / `SubsonicStarred2` / `SubsonicAlbumList2` /
+  `SubsonicSearchResult3Raw` / `SubsonicPlaylist*` / `SubsonicArtistsContainer`.
+  Every `axios.get(url)` in `subsonicApi.ts` is now `axios.get<SubsonicEnvelope>(url)`;
+  `getAllSongs` / `getServerPlaylist` return `SubsonicChild[]`. `(index: any)` /
+  `(song: any)` / `(artist: any)` callback annotations dropped across ~10
+  consumers. `no-explicit-any` lint warnings 132 → 111. No behaviour change.
+- **`likedSongsService` — 7 unused `catch (e)` bindings removed** (bare `catch {`).
+
 ## [26.09.07] - 2026-09-07
 
 ### Security

@@ -29,6 +29,16 @@ connection-picker / password-prompt portals + all 6 switch-server state vars →
 clean, no new lint warnings. Files: `SettingsView.tsx`, `SwitchServerSection.tsx` (new),
 `CHANGELOG.md`, `docs/ROADMAP.md`.
 
+**Also this session — WS-PERF QueueTab (partial):** added `content-visibility: auto`
++ `contain-intrinsic-size` (`auto 49px`, `auto 60px` on the touch breakpoint) to
+`.panel-song-row` in `RightPanel.css` — the Queue tab renders every queued song
+un-windowed and "play all" can push 25k+ rows. Off-screen rows now skip
+layout/style/paint; no visual change. Does **not** cut React's cost of creating 25k
+row trees — a full `react-window` pass (mirroring `SongList` >60) is the stronger
+fix but forces a single fixed row height that differs desktop (~49px) vs touch
+(60px), so it's deferred to an on-device density/perf check. `npm run build` clean.
+Files: `RightPanel.css`, `CHANGELOG.md`, `docs/ROADMAP.md`.
+
 **Cross-platform check still needed:** browser QA that album art still loads/caches in the
 Electron renderer and the Android WebView (init now fires on first `useImageCache()` call
 rather than at provider mount — effectively the same moment, but unverified on-device).

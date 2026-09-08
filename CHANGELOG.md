@@ -4,6 +4,14 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Performance
+- **RightPanel song rows skip off-screen rendering (WS-PERF)** — `.panel-song-row`
+  (Queue / Playlists / History tabs) gets `content-visibility: auto` +
+  `contain-intrinsic-size`. The Queue tab can hold the entire library (25k+ rows)
+  after "play all"; the browser now skips layout/style/paint for rows outside the
+  viewport. No visual change. A full `react-window` pass on the queue is still a
+  follow-up (needs an on-device row-height check).
+
 ### Changed
 - **`SettingsView` split further (WS-ARCH)** — the Account "Switch Server" row and
   its two portalled modals (connection picker + password prompt) moved to

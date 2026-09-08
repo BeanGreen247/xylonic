@@ -335,14 +335,21 @@ ADRs exist for every major decision.
 - [ ] **Dependency bumps** (each isolated, tested, changelog-reviewed):
       Electron 27 → current LTS, TypeScript 4.9 → 5.x, Capacitor 8 → 9,
       Vite already 8. Each removes a class of platform bugs.
-- [~] `SettingsView` + large lists (2026-09-07) — `content-visibility: auto` +
-      `contain-intrinsic-size` added to `.settings-section` (~10 stacked, most
-      off-screen). The high-cost list items were already memoized (`ArtistCard`,
-      `VirtualSongRow`) and virtualized where unbounded (`SongList` >60).
-      **Remaining:** `QueueTab` renders the full queue un-windowed (25k rows on
-      "play all") — wants `react-window` but that reworks the drag-reorder UX,
-      so it's a device-tested follow-up; extract memoized `AlbumCard`/`SongRow`
-      for the ≤60-item paginated grids if profiling shows it matters.
+- [~] `SettingsView` + large lists — `content-visibility: auto` +
+      `contain-intrinsic-size` added to `.settings-section` (2026-09-07) and to
+      `.panel-song-row` (2026-09-08 — the RightPanel Queue/Playlists/History
+      tabs; `contain-intrinsic-size: auto 49px`, `auto 60px` on the touch
+      breakpoint). The Queue tab can hold the whole library (25k+ rows) after
+      "play all"; this skips layout/style/paint for off-screen rows with no
+      visual change. The high-cost list items were already memoized
+      (`ArtistCard`, `VirtualSongRow`) and virtualized where unbounded
+      (`SongList` >60). **Remaining:** `content-visibility` doesn't cut React's
+      cost of *creating* 25k row trees — a full `react-window` pass on `QueueTab`
+      (mirroring `SongList`) is the stronger fix, but it forces one fixed row
+      height and the desktop (~49px) and touch (60px) breakpoints differ, so it
+      needs an on-device density + perf check. Extract memoized
+      `AlbumCard`/`SongRow` for the ≤60-item paginated grids if profiling shows
+      it matters.
 - [ ] Android downloads — multi-threaded pool matching the Electron/iOS cap
       (see `docs/todos.md`); notification/wakelock state reworked for N active
       transfers.

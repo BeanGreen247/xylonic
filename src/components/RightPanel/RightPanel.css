@@ -197,6 +197,11 @@
     border-bottom: 1px solid var(--border-subtle);
     transition: background 0.12s;
     cursor: default;
+    /* Skip layout/style/paint for off-screen rows — the queue tab can hold the
+       whole library (25k+) after "play all". `auto` lets the browser cache each
+       row's real rendered height, so this only affects cost, not appearance. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 49px;
 }
 
 .panel-song-row:last-child {
@@ -598,6 +603,7 @@
     .panel-song-row {
         padding: 12px 16px;
         min-height: 60px;
+        contain-intrinsic-size: auto 60px;
     }
 
     /* Action buttons: always visible, 44 × 44 minimum */

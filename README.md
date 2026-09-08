@@ -719,6 +719,25 @@ For issues, questions, or feature requests:
 - Material You design system for color inspiration
 - All contributors and testers
 
+### iOS sideloading toolchain (Linux)
+
+The no-Mac iOS build/sign/install workflow (`scripts/ios-autoload.sh`,
+`scripts/ios-extract-signing.py`, `scripts/download-ios-ipa.sh` — see
+[IOS_SETUP.md](IOS_SETUP.md)) is a thin wrapper around other people's work. It
+would not exist without:
+
+| Project | Author | Role here |
+|---|---|---|
+| [pymobiledevice3](https://github.com/doronz88/pymobiledevice3) | [doronz88](https://github.com/doronz88) | device discovery, RSD tunnel, `provision dump`, `apps install`, WebInspector/CDP debugging |
+| [libimobiledevice](https://github.com/libimobiledevice/libimobiledevice) | libimobiledevice project | the underlying usbmux / lockdown protocol stack |
+| [zsign](https://github.com/zhlynn/zsign) | [zhlynn](https://github.com/zhlynn) | the code signer that runs on Linux |
+| [iLoader](https://github.com/nab138/iloader) + [isideload](https://github.com/nab138/isideload) | [nab138](https://github.com/nab138) | Apple-ID sideloader that obtains the signing certificate + provisioning profile from Apple; our scripts reuse the key/profile it sets up |
+| [apple-codesign-quick](https://github.com/Dadoum/apple-codesign-quick) + [Sideloader](https://github.com/Dadoum/Sideloader) | [Dadoum](https://github.com/Dadoum) | the Apple provisioning / anisette groundwork iLoader builds on |
+| [Impactor](https://github.com/claration/Impactor) | [claration](https://github.com/claration) | signing-crypto reference used by iLoader |
+
+Our scripts add only ~150 lines of glue and reimplement none of the above. All
+credit for making iOS-on-Linux possible belongs to these projects.
+
 ---
 
 **Built with love for music lovers who want a modern, beautiful, and customizable way to stream their Subsonic library.**

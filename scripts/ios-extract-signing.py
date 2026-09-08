@@ -26,7 +26,7 @@ import sys
 import tempfile
 
 OUT_DIR = os.path.expanduser(os.environ.get("XYLONIC_SIGN_DIR", "~/.xylonic-sign"))
-P12_PASS = os.environ.get("XYLONIC_P12_PASS", "xylonic")
+P12_PASS = os.environ.get("XYLONIC_P12_PASS", "CHANGE_ME")  # sample; wraps a local-only file
 KEYRING_SERVICE = os.environ.get("XYLONIC_KEYRING_SERVICE", "iloader")
 
 

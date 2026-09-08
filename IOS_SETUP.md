@@ -155,8 +155,9 @@ provisioning profile lasts **7 days**. Run iLoader once a week (or whenever an
 install fails with `0xe8008018`); `ios-autoload.sh` handles everything in
 between and re-pulls the fresh profile each run.
 
-Overrides: `XYLONIC_SIGN_DIR` (asset dir), `XYLONIC_P12_PASS` (p12 password,
-default `xylonic`), `XYLONIC_KEYRING_SERVICE` (default `iloader`),
+Overrides: `XYLONIC_SIGN_DIR` (asset dir), `XYLONIC_P12_PASS` (password for the
+locally-generated `cert.p12`; sample default `CHANGE_ME` — the file never leaves
+the machine, but set your own), `XYLONIC_KEYRING_SERVICE` (default `iloader`),
 `XYLONIC_SKIP_EXTRACT=1` (reuse existing `~/.xylonic-sign/` without touching the
 keyring/device). `*.p12`, `*.mobileprovision`, `*.ipa` are git-ignored.
 

@@ -55,6 +55,17 @@ the 3 cross-cutting destructive cache/data handlers). Dropped dead `fmtBytes` /
 - `RemoteModeProvider` — decided to stay a context (consumes `useAuth`, device-only
   discovery state).
 
+**Also this session — solo WS-UX / WS-DOCS / WS-QUAL:**
+- UI-03 done: 174 exact-match `font-size:{11,13,15,18,22,28}px` across 28
+  stylesheets → `var(--font-size-*)` (zero rendered change; off-ramp sizes left).
+- `docs/history/` created; `CACHE_V21_IMPLEMENTATION.md`, `CACHE_V21_TEST_GUIDE.md`,
+  `IMAGE_CACHE_IMPLEMENTATION.md`, `QUALITY_VERIFICATION.md` moved there + a README
+  marking them frozen. No code/CLAUDE.md refs.
+- `CONTRIBUTING.md` added (getting-started, 4 pre-PR checks, house rules).
+- ADR 0008 — react-router memory-history migration plan (Proposed).
+- 6 dead `eslint-disable` directives removed (non-landmine files).
+- Handoff refreshed: `~/xylonic-next-session-2026-09-09.md`.
+
 **Also this session — WS-PERF fa-solid subset (WS-PERF item done):**
 `scripts/build-fa-subset.mjs` (`npm run fa:subset`) scans `src/**` for static
 `fa-*`, dynamic `fa-${…}` / `fa-<stem>-${…}` literals and `icon:'fa-*'` config,

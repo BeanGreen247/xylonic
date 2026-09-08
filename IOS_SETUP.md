@@ -149,6 +149,7 @@ Steps, in order:
 | `python3-gi` + `gir1.2-secret-1` | `sudo apt install python3-gi gir1.2-secret-1` (keyring read) |
 | RSD tunnel running | `sudo pymobiledevice3 remote tunneld` (leave running) |
 | A current dev cert + profile | run **iLoader** once — it provisions the key into the keyring and installs a profile onto the device |
+| iLoader anisette server | set it to a real **anisette-v3** server (e.g. `ani.sidestore.io`, or self-host `dadoum/anisette-v3-server`) — the shipped `ani.yourserver.com` placeholder makes login hang before the 2FA prompt |
 
 **The 7-day cycle.** The `iPhone Developer:` cert is valid ~1 year, but the
 provisioning profile lasts **7 days**. Run iLoader once a week (or whenever an

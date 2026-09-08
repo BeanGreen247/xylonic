@@ -109,6 +109,43 @@ Once SideStore is running, you can install and refresh Xylonic directly from Sid
 
 ---
 
+## One-command auto-load on Linux (`scripts/ios-autoload.sh`)
+
+Fully scripted **download → sign → install** onto a USB-connected iPhone, no
+Mac, no Windows, no Sideloadly:
+
+```bash
+bash scripts/ios-autoload.sh
+```
+
+It runs `download-ios-ipa.sh` for the latest CI build, signs it with
+[`zsign`](https://github.com/zhlynn/zsign), and installs it via
+`pymobiledevice3 apps install` over the RSD tunnel. Installing over an existing
+copy updates in place — app data is preserved.
+
+**One-time setup:**
+
+| Need | How |
+|---|---|
+| `gh` authenticated | `gh auth login` |
+| `zsign` on PATH | `git clone --depth 1 https://github.com/zhlynn/zsign && cd zsign/build/linux && make && install -m755 ../../bin/zsign ~/.local/bin/` |
+| `pymobiledevice3` on PATH | `pipx install pymobiledevice3` |
+| RSD tunnel running | `sudo pymobiledevice3 remote tunneld` (leave running) |
+| Signing assets in `~/.xylonic-sign/` | `cert.p12` + `app.mobileprovision` (see below), optional `p12.pass` (chmod 600) |
+
+**Signing assets.** You need an Apple signing certificate (`.p12`) and a
+provisioning profile (`.mobileprovision`) whose device list includes this
+iPhone's UDID. Easiest source: do one AltStore/Sideloadly install of *any* app
+with your Apple ID, then export the cert from that machine's keychain and pull
+the `embedded.mobileprovision` out of the signed `.app`. Free Apple ID
+certs/profiles **expire after 7 days** — refresh both files and re-run.
+Override the location with `XYLONIC_SIGN_DIR`; supply the `.p12` password via
+`~/.xylonic-sign/p12.pass`, `$XYLONIC_P12_PASS`, or the interactive prompt.
+
+`*.p12`, `*.mobileprovision`, and `*.ipa` are git-ignored — never commit them.
+
+---
+
 ## What the CI produces
 
 The iOS workflow (`ios.yml`) runs on every push to `main` and on manual dispatch:

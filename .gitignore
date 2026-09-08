@@ -55,3 +55,9 @@ __eb_stage/
 
 # Optional eslint cache
 .eslintcache
+
+# iOS signing assets / build artifacts (see scripts/ios-autoload.sh)
+*.p12
+*.mobileprovision
+*.ipa
+ios-artifact/

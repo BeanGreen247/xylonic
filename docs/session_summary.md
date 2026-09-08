@@ -41,8 +41,22 @@ Windows electron-builder optional-peer subtree.
 **Latest iOS IPA delivered to owner** — `iOS Build` was never blocked by the red
 `CI` (separate workflow; `download-ios-ipa.sh` filters on `ios.yml` success only).
 Pulled `Xylonic-debug-unsigned.ipa` from run `34246141210` (main @ `de8074c`) and
-sent it; owner signs via their Sideloadly/SideStore flow (unsigned IPA can't be
-installed from Linux — `pymobiledevice3 apps install` needs a signed bundle).
+sent it.
+
+**Headless Linux auto-load (`scripts/ios-autoload.sh`, `scripts/ios-extract-signing.py`,
+commits `22f33d7` + `e10adbf`).** One command: rebuild `~/.xylonic-sign/` from the
+Secret Service keyring (private key that **iLoader** — github.com/nab138/iloader —
+stashes under service `iloader`) + the leaf cert inside the provisioning profile,
+which `pymobiledevice3 provision dump` pulls off the phone → `download-ios-ipa.sh`
+→ `zsign` → `pymobiledevice3 apps install`. Verified end-to-end on device
+("Installation succeed"). Gotchas: iLoader mangles the bundle id to
+`<bundleid>.<teamid>` so zsign must `-b xylonic.beangreen247xyz.musicplayer.35JNC989T5`
+(else `0xe8008016`); the `iPhone Developer:` cert is ~1yr but the profile is 7-day,
+so iLoader must be run weekly. Built `zsign` v1.1.2 into `~/.local/bin/`. Full
+setup + **credits to the upstream projects** (pymobiledevice3/doronz88,
+libimobiledevice, zsign/zhlynn, iLoader+isideload/nab138,
+apple-codesign-quick+Sideloader/Dadoum, Impactor/claration) in `IOS_SETUP.md` →
+"One-command auto-load on Linux".
 
 ---
 

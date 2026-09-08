@@ -238,14 +238,17 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       `system.js`, `misc.js`, `downloadNotification.js`, `cache.js` (~31 handlers),
       `playerWindow.js` (mini-player + player-state + MPRIS art). Each module has
       a plain-node functional test; `electron:serve` verified clean per step.
-- [~] **Split `SettingsView`** — 1226 → **745** (2026-09-07). Extracted:
+- [~] **Split `SettingsView`** — 1226 → **603** (2026-09-08). Extracted:
       `LicensesDialog`, `TechStackDialog`, `PerformanceCacheSection`,
       `AboutSection` (owns build-info/licenses fetch + both dialogs),
       `AdvancedSection` (owns perf-mode / power-saver / render-timer / debug-log
-      toggles) → `components/common/settings/`. Remaining sections (Appearance,
-      Playback, Account, Offline&Cache, Remote, Streaming, Downloads, Library,
-      Danger Zone) + the switch-server modal are state/handler-coupled to the
-      parent — a full split wants a shared props shape or a tab UI.
+      toggles), `SwitchServerSection` (2026-09-08 — owns the Account "Switch
+      Server" row + its connection-picker / password-prompt portals + all 6 of
+      its own state vars; only needs `login` from `AuthContext`) →
+      `components/common/settings/`. Remaining sections (Appearance, Playback,
+      Account/Last.fm, Offline&Cache, Remote, Streaming, Downloads, Library,
+      Danger Zone) are state/handler-coupled to the parent — a full split wants a
+      shared props shape or a tab UI.
 - [ ] **Add routing** — `react-router` with memory history on native. Replaces
       the `appSection` / `navigation` / `topView` / `sectionHistory` machine in
       `App.tsx` (`MainApp.tsx` is dead code). Enables deep-linking, desktop

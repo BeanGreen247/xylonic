@@ -5,6 +5,10 @@ All notable changes to Xylonic are documented here.
 ## [Unreleased]
 
 ### Changed
+- **`SettingsView` split further (WS-ARCH)** — the Account "Switch Server" row and
+  its two portalled modals (connection picker + password prompt) moved to
+  `components/common/settings/SwitchServerSection.tsx`, which owns all of its own
+  state. `SettingsView.tsx` drops from 745 to 603 lines. No behaviour change.
 - **Image cache is a hook, not a provider (WS-ARCH)** — `ImageCacheContext.tsx`
   collapsed from a React context provider wrapping the whole app to a module-level
   singleton store read through a `useSyncExternalStore` hook. `useImageCache()`

@@ -22,6 +22,13 @@ singleton collapse isn't safe here without device verification.
 **Files:** `src/context/ImageCacheContext.tsx` (rewritten), `src/App.tsx` (−import, −wrapper),
 `CHANGELOG.md`, `docs/todos.md`, `docs/ROADMAP.md`, `docs/module_notes.md`.
 
+**Also this session — `SettingsView` split:** Account "Switch Server" row + its
+connection-picker / password-prompt portals + all 6 switch-server state vars → new
+`components/common/settings/SwitchServerSection.tsx` (only needs `login` from
+`AuthContext`). Pure lift-and-shift. `SettingsView.tsx` 745 → 603. `npm run build`
+clean, no new lint warnings. Files: `SettingsView.tsx`, `SwitchServerSection.tsx` (new),
+`CHANGELOG.md`, `docs/ROADMAP.md`.
+
 **Cross-platform check still needed:** browser QA that album art still loads/caches in the
 Electron renderer and the Android WebView (init now fires on first `useImageCache()` call
 rather than at provider mount — effectively the same moment, but unverified on-device).

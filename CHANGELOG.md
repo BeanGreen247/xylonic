@@ -4,6 +4,15 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Changed
+- **`PlayerContext` — playback engine + queue actions extracted (WS-ARCH)** — the
+  `<audio>` element creation + media-event wiring moved to
+  `src/context/usePlaybackEngine.ts`; the five queue-mutation callbacks
+  (`addToQueue` / `insertNext` / `removeFromQueue` / `moveInQueue` / `clearQueue`)
+  moved to `src/context/useQueueActions.ts`. Both are verbatim lift-and-shift
+  behind a params object — no behaviour change. `PlayerContext.tsx` 1023 → 924.
+  *(Needs on-device verification of playback / gapless / MPRIS before trusting.)*
+
 ### Performance
 - **RightPanel song rows skip off-screen rendering (WS-PERF)** — `.panel-song-row`
   (Queue / Playlists / History tabs) gets `content-visibility: auto` +

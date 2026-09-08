@@ -1,7 +1,12 @@
 # Todos
 
-> Strategic plan: see `docs/ROADMAP.md` (all-axes-to-9+, plus Android TV).
-> When a roadmap workstream starts, break its tasks into this list.
+> **Session bootstrap → [`docs/WORKLIST.md`](WORKLIST.md)** — the consolidated,
+> always-current task list across every workstream, with the installed-skills
+> map at the top. This `todos.md` is now just the historical "Done" archive for
+> this release cycle plus loose device-test carry-overs.
+>
+> Strategic detail: [`docs/ROADMAP.md`](ROADMAP.md). Latest context:
+> [`docs/session_summary.md`](session_summary.md) (tail only).
 
 ## In Progress
 - [ ] **WS-QUAL phase 1a cont.** — console sweep, dead-file deletion, ESLint/Prettier

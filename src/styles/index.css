@@ -65,11 +65,11 @@
     /* Surface-interaction tokens (WS-UX) — borders / hover / active / scrim that
        must flip with the theme. Replace scattered rgba(255,255,255,…) /
        rgba(0,0,0,…) literals with these. Dark values here; light overrides below. */
-    --border-subtle: var(--border-subtle);
-    --border: var(--border);
-    --border-strong: var(--border-strong);
-    --hover-overlay: var(--hover-overlay);
-    --active-overlay: var(--active-overlay);
+    --border-subtle: rgba(255, 255, 255, 0.10);
+    --border: rgba(255, 255, 255, 0.18);
+    --border-strong: rgba(255, 255, 255, 0.30);
+    --hover-overlay: rgba(255, 255, 255, 0.06);
+    --active-overlay: rgba(255, 255, 255, 0.13);
     --scrim: rgba(0, 0, 0, 0.55);
 
     /* colour-scheme hint for form controls / scrollbars (WS-UX) */
@@ -1337,7 +1337,7 @@ body {
 
 .album-action-icon {
     background: none;
-    border: none;
+    border: 1px solid var(--border);
     color: var(--text-secondary);
     font-size: 24px;
     cursor: pointer;
@@ -1682,7 +1682,7 @@ body {
 
 .current-song-like {
     background: none;
-    border: none;
+    border: 1px solid var(--border);
     color: var(--text-secondary);
     cursor: pointer;
     padding: 8px;
@@ -1711,7 +1711,7 @@ body {
 
 .playback-controls button {
     background: none;
-    border: none;
+    border: 1px solid var(--border);
     color: var(--text-secondary);
     cursor: pointer;
     padding: 8px;

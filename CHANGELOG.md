@@ -4,6 +4,8 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+## [26.09.10] - 2026-09-10
+
 ### Fixed
 - **Circular control buttons had no visible outline in dark mode (WS-UX)** — the
   dark-theme `--border*` / `--*-overlay` tokens were defined as

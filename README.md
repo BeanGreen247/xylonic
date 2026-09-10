@@ -10,7 +10,7 @@ A modern, beautiful music player for Subsonic-compatible servers with a Spotify-
   <img src="docs/images/xylonic.png" alt="Xylonic — Discover screen" width="900"/>
 </p>
 
-**Version:** 26.7.31  
+**Version:** 26.09.10  
 **Author:** BeanGreen247  
 **License:** MIT
 

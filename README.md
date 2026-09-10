@@ -6,6 +6,10 @@
 
 A modern, beautiful music player for Subsonic-compatible servers with a Spotify-like UI, extensive customization, and native mobile support. Available on Windows, Linux, macOS (Electron), Android (Capacitor), and iOS (Capacitor — sideloaded via CI).
 
+<p align="center">
+  <img src="docs/images/xylonic.png" alt="Xylonic — Discover screen" width="900"/>
+</p>
+
 **Version:** 26.7.31  
 **Author:** BeanGreen247  
 **License:** MIT
@@ -28,10 +32,6 @@ For the complete feature list and roadmap see **[FEATURES.md](FEATURES.md)**.
   three power tiers — **Gaming** (minimises Xylonic's own CPU/GPU/RAM for a
   foreground game), **Balanced**, **Eco** (maximum battery) in Settings → Advanced
 - iOS support via GitHub Actions CI — unsigned IPA built on every push, installed via Sideloadly; see [IOS_SETUP.md](IOS_SETUP.md)
-
-## Screenshots
-
-Screenshots are available on the [GitHub Releases page](https://github.com/BeanGreen247/xylonic/releases).
 
 ## System Architecture
 

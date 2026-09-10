@@ -64,6 +64,15 @@ All notable changes to Xylonic are documented here.
   guards are unchanged. `downloadManagerService.ts` 2012 → 1894.
 
 ### Performance
+- **Persistent metadata cache (WS-PERF)** — new `persistentCache` service: a
+  two-tier (in-memory + IndexedDB) stale-while-revalidate key/value store.
+  `metadataCache` is now a thin facade over it, so the artist / album / song
+  lists (ArtistList, AlbumList, SongList, AllAlbumsGrid) **survive a reload or
+  app restart** and paint from disk instead of showing skeletons while the
+  sequential Subsonic fetches run. Hydrated before first paint with a 200 ms
+  cap so a slow disk can't stall startup. Bounded to 400 entries; entries past
+  8× their TTL are discarded. `persistentCache.swr()` is available for new call
+  sites that want instant-stale + background-refresh.
 - **Subsonic metadata response cache (WS-PERF)** — `getArtists`, `getAlbumList2`
   (every list type, including "recently added"), and `getStarred2` now serve from
   a 60 s in-memory TTL cache on repeat navigation instead of refetching. Keyed by

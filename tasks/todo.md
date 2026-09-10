@@ -68,10 +68,11 @@ Full detail + acceptance criteria in `tasks/plan.md`.
 - [ ] T17 src/platform/ bridge contract tests
 - [ ] Checkpoint: coverage floor on services/** + context/**, CI runs tests
 
-## Phase 7 — new visual language
-- [ ] T18 design-craft research → docs/design/0009-visual-language.md
-- [ ] T19 UI-06 now-playing bar → docs/design/0010
-- [ ] T20 UI-07 --art-tint (perf-aware) → docs/design/0011
-- [ ] T21 UI-12 overlay redesign → docs/design/0012
-- [ ] T22 UI-10 density toggle → docs/design/0013
-- [ ] Checkpoint: browser QA both themes, Electron + WebView, owner sign-off
+## Phase 7 — new visual language — CANCELLED (owner 2026-09-10)
+Replaced by cache + perf hardening:
+- [x] T18 `persistentCache` — IDB-backed two-tier SWR cache (+ 9 unit tests)
+- [x] T19 `metadataCache` → facade over it; boot hydration in index.tsx (200ms cap)
+- [ ] T20 migrate ArtistList/AlbumList/AllAlbumsGrid/SongList reads to `.swr()`
+- [ ] T21 widen coverage: `search`, artist-detail, album pages; compress big blobs
+- [ ] T22 queue persistence → {ids, idx} + IDB song store (after Phase 6 tests)
+- [ ] Checkpoint: cold-start / warm-reload timing traced + logged in PERF_LEDGER

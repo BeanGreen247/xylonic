@@ -73,6 +73,51 @@ order block rewritten (2026-09-10). `react-router-dom@7` left installed.
 `docs/ROADMAP.md`, `docs/PERF_LEDGER.md`, `CHANGELOG.md`, `tasks/plan.md`,
 `tasks/todo.md`, `docs/todos.md`.
 
+**Phase 4 (partial) — lint.** 27 deliberate empty catches annotated (all
+plugin/IPC/storage best-effort guards — no `logger.warn`, it'd be console noise
+on web); `no-empty` flipped to **error** in `eslint.config.mjs`. Dropped 3 unused
+`catch (_)` bindings + 2 dead locals (`MiniPlayer.formatTime`,
+`QueueTab.currentIndex`). Lint 174 → 142. **Not done:** prettier `--write`
+(167-file reformat — deferred, do it in a phase gap), the 30 remaining
+`no-unused-vars` (mostly dead pagination code with state cascades — needs the app
+running to verify) and 91 `no-explicit-any` (own scoped pass, after WS-TEST).
+
+**Direction change (owner, 2026-09-10): the visual redesign is CANCELLED.**
+No new visual language, no UI-06/07/10/12, no `design-craft` phase. All remaining
+effort → performance & efficiency. Phase 7 in `tasks/plan.md` repurposed to
+"cache system + perf hardening".
+
+**New cache system — `persistentCache` (WS-PERF).**
+- `src/services/persistentCache.ts`: two-tier stale-while-revalidate KV cache —
+  synchronous in-memory `Map` front + IndexedDB (`xylonic-perf-cache`). API:
+  `init()` (opens IDB, hydrates memory; memory-only fallback), `get` (sync,
+  fresh-only), `peek` (`{data,fresh,stale}`), `set(key,data,ttlMs)`,
+  `swr(key,fetcher,ttlMs)` (serve-now + deduped background refresh when stale,
+  await only on hard miss), `invalidate(prefix?)`. Bounded 400 entries; dead past
+  `ttlMs * 8`.
+- `src/services/metadataCache.ts` rewritten as a **thin facade** over it (`meta:`
+  prefix), so the 4 existing consumers (ArtistList / AlbumList / SongList /
+  AllAlbumsGrid) are **unchanged** but their metadata now survives reload /
+  restart — library paints from IDB instead of skeleton + sequential refetch.
+- `src/index.tsx`: `persistentCache.init()` raced against a 200 ms timeout before
+  first `root.render` so a slow IDB can't stall startup.
+- 9 unit tests (`persistentCache.test.ts`, memory-only path). Suite 127 → 136,
+  `vite build` clean, lint 142.
+- **Not yet traced:** cold-start / warm-reload wall-clock (`electron:serve` +
+  DevTools). Provisional keep in PERF_LEDGER.
+- Follow-ups (Phase 7 in plan): migrate hot reads to `.swr()`; widen coverage
+  (`search`, artist-detail, album pages) + compress large song-list blobs; queue
+  persistence → `{ids, idx}` + IDB song store (after Phase 6 tests).
+
+**Files (Phase 4 + cache):** `eslint.config.mjs`, `src/App.tsx`,
+`src/context/PlayerContext.tsx`, `src/context/useMediaSession.ts`,
+`src/platform/capacitorBridge.ts`, `src/services/downloadManagerService.ts`,
+`src/services/remoteDiscoveryService.ts`, `src/components/Player/MiniPlayer.tsx`,
+`src/components/RightPanel/QueueTab.tsx`, `src/services/persistentCache.ts` (new),
+`src/services/persistentCache.test.ts` (new), `src/services/metadataCache.ts`
+(rewritten), `src/index.tsx`, `CHANGELOG.md`, `docs/PERF_LEDGER.md`,
+`docs/module_notes.md`, `tasks/plan.md`, `tasks/todo.md`.
+
 ## Current Focus (Sept 8, 2026 — on-device iOS verification + CI fix)
 
 **Context:** owner connected the iPhone 15 Pro Max (iOS 26.6.1) and lifted the

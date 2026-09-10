@@ -12,10 +12,15 @@ for ordering. Owner direction (2026-09-10):
 - Lint burndown (#4) and static inline-style cleanup (#5) proceed as previously scoped.
 - **Pull WS-TEST forward** — owner now wants robust unit coverage *before* the
   remaining polish, overriding the ROADMAP "tests very last" note.
-- **Visual restyle** = *new visual language* (not just polish, not a full recolor):
-  YT-Music-style dark futuristic direction. Targets WS-UX UI-06 (now-playing bar),
-  UI-07 (`--art-tint`), UI-10 (density), UI-12 (overlay redesign). Cyan accent and
-  the elevation system stay for now.
+- **Visual restyle — CANCELLED (owner, 2026-09-10).** No new visual language, no
+  UI-06/07/10/12, no design-craft phase. All remaining effort → performance &
+  efficiency.
+- **New cache system (WS-PERF)** — `persistentCache`: IndexedDB-backed, two-tier
+  (sync memory front + IDB), stale-while-revalidate. `metadataCache` is now a
+  thin facade over it → library views survive a reload / restart with no
+  refetch. Next: migrate hot read paths to `persistentCache.swr(...)`, widen
+  coverage (album pages, artist detail, `search`), consider compressing large
+  song-list blobs (reuse `CompressionStream` from `searchCacheService`).
 
 ## Architecture decisions
 
@@ -98,18 +103,26 @@ for ordering. Owner direction (2026-09-10):
 - [ ] **Checkpoint:** coverage reported; floor set on `services/**` + `context/**`
       (start 40 %, target 60 %). CI runs `npm test`.
 
-### Phase 7 — New visual language  (WS-UX, needs design-craft research each)
-- [ ] **T18** Research pass: 3–5 real futuristic music players (YT Music, Spotify,
-      Apple Music, Plexamp, Roon) → one locked direction + decision ledger in
-      `docs/design/0009-visual-language.md`. — S (research).
-- [ ] **T19** UI-06 now-playing bar redesign → `docs/design/0010`. — M.
-- [ ] **T20** UI-07 `--art-tint` derived from cover art (guarded, perf-mode aware —
-      off in Eco). `docs/design/0011`. — M.
-- [ ] **T21** UI-12 overlay/now-playing-full redesign → `docs/design/0012`. — M/L.
-- [ ] **T22** UI-10 density toggle (comfortable / compact), ties into perf tiers'
-      touch vs desktop row heights. `docs/design/0013`. — M.
-- [ ] **Checkpoint:** browser QA each in light + dark, Electron + WebView widths;
-      screenshots in the design ledger; owner sign-off before merge.
+### Phase 7 — New visual language — CANCELLED (owner, 2026-09-10)
+
+Dropped entirely. Replaced by:
+
+### Phase 7 — Cache system + perf hardening  (WS-PERF)
+- [x] **T18** `persistentCache` service — IDB-backed, two-tier, stale-while-
+      revalidate (`get` / `peek` / `set` / `swr` / `invalidate`); bounded to 400
+      entries, dead past `ttl * 8`. 9 unit tests. — M.
+- [x] **T19** `metadataCache` → thin facade over `persistentCache` (`meta:`
+      prefix). Zero consumer changes; library metadata now survives reload.
+      `persistentCache.init()` hydrates before first paint (200 ms cap). — S.
+- [ ] **T20** migrate ArtistList / AlbumList / AllAlbumsGrid / SongList metadata
+      reads to `persistentCache.swr(...)` for instant stale paint + bg refresh. — M.
+- [ ] **T21** widen coverage: `search` (`subsonicApi`), artist-detail, album
+      pages; compress large song-list blobs via `CompressionStream`. — M.
+- [ ] **T22** queue persistence → `{ids, idx}` + IDB song store (kills the
+      multi-MB `JSON.stringify(Song[])` on every next/prev/shuffle). Entangled
+      with the synchronous `PlayerContext` boot — do after Phase 6 tests. — M/L.
+- [ ] **Checkpoint:** cold-start + warm-reload timing traced (`electron:serve` +
+      DevTools) and logged in PERF_LEDGER; no stale-data correctness regressions.
 
 ## Risks
 

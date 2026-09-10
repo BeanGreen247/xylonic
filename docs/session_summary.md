@@ -1,5 +1,48 @@
 # Session Summary
 
+## What Changed This Session (Sept 9–10, 2026 — UI fix + phase re-plan + Phase 2)
+
+**Direction (owner):** drop the react-router migration (keep hand-rolled nav);
+optimise for perf/efficiency; turn the binary perf toggle into tiered
+Balanced/Eco/Gaming; trim README to essentials (keep quick-start verbatim);
+lint + inline-style cleanup; **pull WS-TEST full coverage forward** ahead of the
+remaining polish; then a **new visual language** pass (YT-Music-style dark
+futuristic — UI-06/07/10/12). Full breakdown in `tasks/plan.md` + `tasks/todo.md`.
+
+**Circular-button outline fix (commit 4443806).**
+- Root cause: the dark-theme surface tokens in `src/styles/index.css` `:root`
+  were written as `--border: var(--border)` etc. — self-referential, invalid at
+  computed-value time in dark mode. So `.theme/help/logout/mini-player` pill
+  buttons' `2px solid var(--active-overlay)` ring, and every `var(--border*)`
+  hover fill, resolved to nothing.
+- Fix: real dark values for `--border-subtle/-/-strong`, `--hover-overlay`,
+  `--active-overlay` (nudged a touch stronger for visibility); added
+  `1px solid var(--border)` to `.playback-controls button`, `.album-action-icon`,
+  `.current-song-like`.
+
+**ADR 0008 → Rejected.** ROADMAP WS-ARCH react-router item struck; execution
+order block rewritten (2026-09-10). `react-router-dom@7` left installed.
+
+**Phase 2 — Subsonic typing + response cache.**
+- T2/T3: the envelope was already fully modelled and `subsonicApi.ts` already
+  generic — the real `any` was at consumers. Extended the `Song` interfaces
+  (`types/subsonic.ts` + the local ones in `SongList` / `AllSongsGrid`) with the
+  technical-metadata fields and dropped the `(song as any).bitRate` casts.
+  Lint 194 → 174. ~3 duplicate local `Song` interfaces remain → follow-up T3b.
+- T4: `subsonicApi.ts` gained a 60 s TTL `Map` cache (`_cacheGet`/`_cacheSet`/
+  exported `clearApiCache(prefix?)`) on `getArtists`, `getAlbumList2` (all types
+  incl. recently-added, per owner), `getStarred2`. Keyed by endpoint + server +
+  user + params, never the rotating auth token. `starSong`/`unstarSong` purge the
+  starred key. **Wall-clock delta not yet traced** — provisional keep in
+  PERF_LEDGER; needs an `electron:serve` + DevTools session before Phase 2 closes.
+  Follow-up T4b: wire `clearApiCache()` into logout / server-switch.
+- `npm run build` clean throughout.
+
+**Files:** `src/styles/index.css`, `src/types/subsonic.ts`,
+`src/components/Library/SongList.tsx`, `src/components/Library/AllSongsGrid.tsx`,
+`src/services/subsonicApi.ts`, `docs/decisions/0008-*.md`, `docs/ROADMAP.md`,
+`docs/PERF_LEDGER.md`, `CHANGELOG.md`, `tasks/plan.md`, `tasks/todo.md`.
+
 ## Current Focus (Sept 8, 2026 — on-device iOS verification + CI fix)
 
 **Context:** owner connected the iPhone 15 Pro Max (iOS 26.6.1) and lifted the

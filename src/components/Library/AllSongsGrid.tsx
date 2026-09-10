@@ -29,6 +29,11 @@ interface Song {
   albumId?: string;
   coverArt?: string;
   duration?: number;
+  bitRate?: number;
+  suffix?: string;
+  size?: number;
+  samplingRate?: number;
+  channelCount?: number;
 }
 
 interface AllSongsGridProps {
@@ -202,11 +207,11 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
       url: offlineModeEnabled ? '' : getStreamUrl(serverUrl, username, password, s.id),
       duration: s.duration,
       coverArt: s.coverArt,
-      bitRate: (s as any).bitRate,
-      suffix: (s as any).suffix,
-      size: (s as any).size,
-      samplingRate: (s as any).samplingRate,
-      channelCount: (s as any).channelCount,
+      bitRate: s.bitRate,
+      suffix: s.suffix,
+      size: s.size,
+      samplingRate: s.samplingRate,
+      channelCount: s.channelCount,
     }));
     playPlaylist(playlist, index);
   };

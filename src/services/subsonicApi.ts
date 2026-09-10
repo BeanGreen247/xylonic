@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import md5 from 'md5';
 import { logger } from '../utils/logger';
 import { SearchResult3, SubsonicSearchResponse, SubsonicEnvelope, SubsonicChild } from '../types/subsonic';
@@ -46,6 +46,38 @@ const buildApiUrl = (serverUrl: string, endpoint: string, params: Record<string,
     return `${baseUrl}/rest/${endpoint}?${queryParams}`;
 };
 
+// ── Response cache ──────────────────────────────────────────────────────────
+// Short-TTL cache for idempotent metadata reads (getArtists / getAlbumList2 /
+// getStarred). Keyed by endpoint + server + user + semantic params — never the
+// auth token, which rotates every request. Cuts repeat-navigation refetches.
+const RESPONSE_CACHE_TTL_MS = 60_000;
+const _responseCache = new Map<string, { value: unknown; expires: number }>();
+
+const _cacheGet = <T>(key: string): T | undefined => {
+    const hit = _responseCache.get(key);
+    if (!hit) return undefined;
+    if (Date.now() > hit.expires) {
+        _responseCache.delete(key);
+        return undefined;
+    }
+    return hit.value as T;
+};
+
+const _cacheSet = (key: string, value: unknown): void => {
+    _responseCache.set(key, { value, expires: Date.now() + RESPONSE_CACHE_TTL_MS });
+};
+
+/** Drop cached responses. Pass a key prefix to scope the purge, or omit to clear all. */
+export const clearApiCache = (prefix?: string): void => {
+    if (!prefix) {
+        _responseCache.clear();
+        return;
+    }
+    for (const key of _responseCache.keys()) {
+        if (key.startsWith(prefix)) _responseCache.delete(key);
+    }
+};
+
 // Test connection to Subsonic server
 export const testConnection = async (serverUrl: string, username: string, password: string) => {
     try {
@@ -65,14 +97,18 @@ export const testConnection = async (serverUrl: string, username: string, passwo
 // Get all artists
 export const getArtists = async (serverUrl: string, username: string, password: string) => {
     checkOfflineMode();
+    const cacheKey = `getArtists:${serverUrl}:${username}`;
+    const cached = _cacheGet<AxiosResponse<SubsonicEnvelope>>(cacheKey);
+    if (cached) return cached;
     networkStatsService.recordMetadataFetch();
     try {
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getArtists.view', authParams);
-        
+
         logger.log('Fetching artists from URL:', url);
-        
+
         const response = await axios.get<SubsonicEnvelope>(url);
+        _cacheSet(cacheKey, response);
         return response;
     } catch (error) {
         logger.error('Failed to fetch artists:', error);
@@ -264,6 +300,9 @@ export const getAlbumList2 = async (
     offset: number = 0
 ): Promise<AlbumSummary[]> => {
     checkOfflineMode();
+    const cacheKey = `getAlbumList2:${serverUrl}:${username}:${type}:${size}:${offset}`;
+    const cached = _cacheGet<AlbumSummary[]>(cacheKey);
+    if (cached) return cached;
     try {
         const authParams = generateAuthParams(username, password);
         const url = buildApiUrl(serverUrl, 'getAlbumList2.view', {
@@ -273,7 +312,9 @@ export const getAlbumList2 = async (
             offset: offset.toString(),
         });
         const response = await axios.get<SubsonicEnvelope>(url);
-        return (response.data['subsonic-response']?.albumList2?.album || []) as AlbumSummary[];
+        const albums = (response.data['subsonic-response']?.albumList2?.album || []) as AlbumSummary[];
+        _cacheSet(cacheKey, albums);
+        return albums;
     } catch (error) {
         logger.error(`Failed to get album list (${type}):`, error);
         throw error;
@@ -376,13 +417,17 @@ export const search = async (query: string): Promise<SearchResult3> => {
 // Get starred/favorited songs from server
 export const getStarred = async (serverUrl: string, username: string, password: string) => {
   checkOfflineMode();
+  const cacheKey = `getStarred:${serverUrl}:${username}`;
+  const cached = _cacheGet<AxiosResponse<SubsonicEnvelope>>(cacheKey);
+  if (cached) return cached;
   try {
     const authParams = generateAuthParams(username, password);
     const url = buildApiUrl(serverUrl, 'getStarred2.view', authParams);
-    
+
     logger.log('Fetching starred songs from:', url);
-    
+
     const response = await axios.get<SubsonicEnvelope>(url);
+    _cacheSet(cacheKey, response);
     return response;
   } catch (error) {
     logger.error('Failed to get starred songs:', error);
@@ -399,8 +444,9 @@ export const starSong = async (serverUrl: string, username: string, password: st
     const url = buildApiUrl(serverUrl, 'star.view', params);
     
     logger.log('Starring song:', songId);
-    
+
     const response = await axios.get<SubsonicEnvelope>(url);
+    clearApiCache(`getStarred:${serverUrl}:${username}`);
     return response;
   } catch (error) {
     logger.error('Failed to star song:', error);
@@ -419,6 +465,7 @@ export const unstarSong = async (serverUrl: string, username: string, password: 
     logger.log('Unstarring song:', songId);
 
     const response = await axios.get<SubsonicEnvelope>(url);
+    clearApiCache(`getStarred:${serverUrl}:${username}`);
     return response;
   } catch (error) {
     logger.error('Failed to unstar song:', error);

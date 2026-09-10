@@ -4,7 +4,25 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **Circular control buttons had no visible outline in dark mode (WS-UX)** — the
+  dark-theme `--border*` / `--*-overlay` tokens were defined as
+  `var(--border-subtle)` etc. (self-referential → invalid), so the header pill
+  buttons' `2px solid var(--active-overlay)` ring rendered as nothing. Restored
+  real dark values and gave the previously borderless round controls
+  (`.playback-controls button`, `.album-action-icon`, `.current-song-like`) a
+  `1px solid var(--border)` ring.
+
 ### Changed
+- **Subsonic `Song` typing (WS-QUAL)** — the technical-metadata fields
+  (`bitRate`, `suffix`, `size`, `samplingRate`, `channelCount`, `bitDepth`,
+  `year`, `track`, `discNumber`) are now declared on the `Song` interfaces
+  instead of reached via `(song as any).x` at the playback call sites in
+  `SongList` / `AllSongsGrid`. −20 lint warnings, no behaviour change.
+  (Consolidating the ~3 duplicate local `Song` interfaces onto one canonical
+  type is a follow-up.)
+- **Navigation stays hand-rolled** — the `react-router` memory-history migration
+  (ADR 0008) is **Rejected**; the `App.tsx` navigation state machine is kept.
 - **Type scale migration (WS-UX · UI-03)** — all 174 exact-match
   `font-size: {11,13,15,18,22,28}px` declarations across 28 stylesheets now use
   `var(--font-size-xs…2xl)`. No rendered change (each token equals the literal it
@@ -24,6 +42,12 @@ All notable changes to Xylonic are documented here.
   guards are unchanged. `downloadManagerService.ts` 2012 → 1894.
 
 ### Performance
+- **Subsonic metadata response cache (WS-PERF)** — `getArtists`, `getAlbumList2`
+  (every list type, including "recently added"), and `getStarred2` now serve from
+  a 60 s in-memory TTL cache on repeat navigation instead of refetching. Keyed by
+  endpoint + server + user + params; the rotating auth token is never part of the
+  key. Starring / unstarring purges the starred cache immediately.
+  `clearApiCache(prefix?)` is exported for logout / server-switch wiring.
 - **Font Awesome solid subset (WS-PERF)** — `scripts/build-fa-subset.mjs` scans
   the source for every `fa-*` reference (static classes, `fa-${…}` /
   `fa-<stem>-${…}` dynamic literals, `icon: 'fa-*'` config), resolves them against

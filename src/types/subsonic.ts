@@ -6,6 +6,17 @@ export interface Song {
     url: string;
     duration?: number;
     coverArt?: string;
+    // Technical metadata carried through from the Subsonic child row when the
+    // source is the API rather than a minimal local/offline record. All optional.
+    bitRate?: number;
+    suffix?: string;
+    size?: number;
+    samplingRate?: number;
+    channelCount?: number;
+    bitDepth?: number;
+    year?: number;
+    track?: number;
+    discNumber?: number;
 }
 
 export interface Artist {

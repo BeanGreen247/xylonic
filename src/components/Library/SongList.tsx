@@ -31,6 +31,13 @@ interface Song {
   track?: number;
   coverArt?: string;
   year?: number;
+  bitRate?: number;
+  suffix?: string;
+  size?: number;
+  samplingRate?: number;
+  channelCount?: number;
+  bitDepth?: number;
+  discNumber?: number;
 }
 
 interface VirtualRowData {
@@ -260,15 +267,15 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       url: offlineModeEnabled ? '' : getStreamUrl(serverUrl, username, password, song.id),
       duration: song.duration,
       coverArt: song.coverArt || albumCoverArtId || undefined,
-      bitRate: (song as any).bitRate,
-      suffix: (song as any).suffix,
-      size: (song as any).size,
-      samplingRate: (song as any).samplingRate,
-      channelCount: (song as any).channelCount,
-      bitDepth: (song as any).bitDepth,
-      year: (song as any).year,
-      track: (song as any).track,
-      discNumber: (song as any).discNumber,
+      bitRate: song.bitRate,
+      suffix: song.suffix,
+      size: song.size,
+      samplingRate: song.samplingRate,
+      channelCount: song.channelCount,
+      bitDepth: song.bitDepth,
+      year: song.year,
+      track: song.track,
+      discNumber: song.discNumber,
     }));
 
     if (isRemoteMode) {
@@ -344,12 +351,12 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       url: offlineModeEnabled ? '' : getStreamUrl(serverUrl, username, password, song.id),
       duration: song.duration,
       coverArt: song.coverArt || albumCoverArtId || undefined,
-      bitRate: (song as any).bitRate,
-      suffix: (song as any).suffix,
-      size: (song as any).size,
-      samplingRate: (song as any).samplingRate,
-      channelCount: (song as any).channelCount,
-      bitDepth: (song as any).bitDepth,
+      bitRate: song.bitRate,
+      suffix: song.suffix,
+      size: song.size,
+      samplingRate: song.samplingRate,
+      channelCount: song.channelCount,
+      bitDepth: song.bitDepth,
     }));
 
     const randomIndex = Math.floor(Math.random() * songsWithUrls.length);

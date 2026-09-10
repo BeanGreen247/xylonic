@@ -4,6 +4,19 @@
 > When a roadmap workstream starts, break its tasks into this list.
 
 ## In Progress
+
+- [ ] **Phase re-plan (2026-09-10)** — see `tasks/plan.md` / `tasks/todo.md`.
+      Owner: drop react-router (**ADR 0008 Rejected**, struck from WS-ARCH);
+      tiered Balanced/Eco/Gaming perf modes; README trim (keep quick-start
+      verbatim); lint + inline-style cleanup; **WS-TEST full coverage pulled
+      forward** ahead of the visual work; then a **new visual language** pass
+      (UI-06/07/10/12). Done so far: circular-button outline fix
+      (commit `4443806`); Phase 2 — extended `Song` interfaces + dropped
+      `(song as any)` casts in `SongList`/`AllSongsGrid` (lint 194→174), and a
+      60 s TTL response cache in `subsonicApi.ts` (`getArtists`/`getAlbumList2`/
+      `getStarred2`, `clearApiCache()` export, star/unstar purge) — timing trace
+      still pending. Follow-ups: consolidate the ~3 duplicate `Song` interfaces;
+      wire `clearApiCache()` to logout / server-switch.
 - [ ] **WS-QUAL phase 1a cont.** — console sweep, dead-file deletion, ESLint/Prettier
       config + scripts, and the roadmap-named silent-`catch {}` starting points all
       done (see Done). `npm run lint` passes (0 errors, **~201 warnings**; trivial `any`→`unknown` +

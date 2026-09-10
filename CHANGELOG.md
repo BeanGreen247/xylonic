@@ -64,6 +64,15 @@ All notable changes to Xylonic are documented here.
   guards are unchanged. `downloadManagerService.ts` 2012 → 1894.
 
 ### Performance
+- **Queue tab is virtualised (WS-PERF)** — on-device profiling (iPhone 15 Pro Max,
+  CDP) found the right-panel Queue rendering **every** row into the DOM: a
+  3,330-song queue = ~40,000 DOM nodes (16k `<div>`, 10k `<i>`, 6.7k `<button>`),
+  which `content-visibility: auto` can't help because the nodes still exist.
+  QueueTab now uses `react-window` above 60 rows (same pattern as SongList) —
+  only the visible rows are in the DOM. Drag-to-reorder is kept for the ≤60-row
+  natural path (impractical past that anyway, and touch can't drag). Row height
+  is measured per pointer type (85 px coarse / 50 px fine); the mobile
+  `contain-intrinsic-size` hint was corrected 60 → 85 px.
 - **Persistent metadata cache (WS-PERF)** — new `persistentCache` service: a
   two-tier (in-memory + IndexedDB) stale-while-revalidate key/value store.
   `metadataCache` is now a thin facade over it, so the artist / album / song

@@ -603,7 +603,7 @@
     .panel-song-row {
         padding: 12px 16px;
         min-height: 60px;
-        contain-intrinsic-size: auto 60px;
+        contain-intrinsic-size: auto 85px;
     }
 
     /* Action buttons: always visible, 44 × 44 minimum */

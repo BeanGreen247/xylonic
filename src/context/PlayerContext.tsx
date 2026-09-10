@@ -12,7 +12,8 @@ import { offlineCacheService } from '../services/offlineCacheService';
 import { useOfflineMode } from './OfflineModeContext';
 import { getFromStorage } from '../utils/storage';
 import { addToHistory } from '../services/recentlyPlayedService';
-import { getCoverArtUrl } from '../services/subsonicApi';
+import { getCoverArtUrl, getStreamUrl } from '../services/subsonicApi';
+import { credentialsService } from '../services/credentialsService';
 import { Capacitor } from '@capacitor/core';
 import { getBridge } from '../platform/bridge';
 import { remoteDiscoveryService } from '../services/remoteDiscoveryService';
@@ -340,13 +341,22 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             audio.playbackRate = playbackSpeedRef.current;
             try {
                 await audio.play();
+                setIsLoading(false);
+                return;
             } catch (err) {
                 logger.error('Play error (cached fast path):', err);
-                setIsPlaying(false);
-            } finally {
-                setIsLoading(false);
+                // A genuine media error (missing / corrupt local file) while
+                // online → fall through to streaming below. An autoplay block
+                // sets no `audio.error` — just clear the spinner; the next tap
+                // starts it.
+                if (audio.error && !offlineModeEnabledRef.current) {
+                    logger.warn('[Player] cached file unplayable, falling back to stream');
+                } else {
+                    setIsPlaying(false);
+                    setIsLoading(false);
+                    return;
+                }
             }
-            return;
         }
 
         // ── Slow path ────────────────────────────────────────────────────────
@@ -361,8 +371,17 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             await offlineCacheService.whenReady();
         }
 
-        // Check if song is cached (offline-first)
+        // Streaming fallback: rebuild the stream URL from the song id + current
+        // credentials rather than trusting `song.url`. A persisted queue stores
+        // URLs whose auth token (`t=md5(password+salt)`) was minted with a
+        // previous session's salt, so the saved URL 401s on next launch.
         let sourceUrl = song.url;
+        if (!offlineModeEnabledRef.current) {
+            const { serverUrl, username, password } = credentialsService.getCached();
+            if (serverUrl && username && password) {
+                sourceUrl = getStreamUrl(serverUrl, username, password, song.id);
+            }
+        }
         const isCached = offlineCacheService.isCached(song.id);
 
         if (isCached) {

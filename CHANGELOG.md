@@ -5,6 +5,12 @@ All notable changes to Xylonic are documented here.
 ## [Unreleased]
 
 ### Fixed
+- **Stream URLs are rebuilt from the song id at play time** — a persisted queue
+  stored stream URLs whose auth token was minted with the previous session's
+  salt, so on next launch an uncached song's saved URL 401'd. `playSong` now
+  regenerates the stream URL from the current credentials (online mode), and the
+  cached fast path falls through to streaming if a local file turns out to be
+  missing or unplayable.
 - **Downloaded track stuck on the loading spinner instead of playing (iOS)** —
   root-caused on-device via CDP: the audio file loaded fine (`readyState 4`,
   valid duration) but `audio.play()` was rejected because `playSong` `await`s the

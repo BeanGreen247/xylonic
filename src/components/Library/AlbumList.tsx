@@ -150,32 +150,30 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
       }
 
       const artistCacheKey = `artist_${artistId}`;
-      const cachedArtist = metadataCache.get<{ albums: Album[]; coverArt?: string }>(artistCacheKey);
-      if (cachedArtist) {
-        setAlbums(cachedArtist.albums);
-        if (cachedArtist.coverArt) setArtistCoverArtId(cachedArtist.coverArt);
-        setLoading(false);
-        return;
-      }
 
-      logger.log('Fetching albums for artist:', artistId);
+      const fetchArtistAlbums = async (): Promise<{ albums: Album[]; coverArt?: string }> => {
+        logger.log('Fetching albums for artist:', artistId);
+        const response = await getArtist(serverUrl, username, password, artistId);
+        const subsonicResponse = response.data['subsonic-response'];
+        if (subsonicResponse?.status === 'failed') {
+          throw new Error(subsonicResponse.error?.message || 'Failed to fetch albums');
+        }
+        return {
+          albums: (subsonicResponse?.artist?.album || []) as Album[],
+          coverArt: subsonicResponse?.artist?.coverArt,
+        };
+      };
 
-      const response = await getArtist(serverUrl, username, password, artistId);
-      const subsonicResponse = response.data['subsonic-response'];
+      const applyData = (data: { albums: Album[]; coverArt?: string }) => {
+        setAlbums(data.albums);
+        if (data.coverArt) setArtistCoverArtId(data.coverArt);
+      };
 
-      if (subsonicResponse?.status === 'failed') {
-        setError(subsonicResponse.error?.message || 'Failed to fetch albums');
-        setLoading(false);
-        return;
-      }
-
-      const albumsList = (subsonicResponse?.artist?.album || []) as Album[];
-      const coverArt: string | undefined = subsonicResponse?.artist?.coverArt;
-      metadataCache.set(artistCacheKey, { albums: albumsList, coverArt });
-      setAlbums(albumsList);
-      if (coverArt) setArtistCoverArtId(coverArt);
-
-      logger.log(`Loaded ${albumsList.length} albums`);
+      const data = await metadataCache.swr(artistCacheKey, fetchArtistAlbums, 30 * 60 * 1000, {
+        onRevalidated: applyData,
+      });
+      applyData(data);
+      logger.log(`Loaded ${data.albums.length} albums`);
     } catch (error) {
       logger.error('Failed to load albums', error);
       setError((error as Error).message || 'Failed to load albums');

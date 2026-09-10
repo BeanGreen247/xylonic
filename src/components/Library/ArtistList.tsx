@@ -243,54 +243,43 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
       }
 
       const artistsCacheKey = `artists_${serverUrl}`;
-      const cachedArtistsData = metadataCache.get<{ artists: Artist[]; songCount: number }>(artistsCacheKey);
-      if (cachedArtistsData) {
-        if (myId !== loadIdRef.current) return;
-        setArtists(cachedArtistsData.artists);
-        setTotalSongs(cachedArtistsData.songCount);
-        setLoading(false);
-        return;
-      }
 
-      logger.log('Fetching artists from:', serverUrl);
-
-      // Use search index song count when available — avoids an extra getAlbumList2 call
-      const searchIdx = searchCacheService.getSearchIndex();
-      const [artistsResponse, songCount] = await Promise.all([
-        getArtists(serverUrl, username, password),
-        searchIdx ? Promise.resolve(searchIdx.songs.length) : getSongCount(serverUrl, username, password),
-      ]);
-
-      const subsonicResponse = artistsResponse.data['subsonic-response'];
-
-      if (subsonicResponse?.status === 'failed') {
-        setError(subsonicResponse.error?.message || 'Failed to fetch artists');
-        setLoading(false);
-        return;
-      }
-
-      const artistsList: Artist[] = [];
-
-      if (subsonicResponse?.artists?.index) {
-        subsonicResponse.artists.index.forEach(index => {
-          if (index.artist) {
-            // Map artists and use artist ID as coverArt if not provided
-            const mappedArtists = index.artist.map(artist => ({
-              ...artist,
-              // If coverArt is not provided, use the artist ID itself
-              // Subsonic API often supports using artist ID with getCoverArt endpoint
-              coverArt: artist.coverArt || artist.id
-            }));
-            artistsList.push(...mappedArtists);
-          }
+      // One "load" always produces { artists, songCount }; wrapping the fetch +
+      // map in a fetcher lets persistentCache serve a stale copy instantly and
+      // refresh in the background (onRevalidated repaints when it lands).
+      const fetchArtists = async (): Promise<{ artists: Artist[]; songCount: number }> => {
+        logger.log('Fetching artists from:', serverUrl);
+        // Use the search-index song count when available — avoids a getSongCount call.
+        const searchIdx = searchCacheService.getSearchIndex();
+        const [artistsResponse, songCount] = await Promise.all([
+          getArtists(serverUrl, username, password),
+          searchIdx ? Promise.resolve(searchIdx.songs.length) : getSongCount(serverUrl, username, password),
+        ]);
+        const subsonicResponse = artistsResponse.data['subsonic-response'];
+        if (subsonicResponse?.status === 'failed') {
+          throw new Error(subsonicResponse.error?.message || 'Failed to fetch artists');
+        }
+        const list: Artist[] = [];
+        subsonicResponse?.artists?.index?.forEach(index => {
+          index.artist?.forEach(artist => {
+            // Fall back to the artist ID as coverArt — Subsonic's getCoverArt accepts it.
+            list.push({ ...artist, coverArt: artist.coverArt || artist.id });
+          });
         });
-      }
+        return { artists: list, songCount };
+      };
 
-      metadataCache.set(artistsCacheKey, { artists: artistsList, songCount });
-      if (myId !== loadIdRef.current) return;
-      setArtists(artistsList);
-      setTotalSongs(songCount);
-      logger.log(`Loaded ${artistsList.length} artists and ${songCount} songs`);
+      const applyData = (data: { artists: Artist[]; songCount: number }) => {
+        if (myId !== loadIdRef.current) return;
+        setArtists(data.artists);
+        setTotalSongs(data.songCount);
+      };
+
+      const data = await metadataCache.swr(artistsCacheKey, fetchArtists, 30 * 60 * 1000, {
+        onRevalidated: applyData,
+      });
+      applyData(data);
+      logger.log(`Loaded ${data.artists.length} artists and ${data.songCount} songs`);
     } catch (error) {
       if (myId !== loadIdRef.current) return;
       logger.error('Failed to load artists', error);

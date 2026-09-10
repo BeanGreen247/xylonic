@@ -182,22 +182,24 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
       const { serverUrl, username, password } = credentialsService.getCached();
 
       const pageCacheKey = `albumsPage_${serverUrl}_${currentPage}`;
-      const cachedPage = metadataCache.get<Album[]>(pageCacheKey);
-      let data: Album[];
-      if (cachedPage) {
-        data = cachedPage;
-      } else {
-        const offset = (currentPage - 1) * PAGE_SIZE;
-        data = await getAllAlbumsPaginated(serverUrl, username, password, offset, PAGE_SIZE);
-        metadataCache.set(pageCacheKey, data);
-      }
-      setAlbums(data);
-      // If we got a full page, there may be more
-      if (data.length === PAGE_SIZE) {
-        setTotalEstimated((currentPage * PAGE_SIZE) + 1);
-      } else {
-        setTotalEstimated((currentPage - 1) * PAGE_SIZE + data.length);
-      }
+
+      const applyPage = (page: Album[]) => {
+        setAlbums(page);
+        // A full page means there is probably more.
+        setTotalEstimated(
+          page.length === PAGE_SIZE
+            ? currentPage * PAGE_SIZE + 1
+            : (currentPage - 1) * PAGE_SIZE + page.length,
+        );
+      };
+
+      const data = await metadataCache.swr(
+        pageCacheKey,
+        () => getAllAlbumsPaginated(serverUrl, username, password, (currentPage - 1) * PAGE_SIZE, PAGE_SIZE),
+        30 * 60 * 1000,
+        { onRevalidated: applyPage },
+      );
+      applyPage(data);
     } catch (err) {
       setError((err as Error).message || 'Failed to load albums');
     } finally {

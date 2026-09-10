@@ -146,9 +146,16 @@ class PersistentCache {
     /**
      * Stale-while-revalidate. Serves the cached value immediately when present;
      * refreshes in the background (deduped by key) when it is stale; awaits the
-     * fetcher only on a hard miss.
+     * fetcher only on a hard miss. `onRevalidated` fires when a *background*
+     * refresh produces a new value, so a caller that already rendered the stale
+     * data can update in place.
      */
-    async swr<T>(key: string, fetcher: () => Promise<T>, ttlMs: number): Promise<T> {
+    async swr<T>(
+        key: string,
+        fetcher: () => Promise<T>,
+        ttlMs: number,
+        opts?: { onRevalidated?: (fresh: T) => void },
+    ): Promise<T> {
         const hit = this.peek<T>(key);
         if (hit && hit.fresh) return hit.data;
 
@@ -157,6 +164,7 @@ class PersistentCache {
                 const p = fetcher()
                     .then((fresh) => {
                         this.set(key, fresh, ttlMs);
+                        opts?.onRevalidated?.(fresh);
                         return fresh;
                     })
                     .catch((err) => {
@@ -166,7 +174,7 @@ class PersistentCache {
                     .finally(() => this.inFlight.delete(key));
                 this.inFlight.set(key, p);
             }
-            return hit.data; // stale-but-usable now; the refresh lands next visit
+            return hit.data; // stale-but-usable now; the refresh lands via onRevalidated / next visit
         }
 
         // Hard miss — dedupe concurrent callers too.

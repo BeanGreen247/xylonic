@@ -72,7 +72,9 @@ Full detail + acceptance criteria in `tasks/plan.md`.
 Replaced by cache + perf hardening:
 - [x] T18 `persistentCache` — IDB-backed two-tier SWR cache (+ 9 unit tests)
 - [x] T19 `metadataCache` → facade over it; boot hydration in index.tsx (200ms cap)
-- [ ] T20 migrate ArtistList/AlbumList/AllAlbumsGrid/SongList reads to `.swr()`
-- [ ] T21 widen coverage: `search`, artist-detail, album pages; compress big blobs
+- [x] T20 ArtistList/AlbumList/AllAlbumsGrid/SongList metadata reads → `metadataCache.swr()`
+          with `onRevalidated` repaint (SongList album = stale-until-next-visit by
+          design). swr gained an `onRevalidated` opt + a 10th unit test. lint 142→140.
+- [ ] T21 widen coverage: `search` (`subsonicApi`), artist-detail; compress big blobs
 - [ ] T22 queue persistence → {ids, idx} + IDB song store (after Phase 6 tests)
 - [ ] Checkpoint: cold-start / warm-reload timing traced + logged in PERF_LEDGER

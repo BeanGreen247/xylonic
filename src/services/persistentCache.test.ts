@@ -89,6 +89,19 @@ describe('persistentCache — swr', () => {
     await vi.waitFor(() => expect(persistentCache.get('k')).toBe('fresh'));
   });
 
+  it('fires onRevalidated with the fresh value after a background refresh', async () => {
+    persistentCache.set('k', 'stale', TTL);
+    vi.advanceTimersByTime(TTL + 1);
+    const onRevalidated = vi.fn();
+    const fetcher = vi.fn().mockResolvedValue('fresh');
+
+    await expect(
+      persistentCache.swr('k', fetcher, TTL, { onRevalidated }),
+    ).resolves.toBe('stale');
+
+    await vi.waitFor(() => expect(onRevalidated).toHaveBeenCalledWith('fresh'));
+  });
+
   it('dedupes concurrent hard-miss callers into one fetch', async () => {
     const fetcher = vi.fn().mockResolvedValue('fresh');
 

@@ -192,22 +192,16 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       }
 
       const albumCacheKey = `album_${albumId}`;
-      let album = metadataCache.get<any>(albumCacheKey);
-
-      if (!album) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const album = await metadataCache.swr<any>(albumCacheKey, async () => {
         logger.log('Fetching songs for album:', albumId);
         const response = await getAlbum(serverUrl, username, password, albumId);
         const subsonicResponse = response.data['subsonic-response'];
-
         if (subsonicResponse?.status === 'failed') {
-          setError(subsonicResponse.error?.message || 'Failed to fetch songs');
-          setLoading(false);
-          return;
+          throw new Error(subsonicResponse.error?.message || 'Failed to fetch songs');
         }
-
-        album = subsonicResponse?.album;
-        metadataCache.set(albumCacheKey, album);
-      }
+        return subsonicResponse?.album;
+      }, 30 * 60 * 1000);
 
       const songsList: Song[] = album?.song || [];
 
@@ -216,20 +210,20 @@ const SongList: React.FC<SongListProps> = ({ albumId, albumName, artistName, onB
       if (album?.artistId) {
         setArtistId(album.artistId);
         const artistCacheKey = `artist_${album.artistId}`;
-        const cachedArtist = metadataCache.get<{ albums: any[]; coverArt?: string }>(artistCacheKey);
-        if (cachedArtist) {
-          setArtistCoverArtId(cachedArtist.coverArt || album.artistId);
-        } else {
-          try {
-            const artistResp = await getArtist(serverUrl, username, password, album.artistId);
-            const artistData = artistResp.data['subsonic-response']?.artist;
-            setArtistCoverArtId(artistData?.coverArt || album.artistId);
-            if (artistData) {
-              metadataCache.set(artistCacheKey, { albums: artistData.album || [], coverArt: artistData.coverArt });
-            }
-          } catch {
-            setArtistCoverArtId(album.artistId);
-          }
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const artistData = await metadataCache.swr<{ albums: any[]; coverArt?: string }>(
+            artistCacheKey,
+            async () => {
+              const artistResp = await getArtist(serverUrl, username, password, album.artistId);
+              const a = artistResp.data['subsonic-response']?.artist;
+              return { albums: a?.album || [], coverArt: a?.coverArt };
+            },
+            30 * 60 * 1000,
+          );
+          setArtistCoverArtId(artistData.coverArt || album.artistId);
+        } catch {
+          setArtistCoverArtId(album.artistId);
         }
       } else {
         logger.warn('[SongList] Album has no artistId, falling back to album cover for artist');

@@ -21,6 +21,16 @@ class MetadataCache {
   invalidate(prefix?: string): void {
     persistentCache.invalidate(prefix === undefined ? PREFIX : PREFIX + prefix);
   }
+
+  /** Stale-while-revalidate read — see `persistentCache.swr`. */
+  swr<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    ttlMs: number = DEFAULT_TTL,
+    opts?: { onRevalidated?: (fresh: T) => void },
+  ): Promise<T> {
+    return persistentCache.swr<T>(PREFIX + key, fetcher, ttlMs, opts);
+  }
 }
 
 export const metadataCache = new MetadataCache();

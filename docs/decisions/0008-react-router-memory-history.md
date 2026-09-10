@@ -1,7 +1,16 @@
 # 0008 — Navigation moves to `react-router` (memory history)
 
-- Status: Proposed
+- Status: Rejected (2026-09-10, owner)
 - Date: 2026-09-08
+
+## Decision (2026-09-10)
+
+Not doing this. The hand-rolled navigation in `App.tsx` works and has been
+stable on all platforms; the migration's main risks — Android hardware-back
+handling and overlay-dismissal ordering — outweigh the deep-linking and
+scroll-restoration upside at this stage. `react-router-dom@7` stays installed
+(removal is a separate trivial task) in case this is revisited. The rest of
+this document is kept for that possibility.
 
 ## Context
 

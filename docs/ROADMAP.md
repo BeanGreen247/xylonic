@@ -55,15 +55,24 @@ Phase 6  WS-FEAT + WS-DOCS (rolling, low-risk, fill gaps)
 Phase 0 is do-first (key rotation can't wait). Phases 1a (lint/CI) and 1b
 (test harness) run in parallel. TV work depends on the responsive refactor.
 
-### Execution order in effect (2026-09-07, revised by owner)
+### Execution order in effect (2026-09-10, revised by owner)
 
-The dependency graph above is the *ideal*. The order actually being worked:
+The dependency graph above is the *ideal*. The order actually being worked
+(supersedes the 2026-09-07 order; see `tasks/plan.md`):
 
 ```
-WS-QUAL core ✅ → WS-TEST harness ✅ → WS-ARCH (now) → WS-PERF → WS-UX leftovers
-  → WS-FEAT/DOCS → WS-QUAL remainder (near-last) → WS-SEC leftovers → WS-TV
-  → WS-TEST full coverage (very last)
+WS-QUAL core ✅ → WS-TEST harness ✅ → WS-ARCH ✅ (react-router Rejected, ADR 0008)
+  → Subsonic typing + response cache (WS-QUAL/WS-PERF)
+  → Tiered perf modes balanced|eco|gaming (WS-PERF)
+  → WS-QUAL lint burndown + WS-UX static-style cleanup
+  → README trim (WS-DOCS)
+  → WS-TEST full coverage — PULLED FORWARD, owner 2026-09-10
+  → WS-UX new visual language (UI-06/07/10/12) → WS-SEC leftovers → WS-TV
 ```
+
+Prior 2026-09-07 order kept the WS-ARCH splits ahead of their tests ("tests
+before refactors" suspended); those splits are now done, and the owner has
+pulled full WS-TEST coverage forward ahead of the remaining WS-UX polish.
 
 Consequence: the WS-ARCH god-object splits run **before** their WS-TEST
 coverage — "tests before refactors" (principle 1) is consciously suspended.
@@ -264,14 +273,12 @@ no `console.*` in `src/`; no empty catch blocks; no dead cache files;
       not merged) — `CoverArtDownloader` extracted (artwork fetch + dedup state);
       2012 → 1894, race guards intact. Awaiting on-device bulk-download pass. The
       song-byte transport (`downloadSong*` / `processQueue`) split is still open.
-- [ ] **Add routing** — `react-router` with memory history. `react-router-dom@7`
-      installed (2026-09-08); plan + route table in **ADR 0008**. Replaces the
-      `appSection` / `navigation` / `topView` / `sectionHistory` machine in
-      `App.tsx` (`MainApp.tsx` is dead). Enables deep-linking + scroll restore;
-      `navigate(-1)` subsumes the custom back-stack. **Dedicated task** — ~250–350
-      lines of `App.tsx`, and the Android hardware-back path + overlay-dismissal
-      ordering need an Electron + Android + iOS click-through before it lands on
-      `main`. Not bundled with other work.
+- [n] **Add routing** — **Rejected 2026-09-10 (owner). See ADR 0008.** The
+      hand-rolled `appSection` / `navigation` / `topView` / `sectionHistory`
+      machine in `App.tsx` stays; it works and the migration risk (Android
+      hardware-back + overlay-dismissal ordering) isn't worth the deep-link /
+      scroll-restore gain right now. `react-router-dom@7` stays installed;
+      uninstalling it is a separate trivial task.
 - [x] **`LayoutModeContext`** (2026-09-07) — `src/context/LayoutModeContext.tsx`,
       `'compact' | 'medium' | 'expanded' | 'tv'` from viewport `matchMedia`
       (767 / 1199 breakpoints) + `(hover:none) and (pointer:coarse)`. `forceMode`

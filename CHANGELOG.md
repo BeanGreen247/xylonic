@@ -14,6 +14,11 @@ All notable changes to Xylonic are documented here.
   `1px solid var(--border)` ring.
 
 ### Changed
+- **Lint: `no-empty` enforced as error (WS-QUAL)** — the 27 remaining empty
+  `catch {}` blocks (all deliberate plugin / IPC / `localStorage` best-effort
+  guards) are now annotated with a one-line reason, and `no-empty` is an error in
+  `eslint.config.mjs` alongside `no-console`. Also dropped a few unused `catch`
+  bindings and two dead local helpers.
 - **Performance tiers: Gaming / Balanced / Eco (WS-PERF)** — the two separate,
   mutually-exclusive toggles (Game/Performance mode + Power Saver) are now one
   three-way selector in Settings → Advanced, backed by a single

@@ -36,11 +36,26 @@ Full detail + acceptance criteria in `tasks/plan.md`.
           is now unused by app code — remove from bridge contract + `electron.js`.
 
 ## Phase 4 — lint + style
-- [ ] T8  no-empty catches → logger.warn
-- [ ] T9  no-unused-vars + dead deps disables
-- [ ] T10 prettier --write, flip rules to error, CI lint+format gate
-- [ ] T11 static style={{}} → classes
-- [ ] Checkpoint: lint clean at error level, build clean
+- [x] T8  27 deliberate empty catches annotated (not logged — all are
+          plugin/IPC/storage best-effort guards; a warn would be noise on web).
+          `no-empty` flipped to **error** in eslint.config.mjs. no-empty 27→0.
+- [~] T9  partial — dropped 3 unused `catch (_)` bindings + 2 verified dead
+          locals (`MiniPlayer.formatTime`, `QueueTab.currentIndex`).
+          no-unused-vars 35→30. **Remaining 30 not done**: mostly pagination
+          dead code (`handleNextPage`/`handlePreviousPage` in AlbumList/ArtistList
+          — removal cascades into `currentPage`/`totalPages` state, unverifiable
+          without running the app) + unused context destructures + a few "incomplete
+          wiring" flags. Needs a careful per-site pass, ideally after WS-TEST.
+- [ ] T10 **blocked on a decision** — `npm run format` reformats **167 files**
+          (whole `src/`, incl. the 3k-line `index.css`). One-time, permanent,
+          rewrites every `git blame` line, conflicts with Phase 7 stylesheet work.
+          CI `format:check` step can't be added until this lands. Awaiting owner OK
+          on timing (recommend: right before Phase 7, or right after).
+- [ ] T11 static `style={{}}` → classes — deferred, bundle with Phase 7 (needs
+          both-theme browser QA anyway).
+- [ ] T-any (was folded into T9) 91 `no-explicit-any` — own scoped pass, mostly
+          `remoteDiscoveryService` (30), bridges, `global.d.ts`, `settingsManager`.
+- [ ] Checkpoint: lint clean at error level for no-console + no-empty; build clean ✓
 
 ## Phase 5 — README
 - [ ] T12 trim 726 → ~120 lines (owner reviews outline)

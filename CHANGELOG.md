@@ -5,6 +5,11 @@ All notable changes to Xylonic are documented here.
 ## [Unreleased]
 
 ### Fixed
+- **Playing a downloaded track right after launch in offline mode did nothing** —
+  `playSong` checked `offlineCacheService.isCached()` before the cache index had
+  finished loading, so an already-downloaded song looked uncached and fell into
+  the "offline mode: skip network" bail. The service now exposes `whenReady()` /
+  `isReady`, and `playSong` waits for the index in offline mode before deciding.
 - **Tapping a track could hang on the loading spinner (iOS)** — WebKit sometimes
   wedges the `<audio>` element with no `playing`/`error` event when `src` is
   reassigned mid-load or set to the URL it already holds (e.g. tapping the

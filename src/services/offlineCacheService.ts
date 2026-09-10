@@ -43,10 +43,32 @@ class OfflineCacheService {
   private indexFlushTimer: ReturnType<typeof setTimeout> | null = null;
   private registryFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Ready gate — lets callers (notably PlayerContext.playSong in offline mode)
+  // wait for the cache index to load instead of racing it and wrongly deciding a
+  // downloaded song "isn't cached".
+  private _initStarted = false;
+  private _readyResolve: () => void = () => {};
+  private _readyPromise: Promise<void> = new Promise<void>((r) => { this._readyResolve = r; });
+
+  /** Resolves once initialize() has finished — success, failure, or no-cache platform. */
+  whenReady(): Promise<void> {
+    return this._readyPromise;
+  }
+
+  /** True once the user cache index is loaded. */
+  get isReady(): boolean {
+    return this.cacheIndex !== null;
+  }
+
   /**
    * Initialize cache service for a user
    */
   async initialize(username: string, serverUrl: string): Promise<void> {
+    if (this._initStarted) {
+      // A re-init (server switch / re-login) — reset the gate.
+      this._readyPromise = new Promise<void>((r) => { this._readyResolve = r; });
+    }
+    this._initStarted = true;
     try {
       this.userId = generateUserId(username, serverUrl);
       this.serverUrl = serverUrl;
@@ -87,6 +109,8 @@ class OfflineCacheService {
     } catch (error) {
       logger.error('[OfflineCache] Initialization failed:', error);
       throw error;
+    } finally {
+      this._readyResolve();
     }
   }
 

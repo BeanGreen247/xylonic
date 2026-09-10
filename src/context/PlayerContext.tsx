@@ -326,6 +326,14 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         setIsLoading(true);
         addToHistory(song);
 
+        // In offline mode the cached-path check below is meaningless until the
+        // cache index has loaded — racing it makes a downloaded song look
+        // uncached and drop into the "skip network" bail (which reads as a
+        // failed online attempt). Wait for the index first.
+        if (offlineModeEnabledRef.current && !offlineCacheService.isReady) {
+            await offlineCacheService.whenReady();
+        }
+
         // Check if song is cached (offline-first)
         let sourceUrl = song.url;
         const isCached = offlineCacheService.isCached(song.id);

@@ -75,6 +75,19 @@ Replaced by cache + perf hardening:
 - [x] T20 ArtistList/AlbumList/AllAlbumsGrid/SongList metadata reads → `metadataCache.swr()`
           with `onRevalidated` repaint (SongList album = stale-until-next-visit by
           design). swr gained an `onRevalidated` opt + a 10th unit test. lint 142→140.
-- [ ] T21 widen coverage: `search` (`subsonicApi`), artist-detail; compress big blobs
-- [ ] T22 queue persistence → {ids, idx} + IDB song store (after Phase 6 tests)
+- [~] T21 assessed — little safe/evidence-backed work left:
+        · `search` — already served from the local `searchCacheService` index;
+          the network `search()` is a rare fallback and stale results are
+          undesirable → **not cached** (deliberate).
+        · artist-detail — no separate view; `getArtist` reads in AlbumList +
+          SongList already went through T20.
+        · blob compression — `persistentCache` stores structured-clone objects,
+          not strings; per-entry sizes are small and IDB size isn't a reported
+          problem → **deferred, no evidence to act on** (performance-optimization
+          skill: don't optimise without a measurement).
+- [ ] T22 queue persistence → {ids, idx} + IDB song store (kills the multi-MB
+        `JSON.stringify(Song[])` on every next/prev/shuffle). **Blocked on test
+        coverage** — needs `computePrevIndex` extracted from `PlayerContext` into
+        `playerQueue.ts` (which already has `buildShuffleQueue` + `computeNextIndex`
+        + 10 tests) + queue-persistence tests, before the sync-boot path is touched.
 - [ ] Checkpoint: cold-start / warm-reload timing traced + logged in PERF_LEDGER

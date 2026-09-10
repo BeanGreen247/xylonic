@@ -35,6 +35,11 @@ export function usePlaybackEngine({
     let rafId: number | null = null;
 
     const handleTimeUpdate = () => {
+      // Real playback progress is the ground truth that a load finished — iOS
+      // WebKit sometimes never fires 'playing' (e.g. play() resolves silently,
+      // or the app regained focus mid-load), which would otherwise leave the
+      // loading spinner stuck forever.
+      if (audio.currentTime > 0 && !audio.paused) setIsLoading(false);
       pendingTime = audio.currentTime;
       if (rafId === null) {
         rafId = requestAnimationFrame(() => {
@@ -45,6 +50,8 @@ export function usePlaybackEngine({
       }
     };
     const handleDurationChange = () => setDuration(audio.duration);
+    const handleLoadedData = () => setIsLoading(false);
+    const handleCanPlay = () => setIsLoading(false);
 
     const handleEnded = () => {
       logger.log('Song ended, calling playNext');
@@ -59,6 +66,8 @@ export function usePlaybackEngine({
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
@@ -70,6 +79,8 @@ export function usePlaybackEngine({
       if (rafId !== null) cancelAnimationFrame(rafId);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);

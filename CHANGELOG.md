@@ -4,6 +4,17 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **Tapping a track could hang on the loading spinner (iOS)** — WebKit sometimes
+  wedges the `<audio>` element with no `playing`/`error` event when `src` is
+  reassigned mid-load or set to the URL it already holds (e.g. tapping the
+  current track in the Now Playing / Queue list), leaving the play button
+  spinning forever. `playSong` now does a deterministic `pause()` + rewind before
+  loading a new source (the manual "stop it and seek to 0" workaround, applied
+  automatically), and `usePlaybackEngine` also clears the loading flag on
+  `loadeddata` / `canplay` and on real playback progress (`timeupdate` with
+  `currentTime > 0`).
+
 ## [26.09.10] - 2026-09-10
 
 ### Fixed

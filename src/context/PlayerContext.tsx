@@ -300,6 +300,16 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         const audio = audioRef.current;
         if (!audio) return;
 
+        // Deterministic reset before loading a new source. iOS WebKit can wedge
+        // the element with no 'playing'/'error' event — when src is reassigned
+        // mid-load, or reassigned to the URL it already holds (tapping the
+        // current track). A pause + rewind clears that state; this is the manual
+        // "stop it and seek to 0" workaround, applied automatically.
+        try {
+            audio.pause();
+            if (audio.currentTime > 0) audio.currentTime = 0;
+        } catch { /* element has no source yet */ }
+
         // Push current song to history when moving forward (not when going back)
         if (!isGoingBackRef.current && currentSongRef.current) {
             const hist = playHistoryRef.current;

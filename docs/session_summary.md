@@ -38,10 +38,40 @@ order block rewritten (2026-09-10). `react-router-dom@7` left installed.
   Follow-up T4b: wire `clearApiCache()` into logout / server-switch.
 - `npm run build` clean throughout.
 
-**Files:** `src/styles/index.css`, `src/types/subsonic.ts`,
+**Phase 3 — performance tiers Gaming / Balanced / Eco.**
+- Merged `performanceModeService` + `powerSaverService` (two booleans the UI
+  already forced mutually-exclusive) into one `src/services/perfModeService.ts`
+  with `type PerfMode = 'gaming' | 'balanced' | 'eco'`. Legacy `xylonic_*_mode`
+  keys migrate to `eco` on first read. Old service files deleted; 6 consumers
+  updated (`index.tsx`, `App.tsx`, `useNeighborSongs`, `imageCacheService`,
+  `Header`, `RenderTimerHUD`); `AdvancedSection` two toggles → one 3-way selector.
+- **Gaming intent (owner, mid-session):** *minimise Xylonic's system load so a
+  foreground game keeps the machine* — NOT a boost. Final profile: 15 fps RAF,
+  reuses `body.performance-mode` (no transitions/blur/shadow/GPU layers) + a new
+  `body.gaming-mode` supplement (flatten translucent chrome to opaque `--surface`,
+  drop the ambient blur), `PREFETCH_AHEAD` 0, 1 concurrent image fetch,
+  image-memory cache 120 (bal. 400), native CPU priority yielded.
+- Balanced = old Normal (60 fps, untouched). Eco = old Power Saver + the old
+  middle "Performance" tier folded in (10 fps, pixelated art, everything
+  stripped, priority yielded).
+- `setPerformancePriority` bridge method now unused by app code — flagged for
+  removal in `xylonic-electron` (bridge + `electron.js`).
+- `vite build` clean; lint 174 (unchanged). **`tsc --noEmit` is unusable** —
+  the project's `typecheck` script has a broken `moduleResolution` and can't
+  resolve `axios`/`@capacitor/core`; no new errors attributable to this change.
+- **Not yet measured:** per-tier CPU / layer-count / JS-heap trace — needs an
+  `electron:serve` + DevTools session. Provisional keep in PERF_LEDGER.
+
+**Files (Phase 2 + 3):** `src/styles/index.css`, `src/types/subsonic.ts`,
 `src/components/Library/SongList.tsx`, `src/components/Library/AllSongsGrid.tsx`,
-`src/services/subsonicApi.ts`, `docs/decisions/0008-*.md`, `docs/ROADMAP.md`,
-`docs/PERF_LEDGER.md`, `CHANGELOG.md`, `tasks/plan.md`, `tasks/todo.md`.
+`src/services/subsonicApi.ts`, `src/services/perfModeService.ts` (new),
+`src/services/performanceModeService.ts` + `src/services/powerSaverService.ts`
+(deleted), `src/index.tsx`, `src/App.tsx`, `src/context/useNeighborSongs.ts`,
+`src/services/imageCacheService.ts`, `src/components/Layout/Header.tsx`,
+`src/components/common/RenderTimerHUD.tsx`,
+`src/components/common/settings/AdvancedSection.tsx`, `docs/decisions/0008-*.md`,
+`docs/ROADMAP.md`, `docs/PERF_LEDGER.md`, `CHANGELOG.md`, `tasks/plan.md`,
+`tasks/todo.md`, `docs/todos.md`.
 
 ## Current Focus (Sept 8, 2026 — on-device iOS verification + CI fix)
 

@@ -4,8 +4,7 @@ import { imageCacheService } from '../services/imageCacheService';
 import { getCoverArtUrl } from '../services/subsonicApi';
 import { getFromStorage } from '../utils/storage';
 import { getBridge } from '../platform/bridge';
-import { isPerformanceModeEnabled } from '../services/performanceModeService';
-import { isPowerSaverEnabled } from '../services/powerSaverService';
+import { PREFETCH_AHEAD, getPerfMode } from '../services/perfModeService';
 
 type SongLike = { id: string; url: string; coverArt?: string };
 
@@ -133,8 +132,9 @@ export function useNeighborSongs<S extends SongLike>({
 
     const toPreload: (S | null)[] = [nextSong, prevSong];
 
-    // Add upcoming songs from the sequential queue (depth: normal=4, perf=2, eco=0)
-    const maxAhead = isPowerSaverEnabled() ? 0 : isPerformanceModeEnabled() ? 2 : 4;
+    // Add upcoming songs from the sequential queue
+    // (depth per tier: gaming=8, balanced=4, eco=0)
+    const maxAhead = PREFETCH_AHEAD[getPerfMode()];
     if (!shuffle && playlist.length > 0) {
       for (let offset = 2; offset <= maxAhead; offset++) {
         const i = currentIndex + offset;
@@ -156,7 +156,7 @@ export function useNeighborSongs<S extends SongLike>({
   useEffect(() => {
     const bridge = getBridge();
     if (!bridge.isCapacitor || !nextSong?.coverArt) return;
-    if (isPowerSaverEnabled()) return;
+    if (getPerfMode() === 'eco') return;
     const { username, password, serverUrl } = getFromStorage();
     let cancelled = false;
     (async () => {

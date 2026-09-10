@@ -5,8 +5,7 @@ import { useRemoteMode } from '../../context/RemoteModeContext';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import SearchBar from '../common/SearchBar';
 import { getBridge } from '../../platform/bridge';
-import { isPerformanceModeEnabled } from '../../services/performanceModeService';
-import { isPowerSaverEnabled } from '../../services/powerSaverService';
+import { getPerfMode, PerfMode } from '../../services/perfModeService';
 import XylonicLogo from '../common/XylonicLogo';
 import { isAppStoreBuild } from '../../config/buildVariant';
 import './Header.css';
@@ -19,14 +18,10 @@ const Header: React.FC = () => {
   const { offlineModeEnabled, toggleOfflineMode } = useOfflineMode();
   const [showMiniPlayerNotification, setShowMiniPlayerNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
-  const [perfMode,   setPerfMode]   = useState(isPerformanceModeEnabled);
-  const [powerSaver, setPowerSaver] = useState(isPowerSaverEnabled);
+  const [perfMode, setPerfMode] = useState<PerfMode>(getPerfMode);
 
   useEffect(() => {
-    const handler = () => {
-      setPerfMode(isPerformanceModeEnabled());
-      setPowerSaver(isPowerSaverEnabled());
-    };
+    const handler = () => setPerfMode(getPerfMode());
     window.addEventListener('appModeChanged', handler);
     return () => window.removeEventListener('appModeChanged', handler);
   }, []);
@@ -154,18 +149,18 @@ const Header: React.FC = () => {
           <i className={`fas fa-${offlineModeEnabled ? 'plane' : 'globe'}`} />
           {offlineModeEnabled && <span className="offline-toggle-label">Offline</span>}
         </button>
-        {perfMode && !powerSaver && (
+        {perfMode === 'gaming' && (
           <span
             className="header-mode-badge header-mode-badge--perf"
-            title="Gaming Mode active — frame rate capped at 30 fps"
+            title="Gaming Mode active — Xylonic trimmed to minimum system load for a foreground game"
           >
-            <i className="fas fa-tachometer-alt" />
+            <i className="fas fa-gamepad" />
           </span>
         )}
-        {powerSaver && (
+        {perfMode === 'eco' && (
           <span
             className="header-mode-badge header-mode-badge--eco"
-            title="Power Saver Mode active — frame rate capped at 5 fps"
+            title="Eco Mode active — frame rate capped, GPU effects off, minimal prefetch"
           >
             <i className="fas fa-leaf" />
           </span>

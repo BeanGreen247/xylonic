@@ -3,18 +3,39 @@ import { Capacitor } from '@capacitor/core';
 import { isReleaseBuild } from '../../../config/buildVariant';
 import { getBridge } from '../../../platform/bridge';
 import { logger } from '../../../utils/logger';
-import { isPerformanceModeEnabled, setPerformanceMode } from '../../../services/performanceModeService';
-import { isPowerSaverEnabled, setPowerSaverMode } from '../../../services/powerSaverService';
+import { getPerfMode, setPerfMode as applyPerfMode, YIELDS_CPU, PerfMode } from '../../../services/perfModeService';
 import { isEnabled as isRenderTimerEnabled, setEnabled as setRenderTimerEnabled } from '../../../services/renderTimerService';
 
+const PERF_TIERS: { mode: PerfMode; icon: string; label: string; sub: string; color?: string }[] = [
+  {
+    mode: 'gaming',
+    icon: 'fa-gamepad',
+    label: 'Gaming',
+    sub: 'Minimises system load for a foreground game — 15 fps, GPU effects and translucency off, no prefetch, small image cache, CPU priority yielded. Audio and basic control still work',
+    color: '#ff9f0a',
+  },
+  {
+    mode: 'balanced',
+    icon: 'fa-circle',
+    label: 'Balanced',
+    sub: 'Default — 60 fps, full GPU effects, standard prefetch',
+  },
+  {
+    mode: 'eco',
+    icon: 'fa-leaf',
+    label: 'Eco',
+    sub: '10 fps, every GPU effect off, pixelated art, no prefetch, CPU priority yielded — maximum battery life',
+    color: '#1db954',
+  },
+];
+
 /**
- * Settings → Advanced. Self-contained: owns the perf-mode / power-saver /
- * render-timer / debug-logging toggles and their side effects. No props — split
- * out of `SettingsView` (WS-ARCH); none of this state is read elsewhere.
+ * Settings → Advanced. Self-contained: owns the perf-tier selector, the
+ * render-timer and debug-logging toggles and their side effects. No props —
+ * split out of `SettingsView` (WS-ARCH); none of this state is read elsewhere.
  */
 const AdvancedSection: React.FC = () => {
-  const [perfMode, setPerfMode] = useState(isPerformanceModeEnabled);
-  const [powerSaver, setPowerSaver] = useState(isPowerSaverEnabled);
+  const [perfMode, setPerfMode] = useState<PerfMode>(getPerfMode);
   const [renderTimer, setRenderTimer] = useState(isRenderTimerEnabled);
   const [loggingEnabled, setLoggingEnabled] = useState(false);
 
@@ -22,29 +43,11 @@ const AdvancedSection: React.FC = () => {
     setLoggingEnabled(logger.isEnabled());
   }, []);
 
-  const handlePerfModeToggle = () => {
-    const next = !perfMode;
-    setPerfMode(next);
-    if (next) {
-      if (powerSaver) { setPowerSaver(false); setPowerSaverMode(false); }
-      setPerformanceMode(true);
-      getBridge().setPerformancePriority().catch(() => {});
-    } else {
-      setPerformanceMode(false);
-      getBridge().setPowerSaverPriority(false).catch(() => {});
-    }
-  };
-
-  const handlePowerSaverToggle = () => {
-    const next = !powerSaver;
-    setPowerSaver(next);
-    if (next) {
-      if (perfMode) { setPerfMode(false); setPerformanceMode(false); }
-      setPowerSaverMode(true);
-    } else {
-      setPowerSaverMode(false);
-    }
-    getBridge().setPowerSaverPriority(next).catch(() => {});
+  const handlePerfTier = (mode: PerfMode) => {
+    if (mode === perfMode) return;
+    setPerfMode(mode);
+    applyPerfMode(mode);
+    getBridge().setPowerSaverPriority(YIELDS_CPU[mode]).catch(() => {});
   };
 
   const handleRenderTimerToggle = () => {
@@ -67,39 +70,32 @@ const AdvancedSection: React.FC = () => {
     <section className="settings-section">
       <h3 className="settings-section-title">Advanced</h3>
       <div className="settings-card">
-        <button className={`settings-row${perfMode ? ' active' : ''}`} onClick={handlePerfModeToggle}>
-          <span className="settings-row-icon">
-            <i className="fas fa-gamepad" />
-          </span>
-          <span className="settings-row-label">
-            Game / Performance Mode
-            <span className="settings-row-sub">
-              Removes GPU effects, caps frame rate to 30 fps — frees GPU &amp; CPU for games
-            </span>
-          </span>
-          <span className="settings-row-action">
-            <span className={`settings-badge ${perfMode ? 'on' : 'off'}`}>
-              {perfMode ? 'On' : 'Off'}
-            </span>
-          </span>
-        </button>
-        <div className="settings-divider" />
-        <button className={`settings-row${powerSaver ? ' active' : ''}`} onClick={handlePowerSaverToggle}>
-          <span className="settings-row-icon">
-            <i className="fas fa-leaf" style={{ color: powerSaver ? '#1db954' : undefined }} />
-          </span>
-          <span className="settings-row-label">
-            Power Saver Mode
-            <span className="settings-row-sub">
-              Caps frame rate to 5 fps, lowers process scheduling priority, removes all GPU effects — extends battery life
-            </span>
-          </span>
-          <span className="settings-row-action">
-            <span className={`settings-badge ${powerSaver ? 'on' : 'off'}`}>
-              {powerSaver ? 'On' : 'Off'}
-            </span>
-          </span>
-        </button>
+        {PERF_TIERS.map((tier, i) => {
+          const active = perfMode === tier.mode;
+          return (
+            <React.Fragment key={tier.mode}>
+              {i > 0 && <div className="settings-divider" />}
+              <button
+                className={`settings-row${active ? ' active' : ''}`}
+                onClick={() => handlePerfTier(tier.mode)}
+                aria-pressed={active}
+              >
+                <span className="settings-row-icon">
+                  <i className={`fas ${tier.icon}`} style={{ color: active && tier.color ? tier.color : undefined }} />
+                </span>
+                <span className="settings-row-label">
+                  {tier.label} Mode
+                  <span className="settings-row-sub">{tier.sub}</span>
+                </span>
+                <span className="settings-row-action">
+                  <span className={`settings-badge ${active ? 'on' : 'off'}`}>
+                    {active ? 'Active' : ''}
+                  </span>
+                </span>
+              </button>
+            </React.Fragment>
+          );
+        })}
         {!isReleaseBuild && <div className="settings-divider" />}
         {!isReleaseBuild && <button className={`settings-row${renderTimer ? ' active' : ''}`} onClick={handleRenderTimerToggle}>
           <span className="settings-row-icon">

@@ -14,9 +14,15 @@
       (commit `4443806`); Phase 2 — extended `Song` interfaces + dropped
       `(song as any)` casts in `SongList`/`AllSongsGrid` (lint 194→174), and a
       60 s TTL response cache in `subsonicApi.ts` (`getArtists`/`getAlbumList2`/
-      `getStarred2`, `clearApiCache()` export, star/unstar purge) — timing trace
-      still pending. Follow-ups: consolidate the ~3 duplicate `Song` interfaces;
-      wire `clearApiCache()` to logout / server-switch.
+      `getStarred2`, `clearApiCache()` export, star/unstar purge); Phase 3 —
+      merged `performanceModeService` + `powerSaverService` → `perfModeService`
+      (`gaming|balanced|eco`), old files deleted, 6 consumers + `AdvancedSection`
+      updated; gaming = minimise-system-load profile (15 fps, opaque chrome via
+      new `body.gaming-mode`, no prefetch, small image cache, CPU priority
+      yielded). Both timing traces still pending. Follow-ups: consolidate the
+      ~3 duplicate `Song` interfaces; wire `clearApiCache()` to logout /
+      server-switch; remove the now-unused `setPerformancePriority` bridge method
+      (xylonic-electron).
 - [ ] **WS-QUAL phase 1a cont.** — console sweep, dead-file deletion, ESLint/Prettier
       config + scripts, and the roadmap-named silent-`catch {}` starting points all
       done (see Done). `npm run lint` passes (0 errors, **~201 warnings**; trivial `any`→`unknown` +

@@ -14,6 +14,23 @@ All notable changes to Xylonic are documented here.
   `1px solid var(--border)` ring.
 
 ### Changed
+- **Performance tiers: Gaming / Balanced / Eco (WS-PERF)** — the two separate,
+  mutually-exclusive toggles (Game/Performance mode + Power Saver) are now one
+  three-way selector in Settings → Advanced, backed by a single
+  `perfModeService`.
+  - **Balanced** — the former Normal: 60 fps, full effects, prefetch depth 4.
+  - **Gaming** — trims Xylonic's system load to the minimum so a foreground game
+    keeps the machine: 15 fps RAF cap, GPU effects stripped (`performance-mode`
+    stylesheet) *plus* every translucent surface flattened to opaque and the
+    ambient blur removed (`gaming-mode` supplement — fewer draw calls, less
+    VRAM), zero look-ahead prefetch, one concurrent image fetch, image-memory
+    cache 120 (was 400), native CPU priority yielded. Audio + basic control
+    still work.
+  - **Eco** — the former Power Saver (old middle "Performance" tier folded in):
+    10 fps, everything stripped via `power-saver-mode`, pixelated art, no
+    prefetch, CPU priority yielded — maximum battery life.
+  - Saved `xylonic_performance_mode` / `xylonic_power_saver_mode` values migrate
+    to `eco` on first launch.
 - **Subsonic `Song` typing (WS-QUAL)** — the technical-metadata fields
   (`bitRate`, `suffix`, `size`, `samplingRate`, `channelCount`, `bitDepth`,
   `year`, `track`, `discNumber`) are now declared on the `Song` interfaces

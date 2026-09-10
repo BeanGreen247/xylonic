@@ -2877,7 +2877,7 @@ body {
 }
 
 /* ─── Performance / Game Mode ────────────────────────────────────────────────
-   Applied via body.performance-mode (set by performanceModeService.ts).
+   Applied via body.performance-mode (set by perfModeService.ts for the gaming tier).
    Goal: eliminate every GPU-expensive operation so the app consumes minimal
    resources while still displaying and playing audio correctly.
    ─────────────────────────────────────────────────────────────────────────── */
@@ -2985,8 +2985,31 @@ body.performance-mode {
 
 /* ─── end performance mode ─────────────────────────────────────────────────── */
 
+/* ─── Gaming Mode supplement ─────────────────────────────────────────────────
+   Applied via body.gaming-mode alongside body.performance-mode. Goal: on top of
+   the effect-stripping above, flatten every translucent surface to an opaque
+   colour so the compositor stops blending layers — fewer draw calls, less GPU
+   and less VRAM while a foreground game runs. */
+body.gaming-mode .player-bar,
+body.gaming-mode .header,
+body.gaming-mode .right-panel,
+body.gaming-mode .app-nav,
+body.gaming-mode .mobile-bottom-nav,
+body.gaming-mode .hamburger-dropdown,
+body.gaming-mode .mini-player,
+body.gaming-mode .now-playing-overlay,
+body.gaming-mode .quality-picker-modal {
+    background: var(--surface) !important;
+    opacity: 1 !important;
+}
+
+body.gaming-mode .npo-bg {
+    display: none !important;
+}
+/* ─── end gaming mode ──────────────────────────────────────────────────────── */
+
 /* ─── Power Saver Mode ───────────────────────────────────────────────────────
-   Applied via body.power-saver-mode (set by powerSaverService.ts).
+   Applied via body.power-saver-mode (set by perfModeService.ts for the eco tier).
    Goal: minimise battery drain — throttles RAF to 5 fps, flattens every
    visual effect, and simplifies paint areas as aggressively as possible.
    Supersedes performance mode (only one should be active at a time).

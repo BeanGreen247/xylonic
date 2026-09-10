@@ -20,10 +20,20 @@ Full detail + acceptance criteria in `tasks/plan.md`.
 - [ ] T4b (new) wire `clearApiCache()` into logout / server-switch
 
 ## Phase 3 — tiered perf modes
-- [ ] T5  `performanceModeService` → balanced|eco|gaming + migration
-- [ ] T6  per-tier profiles (fps / prefetch / decode / CSS)
-- [ ] T7  3-way segmented control in AdvancedSection
-- [ ] Checkpoint: each tier measured + logged in PERF_LEDGER
+- [x] T5  merged `performanceModeService` + `powerSaverService` → one
+          `perfModeService` (`'gaming'|'balanced'|'eco'` + legacy-key migration).
+          Old services deleted; 6 consumers updated (index, App, useNeighborSongs,
+          imageCacheService, Header, RenderTimerHUD).
+- [x] T6  per-tier profiles: FPS {15/60/10}, PREFETCH_AHEAD {0/4/0},
+          IMAGE_CACHE_TUNING, YIELDS_CPU {true/false/true}; gaming reuses
+          `body.performance-mode` + new `body.gaming-mode` (opaque surfaces,
+          no ambient blur). Owner intent for gaming: **minimise system load for a
+          foreground game** (not a boost).
+- [x] T7  3-way selector in `AdvancedSection` (replaces the two toggles).
+- [~] Checkpoint: `vite build` + lint (174) green. **Per-tier CPU/GPU/RAM trace
+          still pending** — provisional per PERF_LEDGER.
+- [ ] T7b (cross-layer, xylonic-electron) `setPerformancePriority` bridge method
+          is now unused by app code — remove from bridge contract + `electron.js`.
 
 ## Phase 4 — lint + style
 - [ ] T8  no-empty catches → logger.warn

@@ -7,8 +7,7 @@ import { logger } from '../utils/logger';
 import { generateUserId } from '../utils/cacheHelpers';
 import { networkStatsService } from './networkStatsService';
 import { searchCacheService } from './searchCacheService';
-import { isPerformanceModeEnabled } from './performanceModeService';
-import { isPowerSaverEnabled }       from './powerSaverService';
+import { IMAGE_CACHE_TUNING, getPerfMode } from './perfModeService';
 import type { Album, SearchResultSong } from '../types/subsonic';
 
 interface CachedImage {
@@ -852,16 +851,9 @@ class ImageCacheService {
   }
 
   syncWithAppMode(): void {
-    if (isPowerSaverEnabled()) {
-      this.maxConcurrentFetches = 1;
-      this.maxMemoryCacheSize   = 100;
-    } else if (isPerformanceModeEnabled()) {
-      this.maxConcurrentFetches = 2;
-      this.maxMemoryCacheSize   = 200;
-    } else {
-      this.maxConcurrentFetches = 4;
-      this.maxMemoryCacheSize   = 400;
-    }
+    const tuning = IMAGE_CACHE_TUNING[getPerfMode()];
+    this.maxConcurrentFetches = tuning.maxConcurrentFetches;
+    this.maxMemoryCacheSize   = tuning.maxMemoryCacheSize;
   }
 
   /**

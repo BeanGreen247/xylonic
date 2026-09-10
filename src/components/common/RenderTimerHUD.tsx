@@ -5,8 +5,7 @@ import {
 } from '../../services/renderTimerService';
 import { getThrottleFps } from '../../services/rafThrottle';
 import { getBridge } from '../../platform/bridge';
-import { isPowerSaverEnabled } from '../../services/powerSaverService';
-import { isPerformanceModeEnabled } from '../../services/performanceModeService';
+import { getPerfMode } from '../../services/perfModeService';
 import './RenderTimerHUD.css';
 
 function fmtBytes(bytes: number): string {
@@ -19,7 +18,7 @@ function cpuColor(pct: number): string {
   return pct < 30 ? '#1db954' : pct < 70 ? '#ff9f0a' : '#ff3b30';
 }
 
-type AppMode = 'normal' | 'performance' | 'powerSaver';
+type AppMode = 'gaming' | 'balanced' | 'eco';
 type Health  = 'nominal' | 'overload' | 'uncapped';
 
 function throttleHealth(fps: number, targetFps: number): Health {
@@ -32,7 +31,7 @@ function throttleHealth(fps: number, targetFps: number): Health {
 /** Fallback for Android/web: approximate active cores from total CPU %. */
 function CoreDots({ cores, cpuPct, mode }: { cores: number; cpuPct: number; mode: AppMode }) {
   const active       = Math.round((cpuPct / 100) * cores);
-  const deprioCutoff = mode === 'powerSaver' ? Math.ceil(cores / 2) : cores;
+  const deprioCutoff = mode === 'balanced' ? cores : Math.ceil(cores / 2);
   return (
     <span className="rt-core-dots" aria-hidden="true">
       {Array.from({ length: cores }, (_, i) => {
@@ -143,11 +142,9 @@ const RenderTimerHUD: React.FC = () => {
   const { fps, targetFps, frameMs, jitter } = fast;
   const { cpuPct, cores, processBars, appMem, isElectron } = slow;
 
-  const powerSaver = isPowerSaverEnabled();
-  const perfMode   = isPerformanceModeEnabled();
-  const appMode: AppMode = powerSaver ? 'powerSaver' : perfMode ? 'performance' : 'normal';
+  const appMode: AppMode = getPerfMode();
 
-  // Use a ratio so thresholds scale correctly across all three modes (60/30/5 fps).
+  // Use a ratio so thresholds scale correctly across all tiers (60/60/10 fps).
   // fps===0 means warmup — show neutral rather than alarming red.
   const fpsRatio = fps === 0 ? 1 : fps / targetFps;
   const fpsColor = fpsRatio >= 0.9 ? '#1db954' : fpsRatio >= 0.75 ? '#ff9f0a' : '#ff3b30';
@@ -157,7 +154,7 @@ const RenderTimerHUD: React.FC = () => {
 
   const health = throttleHealth(fps, targetFps);
   const healthLabel: Record<Health, string> = {
-    nominal:  appMode === 'normal' ? 'SMOOTH' : 'LOCKED',
+    nominal:  appMode === 'eco' ? 'LOCKED' : 'SMOOTH',
     overload: 'OVERLOAD',
     uncapped: 'UNCAPPED',
   };
@@ -168,19 +165,19 @@ const RenderTimerHUD: React.FC = () => {
   };
 
   const modeLabel: Record<AppMode, string> = {
-    normal:      'NORMAL',
-    performance: 'PERF',
-    powerSaver:  'ECO',
+    gaming:   'GAMING',
+    balanced: 'BALANCED',
+    eco:      'ECO',
   };
   const modeIcon: Record<AppMode, string> = {
-    normal:      'fa-circle',
-    performance: 'fa-tachometer-alt',
-    powerSaver:  'fa-leaf',
+    gaming:   'fa-gamepad',
+    balanced: 'fa-circle',
+    eco:      'fa-leaf',
   };
   const modeColor: Record<AppMode, string> = {
-    normal:      'rgba(255,255,255,0.35)',
-    performance: '#ff9f0a',
-    powerSaver:  '#1db954',
+    gaming:   '#ff9f0a',
+    balanced: 'rgba(255,255,255,0.35)',
+    eco:      '#1db954',
   };
 
   return (

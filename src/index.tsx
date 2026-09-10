@@ -13,8 +13,7 @@ import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
 import './styles/fa-solid-subset.css';
 import './styles/index.css';
 import App from './App';
-import { initPerformanceMode } from './services/performanceModeService';
-import { initPowerSaverMode } from './services/powerSaverService';
+import { initPerfMode } from './services/perfModeService';
 import { logger } from './utils/logger';
 
 // Bound every request so a hung socket (common in WKWebView right after an
@@ -35,9 +34,7 @@ axios.interceptors.response.use(
   }
 );
 
-// Power saver takes precedence: run it last so it wins if somehow both are saved.
-initPerformanceMode();
-initPowerSaverMode();
+initPerfMode();
 
 if (Capacitor.getPlatform() === 'ios') {
   document.body.classList.add('ios-platform');

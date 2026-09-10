@@ -14,6 +14,7 @@ import './styles/fa-solid-subset.css';
 import './styles/index.css';
 import App from './App';
 import { initPerfMode } from './services/perfModeService';
+import { persistentCache } from './services/persistentCache';
 import { logger } from './utils/logger';
 
 // Bound every request so a hung socket (common in WKWebView right after an
@@ -52,8 +53,16 @@ if (Capacitor.getPlatform() === 'ios') {
 const container = document.getElementById('root');
 const root = createRoot(container!);
 
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Hydrate the persistent metadata cache (IndexedDB → memory) before first paint
+// so library views render from disk instead of skeletons on a warm launch.
+// Capped so a slow IDB can never stall startup by more than 200 ms.
+Promise.race([
+  persistentCache.init(),
+  new Promise((resolve) => setTimeout(resolve, 200)),
+]).finally(() => {
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+});

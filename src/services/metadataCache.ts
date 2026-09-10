@@ -1,30 +1,25 @@
+import { persistentCache } from './persistentCache';
+
+// Thin facade over `persistentCache` (WS-PERF). Keeps the historical sync
+// get/set/invalidate API its consumers (ArtistList / AlbumList / SongList /
+// AllAlbumsGrid) already use, but the data now survives a reload / app restart
+// because `persistentCache` is IndexedDB-backed. New call sites that want
+// stale-while-revalidate should use `persistentCache.swr(...)` directly.
+
 const DEFAULT_TTL = 30 * 60 * 1000; // 30 minutes
+const PREFIX = 'meta:';
 
 class MetadataCache {
-  private store = new Map<string, { data: unknown; expiresAt: number }>();
-
   set(key: string, data: unknown, ttlMs: number = DEFAULT_TTL): void {
-    this.store.set(key, { data, expiresAt: Date.now() + ttlMs });
+    persistentCache.set(PREFIX + key, data, ttlMs);
   }
 
   get<T>(key: string): T | null {
-    const entry = this.store.get(key);
-    if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      this.store.delete(key);
-      return null;
-    }
-    return entry.data as T;
+    return persistentCache.get<T>(PREFIX + key);
   }
 
   invalidate(prefix?: string): void {
-    if (prefix === undefined) {
-      this.store.clear();
-      return;
-    }
-    for (const key of this.store.keys()) {
-      if (key.startsWith(prefix)) this.store.delete(key);
-    }
+    persistentCache.invalidate(prefix === undefined ? PREFIX : PREFIX + prefix);
   }
 }
 

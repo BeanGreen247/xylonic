@@ -21,6 +21,12 @@ For the complete feature list and roadmap see **[FEATURES.md](FEATURES.md)**.
 - Now Playing: ambient blurred art, three-card carousel, audio stats, dynamic art sizing; repeat persists across restarts
 - 12 themes + custom editor · Last.fm scrobbling · sleep timer
 - Virtual scrolling · web-worker search · MPRIS2 (Linux) · mode-aware image cache
+- **Performance:** fully virtualised lists including the play queue (a 3,000-song
+  queue stays ~a few hundred DOM nodes instead of ~40,000); persistent
+  IndexedDB metadata cache with stale-while-revalidate, so library views paint
+  from disk on launch instead of re-fetching; 60 s Subsonic response cache;
+  three power tiers — **Gaming** (minimises Xylonic's own CPU/GPU/RAM for a
+  foreground game), **Balanced**, **Eco** (maximum battery) in Settings → Advanced
 - iOS support via GitHub Actions CI — unsigned IPA built on every push, installed via Sideloadly; see [IOS_SETUP.md](IOS_SETUP.md)
 
 ## Screenshots
@@ -514,6 +520,9 @@ NO: http://music.example.com/ (trailing slash)
   - Organized by Artist/Album/Song structure
   - Includes `cache_index.json` for tracking cached songs, metadata, and cover art aliases
   - Cover art aliasing: Multiple songs in same album reference single image file for storage efficiency
+- **Performance caches (IndexedDB):** `xylonic-perf-cache` (artist/album/song list
+  metadata, stale-while-revalidate, survives restart), plus the cover-art image
+  cache and the compressed search index
 - **Electron userData Locations:**
   - **Windows:** `%APPDATA%\Xylonic\`
   - **Linux:** `~/.config/Xylonic/`

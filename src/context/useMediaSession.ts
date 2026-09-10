@@ -53,7 +53,7 @@ export function useMediaSession(opts: UseMediaSessionOpts): void {
         if (!('mediaSession' in navigator)) return;
 
         const safe = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
-            try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) {}
+            try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) { /* action unsupported in this browser */ }
         };
 
         safe('play',     () => audioRef.current?.play().catch(() => {}));
@@ -75,7 +75,7 @@ export function useMediaSession(opts: UseMediaSessionOpts): void {
 
         return () => {
             (['play','pause','nexttrack','previoustrack','seekto','seekforward','seekbackward'] as MediaSessionAction[])
-                .forEach(a => { try { navigator.mediaSession.setActionHandler(a, null); } catch (_) {} });
+                .forEach(a => { try { navigator.mediaSession.setActionHandler(a, null); } catch (_) { /* action unsupported in this browser */ } });
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -241,7 +241,7 @@ export function useMediaSession(opts: UseMediaSessionOpts): void {
                 playbackRate: playbackSpeed,
                 position: Math.min(currentTime, duration),
             });
-        } catch (_) {}
+        } catch (_) { /* setPositionState unsupported in this browser */ }
     }, [currentTime, duration, playbackSpeed]);
 
     // Start/stop Android foreground service; metadata is bundled in the intent

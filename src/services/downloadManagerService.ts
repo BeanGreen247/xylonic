@@ -310,7 +310,7 @@ class DownloadManagerService {
         logger.log('[DownloadManager] Restored', saved.length, 'pending items from storage');
       }
     } catch {
-      try { localStorage.removeItem(DownloadManagerService.QUEUE_KEY); } catch {}
+      try { localStorage.removeItem(DownloadManagerService.QUEUE_KEY); } catch { /* storage unavailable */ }
     }
   }
 
@@ -510,7 +510,7 @@ class DownloadManagerService {
   }
 
   private clearPendingBatch(): void {
-    try { localStorage.removeItem(DownloadManagerService.BATCH_PENDING_KEY); } catch {}
+    try { localStorage.removeItem(DownloadManagerService.BATCH_PENDING_KEY); } catch { /* storage unavailable */ }
   }
 
   /**
@@ -1781,7 +1781,7 @@ class DownloadManagerService {
       }
     }
 
-    try { await BackgroundDownload.clearCompletionLog(); } catch {}
+    try { await BackgroundDownload.clearCompletionLog(); } catch { /* native module absent off-device */ }
 
     if (recovered > 0) {
       logger.log(`[DownloadManager] iOS: recovered ${recovered} orphaned background downloads`);
@@ -1829,7 +1829,7 @@ class DownloadManagerService {
       }
     }
 
-    try { await NativeDownloader.clearCompletionLog(); } catch {}
+    try { await NativeDownloader.clearCompletionLog(); } catch { /* native module absent off-device */ }
     this.clearPendingBatch();
 
     if (recovered > 0) {

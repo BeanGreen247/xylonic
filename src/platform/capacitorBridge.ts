@@ -253,20 +253,20 @@ export const capacitorBridge: PlatformBridge = {
 
   // ── Android foreground service + native MediaSession ─────────────────────
   async startMediaService(title?: string, artist?: string, album?: string, artworkUrl?: string | null) {
-    try { await MediaControl.startService({ title: title ?? '', artist: artist ?? '', album: album ?? '', artworkUrl: artworkUrl ?? '' }); } catch {}
+    try { await MediaControl.startService({ title: title ?? '', artist: artist ?? '', album: album ?? '', artworkUrl: artworkUrl ?? '' }); } catch { /* native plugin absent off Android */ }
   },
-  async stopMediaService()  { try { await MediaControl.stopService();  } catch {} },
+  async stopMediaService()  { try { await MediaControl.stopService();  } catch { /* native plugin absent off Android */ } },
   async updateMediaMetadata(title, artist, album, artworkUrl) {
-    try { await MediaControl.updateMetadata({ title, artist, album, artworkUrl: artworkUrl ?? '' }); } catch {}
+    try { await MediaControl.updateMetadata({ title, artist, album, artworkUrl: artworkUrl ?? '' }); } catch { /* native plugin absent off Android */ }
   },
   async updateMediaPlaybackState(isPlaying, positionMs, durationMs) {
-    try { await MediaControl.updatePlaybackState({ isPlaying, positionMs, durationMs }); } catch {}
+    try { await MediaControl.updatePlaybackState({ isPlaying, positionMs, durationMs }); } catch { /* native plugin absent off Android */ }
   },
   async updateMediaNotificationState(liked, repeatMode) {
-    try { await MediaControl.updateShuffleRepeatLike({ liked, repeatMode }); } catch {}
+    try { await MediaControl.updateShuffleRepeatLike({ liked, repeatMode }); } catch { /* native plugin absent off Android */ }
   },
   async preloadNextArtwork(artworkUrl) {
-    try { await MediaControl.preloadNextArtwork({ artworkUrl }); } catch {}
+    try { await MediaControl.preloadNextArtwork({ artworkUrl }); } catch { /* native plugin absent off Android */ }
   },
   onMediaControl(callback) {
     let handle: { remove(): void } | null = null;
@@ -277,10 +277,10 @@ export const capacitorBridge: PlatformBridge = {
   },
 
   async showDownloadNotification(opts) {
-    try { await DownloadNotification.showProgress(opts); } catch {}
+    try { await DownloadNotification.showProgress(opts); } catch { /* native plugin absent off Android */ }
   },
   async hideDownloadNotification() {
-    try { await DownloadNotification.hide(); } catch {}
+    try { await DownloadNotification.hide(); } catch { /* native plugin absent off Android */ }
   },
   async setDownloadActive(_active) {},
 

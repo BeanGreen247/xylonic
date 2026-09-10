@@ -185,7 +185,7 @@ class RemoteDiscoveryService {
     });
     const cmdH = await RemoteDiscovery.addListener('remoteCommand', ({ action, data }) => {
       let parsed: any = {};
-      try { parsed = JSON.parse(data); } catch {}
+      try { parsed = JSON.parse(data); } catch { /* leave parsed as {} on malformed payload */ }
       this.notifyCommandListeners(action, parsed);
     });
     const pairedH = await RemoteDiscovery.addListener('pairingEstablished', (info) => {
@@ -217,11 +217,11 @@ class RemoteDiscoveryService {
     try {
       const mainId = await el.remoteGetDeviceId();
       if (mainId) { this.deviceId = mainId; localStorage.setItem(DEVICE_ID_KEY, mainId); }
-    } catch {}
+    } catch { /* fall back to generated device id */ }
     try {
       const mainName = await el.remoteGetDeviceName();
       if (mainName) { this.deviceName = mainName; }
-    } catch {}
+    } catch { /* fall back to local device name */ }
 
     const removeFound = el.onRemoteDeviceFound((dev: RemoteDevice) => {
       this.devices.set(dev.id, { ...dev, controllingId: dev.controllingId ?? null, accountId: (dev as any).accountId ?? null });
@@ -271,12 +271,12 @@ class RemoteDiscoveryService {
         }
       }
       if (snapshot.length > 0) this.notifyDeviceListeners();
-    } catch {}
+    } catch { /* best-effort listener sync */ }
 
     // Sync persisted preference to main process so the pair handler honours it
     try {
       await el.remoteSetControlEnabled(this.getRemoteControlEnabled());
-    } catch {}
+    } catch { /* IPC unavailable */ }
   }
 
   // ── Device list ───────────────────────────────────────────────────────────
@@ -360,7 +360,7 @@ class RemoteDiscoveryService {
   }): Promise<void> {
     const playerStateJson = JSON.stringify(state);
     if (Capacitor.isNativePlatform()) {
-      try { await RemoteDiscovery.updatePlayerState({ playerStateJson }); } catch {}
+      try { await RemoteDiscovery.updatePlayerState({ playerStateJson }); } catch { /* native plugin absent off-device */ }
     }
     // Electron already broadcasts lastPlayerState from the main process — no action needed there
   }
@@ -369,9 +369,9 @@ class RemoteDiscoveryService {
 
   async setControllerTarget(id: string | null): Promise<void> {
     if (Capacitor.isNativePlatform()) {
-      try { await RemoteDiscovery.setControllerTarget({ id }); } catch {}
+      try { await RemoteDiscovery.setControllerTarget({ id }); } catch { /* native plugin absent off-device */ }
     } else if (typeof window !== 'undefined' && (window as any).electron) {
-      try { await (window as any).electron.remoteSetControllerTarget(id); } catch {}
+      try { await (window as any).electron.remoteSetControllerTarget(id); } catch { /* IPC unavailable */ }
     }
   }
 
@@ -388,7 +388,7 @@ class RemoteDiscoveryService {
   getDeviceName(): string { return this.deviceName; }
 
   destroy(): void {
-    this.pluginCleanups.forEach(fn => { try { fn(); } catch {} });
+    this.pluginCleanups.forEach(fn => { try { fn(); } catch { /* best-effort cleanup */ } });
     this.pluginCleanups = [];
     if (Capacitor.isNativePlatform()) {
       RemoteDiscovery.stopBroadcast().catch(() => {});

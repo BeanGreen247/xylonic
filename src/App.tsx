@@ -197,7 +197,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem(cacheKey, 'true');
     localStorage.setItem(timestampKey, timestamp.toString());
     // Clear stored server counts so the next launch stores a fresh baseline without triggering a rebuild
-    try { localStorage.removeItem(getCacheKey('lastKnownServerCounts')); } catch {}
+    try { localStorage.removeItem(getCacheKey('lastKnownServerCounts')); } catch { /* storage unavailable (private mode / quota) */ }
     // Keep dialog open during the settle period; reload clears it
     setTimeout(() => window.location.reload(), 15000);
   };
@@ -210,7 +210,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem(cacheKey, 'true');
     localStorage.setItem(timestampKey, timestamp.toString());
     // Clear stored server counts so the next launch stores a fresh baseline without triggering a rebuild
-    try { localStorage.removeItem(getCacheKey('lastKnownServerCounts')); } catch {}
+    try { localStorage.removeItem(getCacheKey('lastKnownServerCounts')); } catch { /* storage unavailable (private mode / quota) */ }
     // Keep dialog open during the settle period; reload clears it
     setTimeout(() => window.location.reload(), 15000);
   };

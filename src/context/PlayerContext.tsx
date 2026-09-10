@@ -637,7 +637,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             try {
                 const liked = await isSongLiked(currentSong.id);
                 setIsLiked(liked);
-            } catch {}
+            } catch { /* best-effort liked-state refresh */ }
         };
         window.addEventListener('likedSongsUpdated', handler);
         return () => window.removeEventListener('likedSongsUpdated', handler);

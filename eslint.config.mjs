@@ -1,6 +1,7 @@
 // Flat config (ESLint 9 + typescript-eslint 8). Non-type-checked for speed.
-// WS-QUAL: no-console is enforced (the console.* → logger sweep is done);
-// no-empty / no-explicit-any start as warnings and tighten to error over time.
+// WS-QUAL: no-console and no-empty are enforced as errors (the console.* → logger
+// sweep and the empty-catch annotation pass are done); no-explicit-any /
+// no-unused-vars / exhaustive-deps stay warnings and tighten to error over time.
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -36,7 +37,7 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'no-console': 'error',
-      'no-empty': ['warn', { allowEmptyCatch: false }],
+      'no-empty': ['error', { allowEmptyCatch: false }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'warn',

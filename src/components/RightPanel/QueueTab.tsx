@@ -23,8 +23,6 @@ const QueueTab: React.FC<QueueTabProps> = ({ searchTerm = '' }) => {
   const [addMenu, setAddMenu] = useState<AddMenuState | null>(null);
   const dragIndexRef = useRef<number | null>(null);
 
-  const currentIndex = playlist.findIndex(s => s.id === currentSong?.id);
-
   const displayedItems = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return playlist.reduce<Array<{ song: Song; originalIndex: number }>>((acc, song, i) => {

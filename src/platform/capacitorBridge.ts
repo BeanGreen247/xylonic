@@ -24,6 +24,11 @@ const MediaControl = registerPlugin<MediaControlPlugin>('MediaControl');
 const DATA = Directory.Data;
 const CACHE_BASE = 'permanent_cache';
 
+// Absolute file:// URI of the cache root, captured on the first getCacheDir()
+// call so cached-audio URLs can be built synchronously (no native round-trip),
+// which keeps audio.play() inside the tap's user-activation window on iOS.
+let _cacheRootUri = '';
+
 function toBase64(buffer: number[]): string {
   return bytesToBase64(new Uint8Array(buffer));
 }
@@ -101,7 +106,14 @@ export const capacitorBridge: PlatformBridge = {
   // ── Cache root ────────────────────────────────────────────────────────────
   async getCacheDir() {
     const { uri } = await Filesystem.getUri({ path: CACHE_BASE, directory: DATA });
+    _cacheRootUri = uri;
     return uri;
+  },
+
+  getCachedAudioUrlSync(hash, filename) {
+    if (!_cacheRootUri) return null;
+    const base = _cacheRootUri.replace(/\/$/, '');
+    return Capacitor.convertFileSrc(`${base}/audio/${hash}/${filename}`);
   },
 
   // ── Legacy v1 index ───────────────────────────────────────────────────────

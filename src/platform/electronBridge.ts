@@ -23,6 +23,8 @@ export const electronBridge: PlatformBridge = {
   saveCoverArtFile: (buf, hash, ext) => e().saveCoverArtFile(buf, hash, ext),
   deleteAudioDir: (hash) => e().deleteAudioDir(hash),
   getAudioFilePath: (hash, fn) => e().getAudioFilePath(hash, fn),
+  // Desktop has no user-gesture autoplay restriction — the async path is fine.
+  getCachedAudioUrlSync: () => null,
   readCachedImage: (p) => e().readCachedImage(p),
   deleteCachedFile: (p) => e().deleteCachedFile(p),
   clearCacheDir: () => e().clearCacheDir(),

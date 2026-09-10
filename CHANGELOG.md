@@ -4,6 +4,18 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **Downloaded track stuck on the loading spinner instead of playing (iOS)** —
+  root-caused on-device via CDP: the audio file loaded fine (`readyState 4`,
+  valid duration) but `audio.play()` was rejected because `playSong` `await`s the
+  cache lookup first, so the call landed outside the tap's user-activation window
+  and iOS blocked autoplay — and nothing cleared the loading flag, so the play
+  button spun forever. Fixes: (1) a synchronous fast path — when a song is cached
+  and its local URL can be built without a native round-trip
+  (`getCachedFilePathSync` / `bridge.getCachedAudioUrlSync`), `playSong` sets
+  `src` and calls `play()` before any `await`, keeping the gesture; (2) `play()`
+  is wrapped so the spinner always clears (success, autoplay-block, or
+  re-selecting the already-loaded current track).
 - **Playing a downloaded track right after launch didn't use the cache** —
   `playSong` checked `offlineCacheService.isCached()` before the cache index had
   finished loading, so an already-downloaded song looked uncached: online mode

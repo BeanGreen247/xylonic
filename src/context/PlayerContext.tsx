@@ -326,6 +326,30 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         setIsLoading(true);
         addToHistory(song);
 
+        // ── Fast path ────────────────────────────────────────────────────────
+        // If the song is cached and we can build its local URL synchronously,
+        // set src + play *before* awaiting anything, so iOS still counts the tap
+        // as the user gesture that authorises playback. No await between the tap
+        // and audio.play() → no autoplay block, no stuck spinner.
+        const syncUrl = offlineCacheService.getCachedFilePathSync(song.id);
+        if (syncUrl) {
+            audio.src = syncUrl;
+            audio.load();
+            audio.muted = muted;
+            audio.volume = muted ? 0 : volume;
+            audio.playbackRate = playbackSpeedRef.current;
+            try {
+                await audio.play();
+            } catch (err) {
+                logger.error('Play error (cached fast path):', err);
+                setIsPlaying(false);
+            } finally {
+                setIsLoading(false);
+            }
+            return;
+        }
+
+        // ── Slow path ────────────────────────────────────────────────────────
         // The cached-path lookup below is meaningless until the cache index has
         // loaded. Racing it — common when a song is tapped right after launch —
         // makes a downloaded song look uncached: offline mode drops into the
@@ -377,7 +401,19 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         audio.volume = muted ? 0 : volume;
         audio.playbackRate = playbackSpeedRef.current;
 
-        audio.play().catch(err => logger.error('Play error:', err));
+        try {
+            await audio.play();
+        } catch (err) {
+            // iOS blocks play() when the call lands outside the user-gesture
+            // window (this fn awaits the cache lookup first). The media is
+            // loaded and ready — show a paused play button, not a stuck
+            // spinner; the next tap starts it. Also covers re-selecting the
+            // already-loaded current track, where no media event would fire.
+            logger.error('Play error:', err);
+            setIsPlaying(false);
+        } finally {
+            setIsLoading(false);
+        }
     }, [muted, volume]);
 
     // Keep refs in sync with state and persist queue (debounced write)

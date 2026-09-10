@@ -25,6 +25,7 @@ export const fallbackBridge: PlatformBridge = {
   async saveCoverArtFile(_b, _h, _e) { return { success: false, path: '' }; },
   async deleteAudioDir(_h) { return false; },
   async getAudioFilePath(_h, _fn) { return null; },
+  getCachedAudioUrlSync(_h, _fn) { return null; },
   async readCachedImage(_p) { return null; },
   async deleteCachedFile(_p) { return false; },
   async clearCacheDir() { return false; },

@@ -565,6 +565,21 @@ class OfflineCacheService {
   }
 
   /**
+   * Synchronous cached-audio URL for a song — best effort, no filesystem
+   * existence check. Returns null if the song / registry entry / cache root
+   * isn't known yet. Used by the player's fast path so `audio.play()` runs
+   * inside the tap gesture (iOS autoplay). Falls back to `getCachedFilePath`.
+   */
+  getCachedFilePathSync(songId: string): string | null {
+    const meta = this.cacheIndex?.songs[songId];
+    if (!meta) return null;
+    const audioFile = this.audioRegistry?.audioFiles[meta.audioHash];
+    if (!audioFile) return null;
+    const filename = audioFile.filePath.split('/').pop() || `audio.${audioFile.format || 'mp3'}`;
+    return getBridge().getCachedAudioUrlSync(meta.audioHash, filename);
+  }
+
+  /**
    * Get file path for cached song
    */
   async getCachedFilePath(songId: string): Promise<string | null> {

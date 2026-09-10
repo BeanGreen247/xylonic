@@ -37,6 +37,10 @@ export interface PlatformBridge {
   saveCoverArtFile(buffer: number[], hash: string, extension: string): Promise<{ success: boolean; path: string }>;
   deleteAudioDir(hash: string): Promise<boolean>;
   getAudioFilePath(hash: string, filename: string): Promise<string | null>;
+  /** Synchronous best-effort cached-audio URL (no existence check) — lets
+   *  playback start inside the user-gesture window. null until the cache root
+   *  is known or on platforms without one. */
+  getCachedAudioUrlSync(hash: string, filename: string): string | null;
   readCachedImage(relativePath: string): Promise<string | null>;
   deleteCachedFile(relativePath: string): Promise<boolean>;
   clearCacheDir(): Promise<boolean>;

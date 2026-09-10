@@ -1,5 +1,28 @@
 # Session Summary
 
+## RESUME HERE (Sept 10 → next session) — iOS "cached song stuck loading" UNRESOLVED
+
+Owner's ask: fix this **first thing** next session. On iPhone (iOS 26.6.2),
+online mode, tapping a **downloaded** song → play button spins "Loading…"
+forever, no audio, 0:00. 5 fixes pushed through `61ee17c`, none worked on device.
+
+CDP (on-device, fiber-walk to the real `<audio>`): the `.ogg` **loads fine**
+(`readyState 4`, valid duration, `error null`) but stays `paused` with
+`isLoading` stuck `true`. Registry/paths all correct.
+
+**Key unknown:** with fix #4 in the running bundle, my **synthetic** CDP clicks
+(click "Next", tap last Queue row) **played fine** — `play()` sync → `playing`
+event → `currentTime` advancing, spinner cleared. But the owner's **real taps
+still hang.** Leading theories: (a) cold-launch path — song tapped before the
+cache index / `_cacheRootUri` is ready → sync fast path returns null → slow path
+`await` → iOS autoplay block; (b) a boot-time effect setting `isLoading=true`
+with nothing playing (first CDP probe on launch showed spinner + current song +
+`paused` with no tap); (c) build not actually updated on device.
+
+Full detail + CDP setup gotchas (use port **9223** not 9222; server via plain
+`&` in one foreground call) in auto-memory `bug_ios_cached_song_stuck_loading.md`.
+Commits: `5996b08 83f3797 d14ef03 9e1baf3 61ee17c`.
+
 ## What Changed This Session (Sept 9–10, 2026 — UI fix + phase re-plan + Phase 2)
 
 **Direction (owner):** drop the react-router migration (keep hand-rolled nav);

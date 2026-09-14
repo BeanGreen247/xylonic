@@ -80,3 +80,38 @@ export function computeNextIndex(
 
   return { action: 'advance', nextIndex, shuffleQueue, shuffleQueuePos };
 }
+
+export interface PrevIndexResult {
+  /** 'advance' → move to `prevIndex`.
+   *  'restart' → no history, no prior track (start of a non-repeating playlist) —
+   *              caller decides what "restart" means (rewind to 0, or no-op).
+   *  'noop'    → empty playlist, nothing to do. */
+  action: 'advance' | 'restart' | 'noop';
+  prevIndex: number;
+}
+
+/**
+ * Sequential "previous" fallback used once the play-history stack is empty.
+ * Mirrors the two near-identical inline copies previously in PlayerContext
+ * (playPreviousWithRefs / playPreviousForced) — same math, same repeat-all
+ * wraparound. Shuffle has no bearing here: "previous" is always answered from
+ * history when shuffling; this fallback only runs for sequential playback.
+ */
+export function computePrevIndex(
+  currentIndex: number,
+  playlistLength: number,
+  repeat: RepeatMode,
+): PrevIndexResult {
+  if (playlistLength === 0) {
+    return { action: 'noop', prevIndex: currentIndex };
+  }
+  let prev = currentIndex - 1;
+  if (prev < 0) {
+    if (repeat === 'all') {
+      prev = playlistLength - 1;
+    } else {
+      return { action: 'restart', prevIndex: currentIndex };
+    }
+  }
+  return { action: 'advance', prevIndex: prev };
+}

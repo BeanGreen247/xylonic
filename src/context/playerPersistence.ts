@@ -1,17 +1,24 @@
 /**
  * Per-user persistence of the playback queue, index, shuffle and repeat prefs.
  * Extracted verbatim from PlayerContext as the second slice of the WS-ARCH
- * split (step toward `usePlayerPersistence`). Keys and semantics are unchanged.
+ * split (step toward `usePlayerPersistence`). Keys and semantics are unchanged
+ * for index/shuffle/repeat.
  *
- * NOTE (WS-PERF): `saveQueue` still stringifies the whole `Song[]`. Converting
- * it to `{ ids, idx }` + an IDB song store is a separate WS-PERF task; this
- * extraction deliberately preserves current behaviour.
+ * WS-PERF (T22): the queue itself (`saveQueue`/`loadQueue`) no longer goes
+ * through `localStorage.setItem(JSON.stringify(...))` — that blocked the main
+ * thread on every save, including a plain `next`/`prev` where the song list
+ * hadn't even changed. It's backed by `playerQueueStore` (IndexedDB,
+ * structured clone, hydrated into memory before first paint — see
+ * `index.tsx`) instead: no manual (de)serialization, and the write itself is
+ * async. Same external contract (`saveQueue(songs)` / `loadQueue(): T[]`,
+ * synchronous read) so call sites didn't need to change.
  */
+
+import { playerQueueStore } from '../services/playerQueueStore';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
 const user = () => localStorage.getItem('username') || 'guest';
-const QUEUE_KEY = () => `queue_${user()}`;
 const INDEX_KEY = () => `queue_idx_${user()}`;
 const SHUFFLE_KEY = () => `shuffle_pref_${user()}`;
 const REPEAT_KEY = () => `repeat_pref_${user()}`;
@@ -25,14 +32,11 @@ function tryStorage<T>(fn: () => T, fallback: T): T {
 }
 
 export function saveQueue<T>(songs: T[]): void {
-  tryStorage(() => localStorage.setItem(QUEUE_KEY(), JSON.stringify(songs)), undefined);
+  playerQueueStore.set(user(), songs);
 }
 
 export function loadQueue<T>(): T[] {
-  return tryStorage<T[]>(() => {
-    const raw = localStorage.getItem(QUEUE_KEY());
-    return raw ? (JSON.parse(raw) as T[]) : [];
-  }, []);
+  return playerQueueStore.getSync<T>(user()) ?? [];
 }
 
 export function saveIndex(idx: number): void {
@@ -65,9 +69,10 @@ export function loadRepeat(): RepeatMode {
   }, 'off');
 }
 
-/** Wipe all four keys (used on logout / clear). */
+/** Wipe the queue plus the three prefs (used on logout / clear). */
 export function clearPlayerPersistence(): void {
-  for (const key of [QUEUE_KEY(), INDEX_KEY(), SHUFFLE_KEY(), REPEAT_KEY()]) {
+  playerQueueStore.clear(user());
+  for (const key of [INDEX_KEY(), SHUFFLE_KEY(), REPEAT_KEY()]) {
     tryStorage(() => localStorage.removeItem(key), undefined);
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildShuffleQueue, computeNextIndex, NextIndexInput } from './playerQueue';
+import { buildShuffleQueue, computeNextIndex, computePrevIndex, NextIndexInput } from './playerQueue';
 
 // Deterministic PRNG so shuffle order is assertable.
 function seeded(seed: number) {
@@ -90,5 +90,27 @@ describe('computeNextIndex — shuffle', () => {
     expect(r.shuffleQueue).not.toContain(2);
     expect(r.shuffleQueuePos).toBe(1);
     expect(r.shuffleQueue[0]).toBe(r.nextIndex);
+  });
+});
+
+describe('computePrevIndex', () => {
+  it('steps back by one', () => {
+    expect(computePrevIndex(2, 5, 'off')).toEqual({ action: 'advance', prevIndex: 1 });
+  });
+
+  it('is a no-op on an empty playlist', () => {
+    expect(computePrevIndex(0, 0, 'off')).toEqual({ action: 'noop', prevIndex: 0 });
+  });
+
+  it('signals restart at the start of the playlist with repeat off', () => {
+    expect(computePrevIndex(0, 5, 'off')).toEqual({ action: 'restart', prevIndex: 0 });
+  });
+
+  it('signals restart at the start of the playlist with repeat one', () => {
+    expect(computePrevIndex(0, 5, 'one')).toEqual({ action: 'restart', prevIndex: 0 });
+  });
+
+  it('wraps to the last song when repeat is all', () => {
+    expect(computePrevIndex(0, 5, 'all')).toEqual({ action: 'advance', prevIndex: 4 });
   });
 });

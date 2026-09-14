@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('../utils/logger', () => ({
+  logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}));
+
 import {
   saveQueue,
   loadQueue,
@@ -10,10 +15,14 @@ import {
   loadRepeat,
   clearPlayerPersistence,
 } from './playerPersistence';
+import { playerQueueStore } from '../services/playerQueueStore';
 
 beforeEach(() => {
   localStorage.clear();
   localStorage.setItem('username', 'kenny');
+  playerQueueStore.clear('kenny');
+  playerQueueStore.clear('bob');
+  playerQueueStore.clear('guest');
 });
 
 describe('playerPersistence', () => {
@@ -58,18 +67,21 @@ describe('playerPersistence', () => {
     expect(localStorage.getItem('shuffle_pref_guest')).toBe('true');
   });
 
-  it('survives a corrupt queue payload', () => {
-    localStorage.setItem('queue_kenny', '{not json');
+  it('is namespaced per user for the queue too (backed by playerQueueStore)', () => {
+    saveQueue([{ id: 'a' }]);
+    localStorage.setItem('username', 'bob');
     expect(loadQueue()).toEqual([]);
+    localStorage.setItem('username', 'kenny');
+    expect(loadQueue()).toEqual([{ id: 'a' }]);
   });
 
-  it('clearPlayerPersistence wipes all four keys', () => {
+  it('clearPlayerPersistence wipes the queue plus index/shuffle/repeat', () => {
     saveQueue([{ id: 'a' }]);
     saveIndex(5);
     saveShuffle(true);
     saveRepeat('one');
     clearPlayerPersistence();
-    expect(localStorage.getItem('queue_kenny')).toBeNull();
+    expect(loadQueue()).toEqual([]);
     expect(localStorage.getItem('queue_idx_kenny')).toBeNull();
     expect(localStorage.getItem('shuffle_pref_kenny')).toBeNull();
     expect(localStorage.getItem('repeat_pref_kenny')).toBeNull();

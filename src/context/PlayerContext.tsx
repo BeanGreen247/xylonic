@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { logger } from '../utils/logger';
-import { buildShuffleQueue as buildShuffleQueuePure, computeNextIndex } from './playerQueue';
+import { buildShuffleQueue as buildShuffleQueuePure, computeNextIndex, computePrevIndex } from './playerQueue';
 import { useMediaSession } from './useMediaSession';
 import { useSleepTimer } from './useSleepTimer';
 import { usePlaybackPrefs } from './usePlaybackPrefs';
@@ -145,7 +145,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                 if (wasPlaying) a.play().catch(() => {});
             })
             .catch(() => {});
-    }, [offlineModeEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [offlineModeEnabled]);
 
     // Startup: when the offline cache finishes initializing, prime audio.src
     // with the local file so the play button works on a fresh app launch.
@@ -171,9 +171,15 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
                 a.load();
             })
             .catch(() => {});
-    }, [cacheInitialized, offlineModeEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [cacheInitialized, offlineModeEnabled]);
 
     const [playlist, setPlaylist] = useState<Song[]>(loadQueue);
+    // Reference to the playlist array last written to playerQueueStore, so a
+    // plain next/prev/shuffle (which only move currentIndex — the playlist
+    // array itself is untouched) doesn't re-persist the whole queue (WS-PERF
+    // T22). Seeded with the just-restored array so the first debounce cycle
+    // after mount doesn't redundantly re-save unchanged data.
+    const lastSavedPlaylistRef = useRef<Song[] | null>(playlist);
     const [currentIndex, setCurrentIndex] = useState(() => {
         const pl = loadQueue();
         const idx = loadIndex();
@@ -230,10 +236,6 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const playPlaylistRef = useRef<(songs: Song[], startIndex?: number) => void>(() => {});
     // Stable ref to toggleLike — used by notification like button
     const toggleLikeRef = useRef<() => void>(() => {});
-
-    const applyVolume = useCallback((vol: number) => {
-        if (audioRef.current) audioRef.current.volume = vol;
-    }, []);
 
     // Create audio element ONCE (do not depend on volume or playNextWithRefs)
     useEffect(() => {
@@ -433,7 +435,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [muted, volume]);
+    }, [muted, volume, playbackSpeedRef]);
 
     // Keep refs in sync with state and persist queue (debounced write)
     useEffect(() => {
@@ -444,7 +446,12 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         if (saveQueueTimerRef.current) clearTimeout(saveQueueTimerRef.current);
         saveQueueTimerRef.current = setTimeout(() => {
             saveQueueTimerRef.current = null;
-            saveQueue(playlist);
+            // Only re-persist the queue itself when its identity actually
+            // changed — a bare next/prev/shuffle only moves currentIndex.
+            if (lastSavedPlaylistRef.current !== playlist) {
+                lastSavedPlaylistRef.current = playlist;
+                saveQueue(playlist);
+            }
             saveIndex(currentIndex);
             saveShuffle(shuffle);
             saveRepeat(repeat);
@@ -538,20 +545,15 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         }
 
         // No history — sequential fallback for non-shuffle
-        const pl  = playlistRef.current;
-        const idx = currentIndexRef.current;
-        const rep = repeatRef.current;
-        if (pl.length === 0) return;
-        let prev = idx - 1;
-        if (prev < 0) {
-            if (rep === 'all') prev = pl.length - 1;
-            else { audio.currentTime = 0; return; }
-        }
-        currentIndexRef.current = prev;
-        setCurrentIndex(prev);
+        const pl = playlistRef.current;
+        const result = computePrevIndex(currentIndexRef.current, pl.length, repeatRef.current);
+        if (result.action === 'noop') return;
+        if (result.action === 'restart') { audio.currentTime = 0; return; }
+        currentIndexRef.current = result.prevIndex;
+        setCurrentIndex(result.prevIndex);
         isGoingBackRef.current = true;
-        playSongRef.current(pl[prev]);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        playSongRef.current(pl[result.prevIndex]);
+    }, []);
 
     useEffect(() => {
         playPreviousWithRefsRef.current = playPreviousWithRefs;
@@ -573,20 +575,14 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             playSongRef.current(prevFromHistory);
             return;
         }
-        const pl  = playlistRef.current;
-        const idx = currentIndexRef.current;
-        const rep = repeatRef.current;
-        if (pl.length === 0) return;
-        let prev = idx - 1;
-        if (prev < 0) {
-            if (rep === 'all') prev = pl.length - 1;
-            else return;
-        }
-        currentIndexRef.current = prev;
-        setCurrentIndex(prev);
+        const pl = playlistRef.current;
+        const result = computePrevIndex(currentIndexRef.current, pl.length, repeatRef.current);
+        if (result.action !== 'advance') return; // no history + nothing to go back to
+        currentIndexRef.current = result.prevIndex;
+        setCurrentIndex(result.prevIndex);
         isGoingBackRef.current = true;
-        playSongRef.current(pl[prev]);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        playSongRef.current(pl[result.prevIndex]);
+    }, []);
 
     useEffect(() => {
         playPreviousForcedRef.current = playPreviousForced;
@@ -624,11 +620,11 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
 
     const playPrevious = useCallback(() => {
         playPreviousWithRefsRef.current();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     const playPreviousForcedStable = useCallback(() => {
         playPreviousForcedRef.current();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     const seek = useCallback((time: number) => {
         if (audioRef.current) {
@@ -703,7 +699,6 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         }
     }, [currentSong]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { toggleLikeRef.current = toggleLike; }, [toggleLike]);
 
     // Keep isLiked in sync with cross-device liked-song changes (periodic sync events)
@@ -802,7 +797,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             }
         });
         return unsub;
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     // Broadcast metadata changes to mini player + native MPRIS service (Electron only).
     // Fires immediately on song/play/control changes — deliberately excludes currentTime.
@@ -900,7 +895,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
             });
             return unsubscribe;
         }
-    }, [playSong]);
+    }, [playSong, bridge, setVolume]);
 
     const clearPlayback = useCallback(() => {
         const audio = audioRef.current;

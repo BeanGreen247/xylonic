@@ -25,6 +25,7 @@ interface Song {
   id: string;
   title: string;
   artist: string;
+  artistId?: string;
   album: string;
   albumId?: string;
   coverArt?: string;
@@ -86,6 +87,7 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
             id: m.songId,
             title: m.title,
             artist: m.artist,
+            artistId: m.artistId,
             album: m.album,
             albumId: m.albumId,
             coverArt: m.coverArtId,
@@ -354,8 +356,39 @@ const AllSongsGrid: React.FC<AllSongsGridProps> = ({ onArtistClick, onAlbumClick
                 <div className="song-info">
                   <div className="song-title">{song.title}</div>
                   <div className="song-artist">
-                    {song.artist}
-                    {song.album && <span className="all-songs-album"> · {song.album}</span>}
+                    {onArtistClick && song.artistId ? (
+                      <button
+                        className="all-songs-artist-link"
+                        onClick={e => {
+                          e.stopPropagation();
+                          onArtistClick(song.artistId as string, song.artist);
+                        }}
+                        title={`More by ${song.artist}`}
+                      >
+                        {song.artist}
+                      </button>
+                    ) : (
+                      song.artist
+                    )}
+                    {song.album && (
+                      onAlbumClick && song.albumId ? (
+                        <>
+                          {' · '}
+                          <button
+                            className="all-songs-album all-songs-album-link"
+                            onClick={e => {
+                              e.stopPropagation();
+                              onAlbumClick(song.albumId as string, song.album, song.artist);
+                            }}
+                            title={`Go to ${song.album}`}
+                          >
+                            {song.album}
+                          </button>
+                        </>
+                      ) : (
+                        <span className="all-songs-album"> · {song.album}</span>
+                      )
+                    )}
                   </div>
                 </div>
 

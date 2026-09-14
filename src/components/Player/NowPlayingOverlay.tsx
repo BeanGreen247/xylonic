@@ -149,14 +149,12 @@ const NowPlayingOverlay: React.FC = () => {
 
   // horizontal swipe drives hint icons via state; carousel moves via DOM ref (no re-render per frame)
   const [swipeDx, setSwipeDx]     = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current  = e.touches[0].clientX;
     touchStartY.current  = e.touches[0].clientY;
     swipeDirRef.current  = 'none';
     swipeDyRef.current   = 0;
-    setIsSwiping(false);
     setSwipeDx(0);
   };
 
@@ -169,7 +167,6 @@ const NowPlayingOverlay: React.FC = () => {
     if (swipeDirRef.current === 'none') {
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
         swipeDirRef.current = 'h';
-        setIsSwiping(true);
       } else if (dy > 12 && dy > Math.abs(dx) * 1.2) {
         swipeDirRef.current = 'v';
       }
@@ -226,7 +223,6 @@ const NowPlayingOverlay: React.FC = () => {
       }
 
       setSwipeDx(0);
-      setIsSwiping(false);
 
     } else if (swipeDirRef.current === 'v') {
       const dy = swipeDyRef.current;

@@ -101,6 +101,7 @@ const DownloadManagerWindow: React.FC<DownloadManagerWindowProps> = ({ isOpen, o
         setDiskSpace(space);
       }
     } catch (error) {
+      logger.error('[DownloadManager] Failed to load cache location:', error);
       setCacheLocation('Unknown');
     }
   };

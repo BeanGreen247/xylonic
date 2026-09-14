@@ -64,7 +64,6 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
   const [totalArtists, setTotalArtists] = useState(0);
   const [albumsCached, setAlbumsCached] = useState(0);
   const [totalAlbums, setTotalAlbums] = useState(0);
-  const [searchIndexComplete, setSearchIndexComplete] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<'artists' | 'albums' | 'search' | 'complete'>('artists');
   const [searchProgress, setSearchProgress] = useState('Waiting...');
   const [searchProgressPct, setSearchProgressPct] = useState(0);

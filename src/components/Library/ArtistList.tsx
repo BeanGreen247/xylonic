@@ -125,13 +125,7 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
   }, [offlineModeEnabled, cacheInitialized]);
 
 
-  // Filter artists based on offline mode
-  useEffect(() => {
-    filterArtistsByOfflineMode();
-    setCurrentPage(1); // Reset to first page when artists change
-  }, [artists, offlineModeEnabled]);
-
-  const filterArtistsByOfflineMode = () => {
+  const filterArtistsByOfflineMode = useCallback(() => {
     if (offlineModeEnabled) {
       // When offline, artists are already loaded from cache only
       // No additional filtering needed
@@ -141,7 +135,13 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
       // Online mode, show all artists
       setFilteredArtists(artists);
     }
-  };
+  }, [artists, offlineModeEnabled]);
+
+  // Filter artists based on offline mode
+  useEffect(() => {
+    filterArtistsByOfflineMode();
+    setCurrentPage(1); // Reset to first page when artists change
+  }, [artists, offlineModeEnabled, filterArtistsByOfflineMode]);
 
   const loadArtists = async () => {
     const myId = ++loadIdRef.current;
@@ -399,20 +399,6 @@ const ArtistList: React.FC<ArtistListProps> = ({ onArtistClick, topView = 'artis
     if (ids.length > 0) imageCacheService.prewarmBatch(ids);
   // paginatedArtists changes when page or filter changes; imageCacheReady changes once on init
   }, [paginatedArtists, imageCacheReady]);
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
 
   const handlePageClick = (page: number) => {
     setCurrentPage(page);

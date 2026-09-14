@@ -358,6 +358,7 @@ export const searchSongsPaginated = async (
             id: string;
             title: string;
             artist: string;
+            artistId?: string;
             album: string;
             albumId?: string;
             coverArt?: string;

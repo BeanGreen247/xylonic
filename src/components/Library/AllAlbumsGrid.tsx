@@ -319,7 +319,20 @@ const AllAlbumsGrid: React.FC<AllAlbumsGridProps> = ({ onAlbumClick, onArtistCli
                 <div className="album-name">{album.name}</div>
                 <div className="album-artist" style={{ textAlign: 'center' }}>
                   {album.year && `${album.year} · `}
-                  {album.artist}
+                  {onArtistClick && album.artistId ? (
+                    <button
+                      className="album-artist-link"
+                      onClick={e => {
+                        e.stopPropagation();
+                        onArtistClick(album.artistId as string, album.artist);
+                      }}
+                      title={`More by ${album.artist}`}
+                    >
+                      {album.artist}
+                    </button>
+                  ) : (
+                    album.artist
+                  )}
                 </div>
               </div>
             ))}

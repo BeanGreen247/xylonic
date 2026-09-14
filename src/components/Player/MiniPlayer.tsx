@@ -74,7 +74,7 @@ const MiniPlayer: React.FC = () => {
     const handlePrevious  = () => { bridge.sendPlayerControl('playPrevious'); };
 
     const progress = playerState.duration > 0 ? (playerState.currentTime / playerState.duration) * 100 : 0;
-    const { currentSong, isPlaying, isLoading, currentTime, duration } = playerState;
+    const { currentSong, isPlaying, isLoading } = playerState;
 
     // Memoize cover art URL to prevent flickering during playback
     // Only recalculate when the song's coverArt ID changes

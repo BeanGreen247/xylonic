@@ -688,7 +688,7 @@ class ImageCacheService {
       return { totalImages: 0, cacheSize: 0, oldestImage: null, newestImage: null };
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const index = store.index('userId');

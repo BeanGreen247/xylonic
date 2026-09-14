@@ -4,7 +4,6 @@ import { Capacitor } from '@capacitor/core';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
-import { useSearch } from '../../context/SearchContext';
 import { offlineCacheService } from '../../services/offlineCacheService';
 import { imageCacheService } from '../../services/imageCacheService';
 import { searchCacheService } from '../../services/searchCacheService';
@@ -60,14 +59,13 @@ const HamburgerMenu: React.FC = () => {
   const [showFirewallDialog, setShowFirewallDialog] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
 
-  const { isOnline, offlineModeEnabled, toggleOfflineMode, cacheInitialized } = useOfflineMode();
+  const { offlineModeEnabled, toggleOfflineMode } = useOfflineMode();
   const {
     remoteControlEnabled,    setRemoteControlEnabled,
     remoteControllerEnabled, setRemoteControllerEnabled,
   } = useRemoteMode();
   const { username, login } = useAuth();
   const { sleepTimerRemaining } = usePlayer();
-  const { buildSearchIndex } = useSearch();
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);

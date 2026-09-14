@@ -1505,6 +1505,32 @@ body {
     color: var(--text-muted);
 }
 
+.all-songs-artist-link,
+.all-songs-album-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.12s, text-decoration 0.12s;
+}
+
+.all-songs-artist-link {
+    color: var(--text-secondary);
+}
+
+.all-songs-album-link {
+    color: var(--text-muted);
+}
+
+.all-songs-artist-link:hover,
+.all-songs-album-link:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
 /* Art overlay: play/pause + equalizer on top of album thumbnail */
 .song-art-overlay {
     position: absolute;

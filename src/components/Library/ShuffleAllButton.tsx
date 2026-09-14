@@ -35,9 +35,9 @@ const ShuffleAllButton: React.FC = () => {
             }));
 
             logger.log('Starting shuffled playback...');
-            
+
             // Start playing the shuffled playlist
-            playPlaylist(songs, 0);
+            playPlaylist(shuffleArray(songs), 0);
             
         } catch (error) {
             logger.error('Failed to shuffle all songs:', error);

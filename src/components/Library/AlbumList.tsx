@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Skeleton from '../common/Skeleton';
 import { getArtist, getAlbum } from '../../services/subsonicApi';
 import { metadataCache } from '../../services/metadataCache';
-import { usePlayback } from '../../hooks/usePlayback';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import { offlineCacheService } from '../../services/offlineCacheService';
 import { downloadManager } from '../../services/downloadManagerService';
@@ -43,7 +42,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const albumsPerPage = 50; // Show 50 albums per page
-  const { playPlaylist, toggleShuffle, shuffle } = usePlayback();
   const { offlineModeEnabled, toggleOfflineMode } = useOfflineMode();
   const { isInitialized: imageCacheReady } = useImageCache();
   const [bulkDownloadQuality, setBulkDownloadQuality] = useState<DownloadQuality>(getDefaultDownloadQuality);
@@ -57,13 +55,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
   }, [artistId, offlineModeEnabled]);
 
 
-  // Filter albums based on offline mode
-  useEffect(() => {
-    filterAlbumsByOfflineMode();
-    setCurrentPage(1); // Reset to first page when albums change
-  }, [albums, offlineModeEnabled]);
-
-  const filterAlbumsByOfflineMode = () => {
+  const filterAlbumsByOfflineMode = useCallback(() => {
     if (offlineModeEnabled) {
       // When offline, albums are already loaded from cache only
       // No additional filtering needed
@@ -73,7 +65,13 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
       // Online mode, show all albums
       setFilteredAlbums(albums);
     }
-  };
+  }, [albums, offlineModeEnabled]);
+
+  // Filter albums based on offline mode
+  useEffect(() => {
+    filterAlbumsByOfflineMode();
+    setCurrentPage(1); // Reset to first page when albums change
+  }, [albums, offlineModeEnabled, filterAlbumsByOfflineMode]);
 
   const loadAlbums = async () => {
     try {
@@ -204,7 +202,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
       const mainArtist = s.artist.split(' • ')[0].split(' - ')[0];
       return mainArtist.includes(artistName) || artistName.includes(mainArtist);
     }).length;
-  }, [artistName, filteredAlbums]);
+  }, [artistName]);
 
   // Batch-warm IDB images into memory before rendering the current page
   useEffect(() => {
@@ -242,27 +240,12 @@ const AlbumList: React.FC<AlbumListProps> = ({ artistId, artistName, onBack, onA
     );
   }
 
-  const { serverUrl, username, password } = credentialsService.getCached();
   const totalSongs = filteredAlbums.reduce((sum, album) => sum + (album.songCount || 0), 0);
 
   const downloadBtnState: 'download-all' | 'download-missing' | 'hidden' =
     (cachedSongsForArtist > 0 && cachedSongsForArtist >= totalSongs) ? 'hidden' :
     cachedSongsForArtist > 0 ? 'download-missing' :
     'download-all';
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
 
   const handlePageClick = (page: number) => {
     setCurrentPage(page);

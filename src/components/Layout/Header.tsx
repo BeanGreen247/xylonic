@@ -53,16 +53,6 @@ const Header: React.FC = () => {
     }
   };
 
-  const handleDeveloperClick = () => {
-    const url = 'https://github.com/BeanGreen247';
-    if (window.require) {
-      const { shell } = window.require('electron');
-      shell.openExternal(url);
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   const handleSupportClick = () => {
     const url = 'https://github.com/sponsors/BeanGreen247';
     if (window.require) {

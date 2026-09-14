@@ -221,7 +221,7 @@ export function useMediaSession(opts: UseMediaSessionOpts): void {
         })();
 
         return () => { controller.abort(); };
-    }, [currentSong]);
+    }, [currentSong, bridge]);
 
     // 3. Sync playback state (playing / paused / none)
     useEffect(() => {
@@ -281,7 +281,7 @@ export function useMediaSession(opts: UseMediaSessionOpts): void {
 
             bridge.startMediaService(currentSong.title, currentSong.artist, currentSong.album ?? '', artworkUrl);
         })();
-    }, [currentSong]);
+    }, [currentSong, bridge]);
 
     // Push play/pause state + position to the native notification.
     // Position updates are throttled to 1 fps to avoid flooding the native bridge
@@ -294,14 +294,14 @@ export function useMediaSession(opts: UseMediaSessionOpts): void {
         lastMediaPositionRef.current = now;
         lastMediaIsPlayingRef.current = isPlaying;
         bridge.updateMediaPlaybackState(isPlaying, Math.floor(currentTime * 1000), Math.floor(duration * 1000));
-    }, [isPlaying, currentTime, duration]);
+    }, [isPlaying, currentTime, duration, bridge]);
 
     // Push liked + repeat state to the native notification buttons
     useEffect(() => {
         if (!bridge.isCapacitor) return;
         const repeatMode = repeat === 'off' ? 0 : repeat === 'all' ? 1 : 2;
         bridge.updateMediaNotificationState(isLiked, repeatMode);
-    }, [isLiked, repeat]);
+    }, [isLiked, repeat, bridge]);
 
     // Handle media control events fired from the native notification buttons
     useEffect(() => {

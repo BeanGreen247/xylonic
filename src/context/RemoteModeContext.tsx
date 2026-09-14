@@ -172,7 +172,7 @@ export const RemoteModeProvider: React.FC<{ children: ReactNode }> = ({ children
       'Could not pair with that device.';
     setPairingError(msg);
     return false;
-  }, []);
+  }, [myAccountId]);
 
   const disconnectRemote = useCallback(async (): Promise<void> => {
     if (!remoteTarget) return;

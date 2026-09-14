@@ -143,18 +143,13 @@ const AppContent: React.FC = () => {
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Helper function to generate user+server specific cache keys
-  const getCacheKey = (key: string): string => {
+  const getCacheKey = useCallback((key: string): string => {
     const user = username || localStorage.getItem('username') || 'unknown';
     const server = serverUrl || localStorage.getItem('serverUrl') || 'unknown';
     // Create a simple hash from server URL to keep key shorter
     const serverHash = server.split('').reduce((acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0);
     return `${key}_${user}_${Math.abs(serverHash)}`;
-  };
-
-  const isFirstTimeUser = (): boolean => {
-    if (!username || !serverUrl) return true;
-    return localStorage.getItem(getCacheKey('cachePreloaded')) === null;
-  };
+  }, [username, serverUrl]);
 
   const hasCachedSongs = (): boolean =>
     offlineCacheService.getCacheStats().totalSongs > 0;
@@ -187,7 +182,7 @@ const AppContent: React.FC = () => {
         logger.log(`Cache already exists for ${username}@${serverUrl}`);
       }
     }
-  }, [isAuthenticated, username, serverUrl]);
+  }, [isAuthenticated, username, serverUrl, getCacheKey]);
 
   const handleCachePreloadComplete = () => {
     logger.log(`Cache preload complete for ${username}@${serverUrl}`);
@@ -240,7 +235,7 @@ const AppContent: React.FC = () => {
     };
 
     checkCacheAge();
-  }, [isAuthenticated, username, serverUrl]);
+  }, [isAuthenticated, username, serverUrl, getCacheKey]);
 
   // Check for new content on server (every app launch)
   React.useEffect(() => {
@@ -310,7 +305,7 @@ const AppContent: React.FC = () => {
     // Check after a short delay to avoid blocking app startup
     const timeoutId = setTimeout(checkForNewContent, 3000);
     return () => clearTimeout(timeoutId);
-  }, [isAuthenticated, username, serverUrl]);
+  }, [isAuthenticated, username, serverUrl, getCacheKey]);
 
   // Reset missing-songs check when user/mode changes
   React.useEffect(() => {

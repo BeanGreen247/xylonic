@@ -1,5 +1,173 @@
 # Session Summary
 
+## WS-QUAL T9 (no-unused-vars → 0) + WS-TEST status correction (2026-09-14)
+
+Continued the perf/tests/todos track (tasks/todo.md, docs/todos.md), skipping
+the Backlog section per owner direction. Cleared all 29 remaining
+`no-unused-vars` lint warnings (see `tasks/todo.md` T9 for the full per-site
+list). Most were genuine dead code (leftover pagination handlers in
+AlbumList/ArtistList superseded by `handlePageClick`, an `isFirstTimeUser()`
+left dead by the Jul 31 refactor, a never-wired `handleDeveloperClick`, dead
+`isSwiping` state in NowPlayingOverlay). Two were more than cosmetic:
+
+- **Real bug**: `ShuffleAllButton` built a correct Fisher-Yates `shuffleArray`
+  helper but never called it before `playPlaylist(...)` — "Shuffle All" was
+  silently playing the unshuffled list. Fixed: `playPlaylist(shuffleArray(songs), 0)`.
+- **Feature gap, not dead code**: `AllAlbumsGrid`/`AllSongsGrid` both took
+  `onArtistClick`/`onAlbumClick` props that every caller (MainApp.tsx, App.tsx)
+  was already passing, but the components never used them. Wired them up
+  instead of deleting: artist name is now clickable in the album grid, and
+  artist + album names are clickable in the all-songs list. Required adding
+  `artistId` to `AllSongsGrid`'s local `Song` type and to
+  `searchSongsPaginated`'s return-type cast in `subsonicApi.ts` — the Subsonic
+  API already returns it, the hard type cast was just dropping it. New shared
+  link styles in `index.css`: `.all-songs-artist-link` / `.all-songs-album-link`
+  (button-reset, matches the existing `.album-artist-link` / DiscoverView pattern).
+
+`npm run lint`: 139 → 109 warnings, 0 errors. `npm run build` clean.
+`npm test`: 137/137 still green (17 files) — also discovered mid-session that
+WS-TEST (tasks/todo.md Phase 6, T13–T17) was already substantially done from
+earlier work but the checklist was stale; corrected it to match reality
+(harness, PlayerContext/downloadManagerService/platform-bridge tests, and the
+CI `Unit tests` gate all already exist — only a real coverage-floor number is
+still outstanding).
+
+**Two dead-code findings surfaced but NOT touched — flagging for a decision:**
+1. `src/components/MainApp.tsx` (~950 lines) is entirely orphaned — not
+   imported by `index.tsx`, `App.tsx`, or anywhere else. `App.tsx` is the real
+   mounted top-level component. Looks like a parallel/superseded implementation.
+2. `src/components/Library/DownloadButton.tsx` and `DownloadNotification.tsx`
+   are also both orphaned, and are the only two consumers of an old
+   `src/services/downloadManager.ts` (distinct from the live
+   `downloadManagerService.ts` + `downloadManagerHelpers.ts`). Looks like a
+   superseded download system from before the current native-batch one.
+
+Left both alone per "ask before deleting a chunk of code no one's sure about" —
+worth a deliberate decision (delete vs. archive vs. someone confirms it's
+still wired in somehow) rather than a silent removal inside a lint-cleanup pass.
+
+**Update same session: owner confirmed, deleted.** Removed
+`src/components/MainApp.tsx`, `src/components/Library/DownloadButton.tsx`,
+`src/components/Library/DownloadNotification.tsx`, and
+`src/services/downloadManager.ts` — re-verified zero remaining references
+first (no imports, no test files). No companion CSS files existed for any of
+them. `npm run lint` 109→108 warnings, build clean, 137/137 tests still green.
+
+**Ran the actual app**, not just build/test, per owner instruction: `npm run
+electron:serve` in the background, waited for Vite + Electron to come up,
+confirmed via `ps aux` that the main process, GPU process, network utility,
+and two renderer processes were all running, and grepped the log for "error
+occurred in the main process" / uncaught errors — none. App starts cleanly
+after the deletions. Killed the background processes afterward.
+
+## Phase 4 T9 follow-through: `react-hooks/exhaustive-deps` → 0 (2026-09-14, same session)
+
+Continued past T9's `no-unused-vars` into the other Phase-4 lint category.
+Cleared all 12 real `exhaustive-deps` violations plus 8 stale
+`// eslint-disable-line react-hooks/exhaustive-deps` comments in
+`PlayerContext.tsx` that were left over from the 2026-09-08 cleanup pass
+(todos.md had noted "PlayerContext's 8 left for its WS-ARCH split" —
+removing a comment that no longer suppresses anything is zero-risk, so did
+it now rather than wait for the split). Real fixes, not just silencing:
+
+- `App.tsx`: `getCacheKey` was a plain closure redefined every render;
+  wrapped in `useCallback([username, serverUrl])` and added to its 3 call-site
+  effects — no behavior change (those effects already depended on
+  `username`/`serverUrl` directly).
+- `AlbumList.tsx` / `ArtistList.tsx`: same pattern for
+  `filterAlbumsByOfflineMode` / `filterArtistsByOfflineMode`.
+- `useMediaSession.ts`: `bridge` (the `getBridge()` singleton, stable
+  identity) added to 4 effects that call it but didn't list it.
+- **Real bug, `RemoteModeContext.tsx`**: `connectToDevice`'s `useCallback` had
+  `[]` deps but reads `myAccountId` (derived from `username`+`serverUrl`) in
+  its guard check — a classic stale-closure bug. If the provider mounted
+  before auth resolved, or the account changed after mount, the closure would
+  keep seeing whatever `myAccountId` was on the very first render, forever —
+  plausibly blocking remote-mode pairing with "Sign into a Navidrome account"
+  even after a successful login. Fixed: `[myAccountId]`.
+- `PlayerContext.tsx`: added `playbackSpeedRef` (a ref returned from another
+  hook, so ESLint can't infer its stability the way it does for local
+  `useRef()` calls — but it is stable) to `playSong`'s deps; added `bridge` +
+  `setVolume` (also stable) to the native-control-action-listener effect.
+
+`npm run lint`: 109 → 88 warnings, all now `no-explicit-any` (none of the
+other categories left). `npm run build` clean, 137/137 tests green, and
+re-ran the actual app again (same `electron:serve` + `ps aux` + error-grep
+check) after touching PlayerContext/RemoteModeContext/useMediaSession
+specifically, since those are the most behavior-sensitive files touched this
+session — started cleanly, no errors.
+
+## WS-PERF T22: queue persistence off the localStorage stringify hot path (2026-09-14)
+
+Ranked as highest-impact unblocked perf item and implemented in full.
+**Problem**: `PlayerContext`'s debounced save effect ran on every
+`[playlist, currentIndex, repeat, shuffle]` change — including a bare
+`next`/`prev`/shuffle-toggle, which only moves an index — and unconditionally
+called `localStorage.setItem(QUEUE_KEY, JSON.stringify(playlist))`, a
+synchronous, main-thread-blocking stringify of the *entire* queue on the most
+frequent action in the app.
+
+**Unblocked the stated prerequisite**: extracted `computePrevIndex` into
+`playerQueue.ts` (alongside the existing `buildShuffleQueue`/`computeNextIndex`),
+with 5 new unit tests. Replaced the two near-identical inline copies in
+`PlayerContext.tsx` (`playPreviousWithRefs`'s sequential fallback,
+`playPreviousForced`'s) with calls to it — same math, `action` discriminates
+the one behavioral difference between the two callers (restart-in-place vs.
+no-op).
+
+**Fixed the actual hot path** — new `src/services/playerQueueStore.ts`:
+IndexedDB-backed store for the queue's song bodies, same "hydrate into memory
+before first paint" shape as the existing `persistentCache` (its `init()` is
+now raced alongside `persistentCache.init()` in `index.tsx`'s existing
+200ms-capped `Promise.race` before `root.render`). `playerPersistence.ts`'s
+`saveQueue`/`loadQueue` now delegate to it instead of `localStorage` — no
+`JSON.stringify`/`JSON.parse` at all (IndexedDB structured clone), the write
+is async, and the external contract (`saveQueue(songs)` /
+`loadQueue(): T[]`, synchronous read) is unchanged, so no other call site
+needed touching. `index`/`shuffle`/`repeat` stay in `localStorage` as before
+(small, not the problem). `clearPlayerPersistence()` now also clears the
+queue store on logout.
+
+**Killed the redundant write itself**, not just its cost: added
+`lastSavedPlaylistRef` in `PlayerContext` (seeded from the just-restored
+playlist on mount) so the debounced save only calls `saveQueue()` when the
+playlist array's *identity* actually changed — a `next`/`prev`/shuffle-toggle
+no longer touches the queue store at all now, only `saveIndex`/`saveShuffle`/
+`saveRepeat` (all cheap, always were).
+
+11 new tests: `playerQueue.test.ts` (+5 for `computePrevIndex`),
+`playerQueueStore.test.ts` (6, new file, same "jsdom has no IndexedDB → memory
+tier only" convention as `persistentCache.test.ts`), `playerPersistence.test.ts`
+(updated 2 that asserted the old localStorage-blob contract, to assert the new
+delegated-to-`playerQueueStore` one — same behavior from the caller's side,
+different backing store). 148/148 tests green, build clean, lint unchanged
+(88 warnings, all pre-existing `no-explicit-any`). Ran the actual app
+(`electron:serve`) twice — once right after, once again at the end of this
+whole session — confirmed clean process tree, no main/renderer errors in the
+log both times.
+
+**Known limitation on verification**: this sandboxed session has no valid
+Navidrome credentials, so I could only verify the app *boots* cleanly with
+the new boot-gate and that all the pure logic is unit-tested — I could not
+exercise a real login → queue a playlist → relaunch → confirm restore
+end-to-end. Worth a manual on-device pass (queue a few songs, force-quit,
+relaunch, confirm the same queue + position comes back) before calling this
+fully verified.
+
+## Anti-AI-slop design audit (2026-09-14) — no changes, closing out
+
+Owner asked to "make it look less AI-ish" using anti-ai-slop-audit / design-craft.
+Audited `src/styles/index.css` (3.3k lines) + Header/DiscoverView against the
+skill's tell checklist: real Roboto Flex loaded via Google Fonts (not a fake
+system-font claim), custom type scale + balance/tracking rules already applied
+(UI-03), Material-You tokens (elevation/radius/spacing) tuned per light/dark
+theme, no purple-to-blue hero gradient, no emoji icons, no generic
+icon-tile-over-heading card pattern anywhere. Doesn't hit the generated-template
+tells — reads as a deliberately designed product. No code changed. Treating the
+Phase 7 visual-language item (already cancelled 2026-09-10, see `tasks/plan.md`)
+as closed with this audit as the record; re-open only if a specific screen is
+flagged as looking generic.
+
 ## RESUME HERE (Sept 10 → next session) — iOS "cached song stuck loading" UNRESOLVED
 
 Owner's ask: fix this **first thing** next session. On iPhone (iOS 26.6.2),

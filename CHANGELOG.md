@@ -4,7 +4,16 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+### Changed
+- **Playback queue no longer blocks the main thread on every skip** — saving
+  the queue used to `JSON.stringify` the entire playlist into `localStorage`
+  on every `next`/`prev`/shuffle, even though only the position had changed.
+  The queue now persists via IndexedDB (async, no manual serialization) and
+  is only re-saved when its contents actually change.
+
 ### Fixed
+- **"Shuffle All" wasn't actually shuffling** — the button built a correct
+  Fisher-Yates shuffle helper but never called it before starting playback.
 - **Stream URLs are rebuilt from the song id at play time** — a persisted queue
   stored stream URLs whose auth token was minted with the previous session's
   salt, so on next launch an uncached song's saved URL 401'd. `playSong` now

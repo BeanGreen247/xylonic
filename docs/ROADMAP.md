@@ -97,7 +97,7 @@ pools, D-pad) are verified with the owner on-device afterwards.
       Android Keystore / iOS Keychain (via `@capacitor/preferences` `group`),
       web = in-memory session only (no persistence).
 - [ ] **Delete every `localStorage.getItem('password')`** (30+ sites across
-      `MainApp.tsx`, `App.tsx`, `downloadManagerService.ts`, `SongList.tsx`,
+      `App.tsx`, `downloadManagerService.ts`, `SongList.tsx`,
       `AlbumList.tsx`, `AllAlbumsGrid/SongsGrid.tsx`, `DiscoverView.tsx`,
       `LikedSongsView.tsx`, `CachePreloadDialog.tsx`, `likedSongsService.ts`,
       `secureCredentialService.ts`). Replace with one `useCredentials()` hook /
@@ -193,8 +193,9 @@ pervasive `catch {}`.
       string formatting cost disappears on Android WebView.
 - [ ] **Error-handling sweep** — every `catch {}` / "silently ignore" becomes
       `logger.error('[area]', e)` at minimum; user-facing failures get a retry
-      affordance (ties to WS-UX empty/error states). Start with `MainApp.tsx`
-      (3 blocks), `handleDownloadMissing`, `App.tsx` bootstrap.
+      affordance (ties to WS-UX empty/error states). Start with
+      `handleDownloadMissing`, `App.tsx` bootstrap. (`no-empty` is already 0 —
+      see docs/todos.md WS-QUAL; confirm whether this item is actually done.)
 - [ ] **Kill dead code** — `src/services/offlineCacheService.v1.backup.ts.txt`
       and `.v2.ts` out of `src/` (git history / `docs/` note). One live
       implementation only.
@@ -320,10 +321,18 @@ ADRs exist for every major decision.
 **Now 7.0.** Strong already (virtual scroll, search worker, LRU art, IPC throttle).
 
 ### Must
-- [ ] **Queue persistence** — stop `JSON.stringify(entireSong[])` on every
-      next/prev/shuffle. Persist `{ids:[], idx}` + a song-by-id store in IDB;
-      debounce writes (500 ms); validate + repair on load. Fixes multi-MB
-      main-thread stalls and partial-write corruption on 25k "play all".
+- [x] **Queue persistence** (2026-09-14) — stopped `JSON.stringify(entireSong[])`
+      on every next/prev/shuffle. Implemented as a single-blob-per-user IDB
+      store (`playerQueueStore.ts`, hydrated into memory before first paint
+      alongside `persistentCache` in `index.tsx`) rather than the originally-
+      scoped per-song `{ids, idx}` + song-by-id store — same fix (no more
+      stringify on the hot path, IDB structured clone instead, write is async
+      and now skipped entirely when the playlist hasn't actually changed
+      since the last save), much smaller diff, no async-hydration-effect
+      restructuring of `PlayerContext`'s synchronous boot path. No
+      validate/repair-on-load step (not needed for this design — a single
+      `IDBObjectStore.put()` is atomic, so there's no partial-write case to
+      repair). See `docs/session_summary.md` / `tasks/todo.md` T22 for detail.
 - [x] **`getAllSongs` parallelism** (2026-09-06) — probe page 0 serially, then
       fetch the rest in batches of 4 concurrent `search3` requests, stop on first
       short page. (Subsonic `search3` returns no reliable total, so probe-then-
@@ -449,8 +458,7 @@ kept optimisation has a before/after number in the ledger.
       inline `style={{}}` objects (magic `40px` / `48px` / `#ff3b30` / `8px`
       radius, repeated ~7×) collapse to shared `.library-state` /
       `.library-state-icon` / `.library-state.is-error` / `.library-inline-error`
-      classes in `index.css`; MainApp's `style={{ marginBottom: '24px' }}` →
-      `.library-view-toggle-row` on `var(--spacing-lg)`. Inline `style={{}}`
+      classes in `index.css`. Inline `style={{}}`
       count 115 → 79 (remainder is genuinely dynamic — `width: ${pct}%`,
       JS-positioned menus, dev-only `RenderTimerHUD`). **Remaining:** eslint rule
       to flag new static inline style objects.

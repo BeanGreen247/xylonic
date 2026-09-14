@@ -25,24 +25,37 @@
       (xylonic-electron).
 - [ ] **WS-QUAL phase 1a cont.** — console sweep, dead-file deletion, ESLint/Prettier
       config + scripts, and the roadmap-named silent-`catch {}` starting points all
-      done (see Done). `npm run lint` passes (0 errors, **~201 warnings**; trivial `any`→`unknown` +
-      unused-import cleanup done). Remaining tail (roadmap frames as warn→error
-      gradual, much folds into ARCH/UX): **111** `no-explicit-any` — the Subsonic
+      done (see Done). `npm run lint` passes (0 errors, **109 warnings** as of
+      2026-09-14, down from ~201; trivial `any`→`unknown` + unused-import cleanup
+      done). **`no-empty`: 0 — fully clear** (was listed 37 here, stale).
+      **`no-unused-vars`: 0 — fully clear** (2026-09-14, see `tasks/todo.md` T9 for
+      the per-site breakdown: dead code removed, one real bug fixed in
+      `ShuffleAllButton` — shuffle wasn't actually shuffling — and `onArtistClick`/
+      `onAlbumClick` wired up in `AllAlbumsGrid`/`AllSongsGrid` instead of deleted,
+      since both callers were already passing them). Remaining tail (roadmap frames
+      as warn→error gradual, much folds into ARCH/UX): **89** `no-explicit-any` — the Subsonic
       response envelope is now typed in `src/types/subsonic.ts` (`SubsonicEnvelope`
       + `axios.get<SubsonicEnvelope>` across `subsonicApi.ts`, consumer callback
-      `any`s dropped — commit `e84a93e`); the remaining 111 are spread across
+      `any`s dropped — commit `e84a93e`); the remaining 89 are spread across
       unrelated files (`global.d.ts`, `RemoteModeContext`, `platform/bridge`,
       `colorConfigManager`, `settingsManager`, `ImageCacheContext`, download-queue
-      buffer `songs: any[]` in App/MainApp/ArtistList, `(s as any)` audio-meta
-      casts in `AllSongsGrid`) — per-site, not a single pass; **35** `no-unused-vars` (several
-      flag incomplete wiring, check per-site); 37 `no-empty` (silent-`catch {}` →
-      `logger.error` + retry affordances; PlayerContext/downloadManagerService
-      ones fold into WS-ARCH); 29 `react-hooks/exhaustive-deps` (2026-09-08: 6 of
-      the ~17 dead `eslint-disable` directives removed — App/AlbumList/ArtistList/
-      SongList/DesktopNowPlaying/OfflineModeContext; PlayerContext's 8 left for
-      its WS-ARCH split); then flip each rule warn→error;
-      (b) one-time `prettier --write` + commit; (c) wire `lint` + `format:check`
-      into CI as required checks; (d) Vite `define`/transform to strip
+      buffer `songs: any[]` in App/ArtistList, `(s as any)` audio-meta
+      casts in `AllSongsGrid`) — per-site, not a single pass. **`react-hooks/exhaustive-deps`: 0 —
+      fully clear (2026-09-14)**, including the 8 stale disable-comments in
+      PlayerContext this list used to say were "left for WS-ARCH" — removing a
+      dead comment doesn't touch logic, so no reason to wait. One real bug
+      fixed along the way: `RemoteModeContext.connectToDevice` had `[]` deps
+      but read `myAccountId` in a stale closure — could keep blocking remote
+      pairing after login if the provider mounted before auth resolved. See
+      `docs/session_summary.md` for the full list. (All ~17 originally-dead
+      `eslint-disable` directives across App/AlbumList/ArtistList/SongList/
+      DesktopNowPlaying/OfflineModeContext/PlayerContext are now gone.)
+      Remaining lint-hygiene tail: (a) flip `no-explicit-any` warn→error once
+      the 89 are cleared; (b) one-time `prettier --write` + commit; (c) wire
+      `lint` + `format:check` into CI as required checks (note: `lint` is
+      already a required CI step per `.github/workflows/ci.yml` — only
+      `format:check` and the warn→error flips are still open); (d) Vite
+      `define`/transform to strip
       `logger.log`/`info` in prod bundles.
 - [ ] **WS-TEST phase 1b** — harness + `.github/workflows/ci.yml` (lint+test+build
       gate; typecheck non-blocking). `npm test` green (**76 tests, 10 files**:

@@ -10,7 +10,7 @@ A modern, beautiful music player for Subsonic-compatible servers with a Spotify-
   <img src="docs/images/xylonic.png" alt="Xylonic — Discover screen" width="900"/>
 </p>
 
-**Version:** 26.09.10  
+**Version:** 26.09.20  
 **Author:** BeanGreen247  
 **License:** MIT
 
@@ -98,19 +98,19 @@ For comprehensive technical details, see [`docs/architecture/`](docs/architectur
 ### Download & Run (End Users)
 
 #### Windows
-1. Download `Xylonic-26.7.6-portable.exe` (portable) or `Xylonic-26.7.6-x64.exe` (installer) from [Releases](https://github.com/BeanGreen247/xylonic/releases)
+1. Download `Xylonic-26.9.20-portable.exe` (portable) or `Xylonic-26.9.20-x64.exe` (installer) from [Releases](https://github.com/BeanGreen247/xylonic/releases)
 2. Double-click to run (no installation needed for portable!)
 3. Enter your Subsonic server details and enjoy
 
 #### Linux
-1. Download `Xylonic-26.7.6-x64.tar.gz` (or `.deb` / `.AppImage`) from [Releases](https://github.com/BeanGreen247/xylonic/releases)
+1. Download `Xylonic-26.9.20-x64.tar.gz` (or `.deb` / `.AppImage`) from [Releases](https://github.com/BeanGreen247/xylonic/releases)
 2. Extract the archive:
    ```bash
-   tar -xzf Xylonic-26.7.6-x64.tar.gz
+   tar -xzf Xylonic-26.9.20-x64.tar.gz
    ```
 3. Navigate to the folder:
    ```bash
-   cd Xylonic-26.7.6-x64
+   cd Xylonic-26.9.20-x64
    ```
 4. Make the binary executable:
    ```bash
@@ -157,7 +157,7 @@ npm run prebuild:clean
 npm run build
 npm run electron:build:win-portable
 ```
-Output: `dist/Xylonic-26.7.6-portable.exe` (portable) and `dist/Xylonic-26.7.6-x64.exe` (installer)
+Output: `dist/Xylonic-26.9.20-portable.exe` (portable) and `dist/Xylonic-26.9.20-x64.exe` (installer)
 
 The build process will:
 1. Clean project directories (build/, dist/)
@@ -175,7 +175,7 @@ npm run prebuild:clean
 npm run build
 npm run electron:build:linux-tar
 ```
-Output: `dist/Xylonic-26.7.6-x64.tar.gz` (also `.deb` and `.AppImage` on native Linux)
+Output: `dist/Xylonic-26.9.20-x64.tar.gz` (also `.deb` and `.AppImage` on native Linux)
 
 ### Build Both (Windows + Linux tar.gz)
 ```bash

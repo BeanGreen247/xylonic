@@ -752,3 +752,11 @@ credit for making iOS-on-Linux possible belongs to these projects.
 **Built with love for music lovers who want a modern, beautiful, and customizable way to stream their Subsonic library.**
 
 **v26.7.28** - Full CI pipeline: Android APK, iOS unsigned IPA (device build, Sideloadly), Windows portable, Linux AppImage/deb/tar.gz, macOS dmg/zip (Intel + Apple Silicon); `scripts/download-ios-ipa.sh`; IOS_SETUP.md rewritten
+
+## Support
+
+If this project is useful to you, consider supporting its development via PayPal:
+
+[![Donate with PayPal](.github/paypal-qr.png)](https://paypal.me/beangreen2471)
+
+**PayPal:** https://paypal.me/beangreen2471

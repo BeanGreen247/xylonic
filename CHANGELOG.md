@@ -2,7 +2,7 @@
 
 All notable changes to Xylonic are documented here.
 
-## [Unreleased]
+## [26.09.20] - 2026-09-20
 
 ### Changed
 - **Playback queue no longer blocks the main thread on every skip** — saving

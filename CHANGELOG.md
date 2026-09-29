@@ -27,6 +27,11 @@ All notable changes to Xylonic are documented here.
   `public/build-info.json` when the version changes or a new day starts (a
   release stamp is never downgraded).
 
+### Fixed
+- **Blank launcher icon in the KDE menu (Fedora / Nobara rpm)** — the Linux
+  packages shipped the icon at a single 512×512 size; they now ship
+  16/24/32/48/64/128/256/512 px so menus and taskbars pick a native size.
+
 ### Removed
 - **System tray icon and tooltip** — it never showed up, so the whole tray
   (the `Tray` object, its download tooltip, `assets/icon-tray.png`) is gone.

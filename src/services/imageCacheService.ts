@@ -40,6 +40,28 @@ export interface PerformanceCacheStats {
   searchIndexSongs: number;
 }
 
+// Navidrome answers `getCoverArt` for an artist with no photo by serving one fixed
+// 546-byte webp (Last.fm's white "no image" star) at every size. Identified by
+// size + SHA-256 so a real image is never mistaken for it.
+const ARTIST_PLACEHOLDER_SIZE = 546;
+const ARTIST_PLACEHOLDER_SHA256 = '521259c652af6d43cb124876106258d93b6b6f7fbe7ad2c73e8345875afe4dcf';
+// Artist photos change server-side (the server fetches them lazily), so they are
+// re-checked after a week instead of trusting the 1-year album-art lifetime.
+const ARTIST_REVALIDATE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const isArtistId = (coverArtId: string): boolean => coverArtId.startsWith('ar-');
+
+async function isArtistPlaceholder(coverArtId: string, blob: Blob): Promise<boolean> {
+  if (!isArtistId(coverArtId) || blob.size !== ARTIST_PLACEHOLDER_SIZE) return false;
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
+    const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+    return hex === ARTIST_PLACEHOLDER_SHA256;
+  } catch {
+    return false; // crypto.subtle unavailable — treat as a real image
+  }
+}
+
 class ImageCacheService {
   private dbName = 'XylonicImageCache';
   private dbVersion = 1;
@@ -58,6 +80,8 @@ class ImageCacheService {
   private maxConcurrentFetches = 4;
   private activeFetchCount = 0;
   private fetchQueue: Array<() => void> = [];
+  private placeholderIds: Set<string> = new Set(); // artist ids the server answered with the "no image" star
+  private revalidateTried: Set<string> = new Set(); // stale artist ids already refreshed (or tried) this session
   private isCleanedUp = false;
   private rateLimitBackoffUntil = 0;
   private rateLimitConsecutiveHits = 0;
@@ -245,6 +269,18 @@ class ImageCacheService {
     try {
       const cached = await this.getCachedImage(effectiveId);
       if (cached) {
+        const stale = isArtistId(effectiveId) && !this.revalidateTried.has(effectiveId)
+          && Date.now() - cached.timestamp > ARTIST_REVALIDATE_MS;
+        if (stale) {
+          // Refresh; on any failure (offline, 429, placeholder) keep the cached copy.
+          this.revalidateTried.add(effectiveId);
+          const serverUrl = serverFetchFn();
+          const fresh = await this.fetchAndCacheQueued(effectiveId, serverUrl);
+          if (fresh && fresh !== serverUrl) {
+            if (requestedId !== effectiveId) this.addToMemoryCache(requestedId, fresh);
+            return fresh;
+          }
+        }
         networkStatsService.recordImageDiskHit();
         const blobUrl = URL.createObjectURL(cached.blob);
         this.addToMemoryCache(effectiveId, blobUrl);
@@ -276,11 +312,17 @@ class ImageCacheService {
     entries: Array<{ coverArtId: string; url: string; blob: Blob }>
   ): Promise<void> {
     if (!this.db || entries.length === 0) return;
+    const kept: typeof entries = [];
+    for (const entry of entries) {
+      if (await isArtistPlaceholder(entry.coverArtId, entry.blob)) this.placeholderIds.add(entry.coverArtId);
+      else kept.push(entry);
+    }
+    if (kept.length === 0) return;
     const now = Date.now();
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([this.storeName], 'readwrite');
       const store = tx.objectStore(this.storeName);
-      for (const { coverArtId, url, blob } of entries) {
+      for (const { coverArtId, url, blob } of kept) {
         store.put({ url, blob, timestamp: now, coverArtId, userId: this.userId });
       }
       tx.oncomplete = () => resolve();
@@ -295,6 +337,10 @@ class ImageCacheService {
    */
   async cacheImageDirect(coverArtId: string, url: string, blob: Blob, skipMemoryCache: boolean = false): Promise<void> {
     try {
+      if (await isArtistPlaceholder(coverArtId, blob)) {
+        this.placeholderIds.add(coverArtId);
+        return;
+      }
       await this.cacheImage(coverArtId, url, blob);
       
       // Only add to memory cache if requested (skip during bulk preload to prevent blob URL exhaustion)
@@ -332,7 +378,16 @@ class ImageCacheService {
             this.deleteImage(coverArtId);
             resolve(null);
           } else {
-            resolve(result);
+            // A "no image" star cached by an earlier version: drop it so the
+            // real photo (if the server has one now) is fetched instead.
+            isArtistPlaceholder(coverArtId, result.blob).then((placeholder) => {
+              if (placeholder) {
+                this.deleteImage(coverArtId);
+                resolve(null);
+              } else {
+                resolve(result);
+              }
+            });
           }
         } else {
           resolve(null);
@@ -380,6 +435,12 @@ class ImageCacheService {
             return;
           }
 
+          if (result.status === 'placeholder') {
+            // '' with the id flagged: AlbumArt shows its fallback instead of retrying.
+            resolve('');
+            return;
+          }
+
           if (result.status === 'ok') {
             this.rateLimitConsecutiveHits = 0;
             this.rateLimitBackoffUntil = 0;
@@ -417,7 +478,7 @@ class ImageCacheService {
    * Returns the blob on success so the caller can create a blobUrl without a
    * second IDB read. Returns 'rate-limited' on HTTP 429, 'error' otherwise.
    */
-  private async fetchAndCache(coverArtId: string, url: string): Promise<{ status: 'ok'; blob: Blob } | { status: 'rate-limited' | 'error' }> {
+  private async fetchAndCache(coverArtId: string, url: string): Promise<{ status: 'ok'; blob: Blob } | { status: 'rate-limited' | 'placeholder' | 'error' }> {
     try {
       const response = await fetch(url);
       if (response.status === 429) {
@@ -427,6 +488,10 @@ class ImageCacheService {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
       const blob = await response.blob();
+      if (await isArtistPlaceholder(coverArtId, blob)) {
+        this.placeholderIds.add(coverArtId);
+        return { status: 'placeholder' };
+      }
       await this.cacheImage(coverArtId, url, blob);
       return { status: 'ok', blob };
     } catch (error) {
@@ -848,6 +913,11 @@ class ImageCacheService {
         )
       );
     }
+  }
+
+  /** True when the server answered this artist id with its "no image" placeholder. */
+  isKnownPlaceholder(coverArtId: string): boolean {
+    return this.placeholderIds.has(coverArtId);
   }
 
   syncWithAppMode(): void {

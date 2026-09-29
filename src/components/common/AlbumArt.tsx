@@ -158,6 +158,10 @@ const AlbumArt: React.FC<AlbumArtProps> = ({
                         if (!cancelled) {
                             if (cachedUrl) {
                                 setImageUrl(cachedUrl);
+                            } else if (imageCacheService.isKnownPlaceholder(coverArtId)) {
+                                // Server has no photo for this artist — show the fallback, not its placeholder star
+                                setImageUrl('');
+                                setImageError(true);
                             } else if (retries < MAX_RETRIES) {
                                 retries++;
                                 retryTimerRef.current = setTimeout(loadImage, RETRY_DELAY_MS);
@@ -246,7 +250,7 @@ const AlbumArt: React.FC<AlbumArtProps> = ({
     if (imageError) {
         return (
             <div className={`album-art-fallback ${className}`}>
-                <i className="fas fa-music"></i>
+                <i className={coverArtId?.startsWith('ar-') ? 'fas fa-user-circle' : 'fas fa-music'}></i>
             </div>
         );
     }

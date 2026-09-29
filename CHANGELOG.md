@@ -32,6 +32,14 @@ All notable changes to Xylonic are documented here.
   packages shipped the icon at a single 512×512 size; they now ship
   16/24/32/48/64/128/256/512 px so menus and taskbars pick a native size.
 
+- **Artists showing a white star instead of a photo** — found on-device: the
+  server answers artists without a picture with one fixed "no image" star, and
+  the app cached it forever (1-year lifetime), even after the server later got a
+  real photo. That placeholder is now recognised (size + SHA-256), never cached,
+  and any copy cached earlier is dropped; the card shows the normal artist
+  fallback icon instead. Cached artist photos are also re-checked against the
+  server after 7 days (the old copy is kept if the refresh fails).
+
 ### Removed
 - **System tray icon and tooltip** — it never showed up, so the whole tray
   (the `Tray` object, its download tooltip, `assets/icon-tray.png`) is gone.

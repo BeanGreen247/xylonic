@@ -8,8 +8,9 @@ All notable changes to Xylonic are documented here.
 - **Servers show up on the login page** — Xylonic scans the local subnets, VPN
   subnets, Tailscale peers (including relayed ones) and common hostnames for
   Navidrome / Gonic / Airsonic / Subsonic servers and lists them above the form;
-  tap one to fill in the address. Desktop scans the whole subnet; Android/iOS
-  probe well-known hostnames only.
+  tap one to fill in the address. Desktop sweeps each connected subnet (up to
+  1024 hosts; a larger network is narrowed to your own /24) plus Tailscale
+  peers; Android/iOS probe well-known hostnames only.
 - **Fedora / Nobara `.rpm`** built alongside the AppImage, `.deb` and tar.gz
   (`npm run electron:build:linux-rpm`).
 
@@ -21,15 +22,16 @@ All notable changes to Xylonic are documented here.
 - **Lower desktop RAM/CPU** — no idle spare renderer, unused Chromium services
   off, spellcheck off, network-monitor hooks only run for stream requests, caches
   released on minimise.
-
 - **Settings → About no longer shows a stale version/build date** —
   `npm run build`, `npm test` and the dev servers now refresh
   `public/build-info.json` when the version changes or a new day starts (a
   release stamp is never downgraded).
 
 ### Removed
-- **System tray icon** — it was invisible; download progress stays on the
-  taskbar/dock. `icon-tray.png` is no longer bundled.
+- **System tray icon and tooltip** — it never showed up, so the whole tray
+  (the `Tray` object, its download tooltip, `assets/icon-tray.png`) is gone.
+  Download progress is still shown on the taskbar / dock progress bar and the
+  macOS dock badge. This supersedes the tray mentions in the 26.09.x entries below.
 
 ## [26.09.20] - 2026-09-20
 
@@ -465,8 +467,8 @@ All notable changes to Xylonic are documented here.
   - `public/ipc/system.js` — per-process priority / CPU-affinity + `get-system-stats`.
   - `public/ipc/misc.js` — `get-os-platform`, `detect-linux-firewall`,
     `save-song`, `get-download-dir`.
-  - `public/ipc/downloadNotification.js` — dock/taskbar progress bar + Tray
-    tooltip + macOS dock badge (`set-download-progress` / `clear-download-progress`)
+  - `public/ipc/downloadNotification.js` — dock/taskbar progress bar + macOS dock
+    badge (the Tray tooltip it originally had was removed in 26.09.29) (`set-download-progress` / `clear-download-progress`)
     and `set-download-active` (drives the power-save blocker via an injected
     callback).
   - `public/ipc/cache.js` — the **~31-handler offline-cache filesystem block**
@@ -546,7 +548,7 @@ All notable changes to Xylonic are documented here.
 ### Added
 - **Concurrent downloads setting** — new "Concurrent Downloads" control in Settings → Downloads (1-8, default 3). Electron/web now run a bounded worker pool (`processConcurrentJS`/`downloadWorkerJS` in `downloadManagerService.ts`) instead of downloading one song at a time; each worker claims the next pending item synchronously (no double-claim race) and reuses the existing `downloadSong()` retry/backoff/completion logic per item. iOS applies the cap via `URLSessionConfiguration.httpMaximumConnectionsPerHost` (set from a value persisted in `UserDefaults` via a new `setMaxConcurrentDownloads` plugin method — takes effect on next app launch since it's fixed for the session's lifetime, previously unbounded). The stuck-download detector now tracks per-item abort controllers and last-progress timestamps (`activeAbortControllers`/`activeLastProgressMs`, keyed by item ID) so a single stalled download aborts independently without disturbing others running concurrently. `DownloadProgress.currentDownloads` exposes all in-flight items; `DownloadManagerWindow` renders one active-download card per concurrent download instead of a single card. Android's download service remains single-threaded for now — its executor and notification/wakelock state are tightly coupled to a sequential assumption that needs a dedicated pass to convert safely.
 - **iOS native batch downloads** — `BackgroundDownloadPlugin.swift` gained `startBatch`/`cancelBatch`, enqueuing every pending song's `URLSessionDownloadTask` on the shared background `URLSession` up front instead of the JS queue chaining one `startDownload` call at a time via `setTimeout`; `downloadManagerService.ts` gained `downloadBatchNativeIOS()` (mirrors the existing Android `downloadBatchNative` pattern) and dispatches iOS to it in `processQueue()`, removing the dependency on WKWebView JS timers firing reliably between songs while backgrounded
-- **Electron desktop download progress** — dock/taskbar progress bar (`BrowserWindow.setProgressBar`), a tray icon with a live tooltip (reusing the previously-unused `assets/icon-tray.png`), and a macOS dock badge; wired through new `set-download-progress`/`clear-download-progress` IPC handlers in `public/electron.js` and implemented in `electronBridge.ts`, filling in a `showDownloadNotification`/`hideDownloadNotification` bridge seam that was previously a no-op on Electron
+- **Electron desktop download progress** — dock/taskbar progress bar (`BrowserWindow.setProgressBar`), a tray icon with a live tooltip (removed again in 26.09.29), and a macOS dock badge; wired through new `set-download-progress`/`clear-download-progress` IPC handlers in `public/electron.js` and implemented in `electronBridge.ts`, filling in a `showDownloadNotification`/`hideDownloadNotification` bridge seam that was previously a no-op on Electron
 
 ### Fixed
 - **iOS: infinite "Loading…" after switching offline → online** — the library views (`ArtistList`, `AllAlbumsGrid`, `AllSongsGrid`) could spin forever after toggling back to online mode on iOS. Root cause was a chain: (1) `OfflineModeContext` only ever updated `isOnline` from `navigator.onLine` and the `window` `online`/`offline` events, and the `@capacitor/network` listener it registers updated **only `isCellular`, never `isOnline`** — WKWebView is unreliable about all three, so after launching with no connection `isOnline` stayed a stale `false`; (2) `toggleOfflineMode()` never re-checked connectivity, so going online left `offlineModeEnabled=false` while `isOnline` was still `false`, forcing views down the cache-only path or straight into a network call; (3) **no axios timeout was configured anywhere in the app**, so the first (frequently hung) WKWebView XHR after the transition never settled and the component's `loading` state was never cleared — the existing `ERR_NETWORK` interceptor can't catch a socket that simply hangs. Fixes: `axios.defaults.timeout = 15000` in `src/index.tsx` (+ the connectivity-error interceptor now also treats `ECONNABORTED`); the native `Network` plugin now drives `isOnline` from `status.connected` in both `getStatus()` and `networkStatusChange` (`OfflineModeContext.tsx`); and `toggleOfflineMode()` calls `checkConnectivity()` on the offline→online transition. Android was likely unaffected (its WebView fires `online`/`offline` reliably and recovers its network stack immediately) but gets the same hardening. Needs an iOS device test to confirm.

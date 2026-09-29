@@ -24,7 +24,7 @@ Shared state crosses the boundary as **injected getters/callbacks**, never free
 variables: `getMainWindow: () => mainWindow`, `getLastPlayerState`,
 `onDownloadActiveChange: (v) => { _activeDownloads = v; _updatePowerSave(); }`,
 `getCacheBasePath`, etc. Modules require Node builtins themselves; Electron
-objects (`dialog`, `shell`, `safeStorage`, `Tray`, `nativeImage`) are injected
+objects (`dialog`, `shell`, `safeStorage`, `nativeImage`) are injected
 too so each module is loadable and functionally testable in plain Node.
 
 Modules: `remote`, `logging`, `settings`, `credentials`, `system`, `misc`,

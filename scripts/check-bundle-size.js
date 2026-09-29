@@ -33,7 +33,8 @@ const files = fs.readdirSync(ASSETS);
 let failed = false;
 
 for (const { prefix, suffix, label, maxKB } of LIMITS) {
-  const match = files.find(f => f.startsWith(prefix) && f.endsWith(suffix));
+  // `index-<hash>.js` also prefixes `index-legacy-<hash>.js`; which one sorts first depends on the hash.
+  const match = files.find(f => f.startsWith(prefix) && f.endsWith(suffix) && (prefix !== 'index-' || !f.startsWith('index-legacy-')));
   if (!match) {
     console.error(`[bundle-size] FAIL  ${label.padEnd(18)} — no file matching ${prefix}*${suffix}`);
     failed = true;

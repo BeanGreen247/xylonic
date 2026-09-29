@@ -1,0 +1,111 @@
+name: Release
+
+# Runs after every push-triggered CI / Android / iOS / Desktop workflow finishes.
+# Does nothing until ALL four have succeeded for the same commit and every
+# expected package was uploaded; then it tags v<package.json version> as a
+# PRERELEASE with all packages attached. Promoting it to a full release is a
+# manual step (gh release edit <tag> --prerelease=false --latest) done after
+# testing on other machines. Notes = CHANGELOG section + a comparison against
+# the previous full release.
+
+on:
+  workflow_run:
+    workflows: [CI, Android Build, iOS Build, Desktop Build]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag + publish when everything is green
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Require all four workflows green for this commit
+        id: gate
+        run: |
+          ready=true
+          for wf in ci.yml android.yml ios.yml desktop.yml; do
+            row=$(gh run list --workflow "$wf" --commit "$SHA" --event push --limit 1 \
+                  --json databaseId,status,conclusion --jq '.[0] | "\(.databaseId) \(.status) \(.conclusion)"')
+            echo "$wf: $row"
+            set -- $row
+            if [ "$2" != "completed" ] || [ "$3" != "success" ]; then ready=false; fi
+            echo "${wf%.yml}=$1" >> "$GITHUB_OUTPUT"
+          done
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve version and skip if already released
+        id: ver
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG already released — nothing to do"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download packages
+        if: steps.gate.outputs.ready == 'true' && steps.ver.outputs.exists == 'false'
+        run: |
+          mkdir -p pkgs
+          for id in ${{ steps.gate.outputs.android }} ${{ steps.gate.outputs.ios }} ${{ steps.gate.outputs.desktop }}; do
+            gh run download "$id" --dir pkgs
+          done
+          rm -rf pkgs/ios-project-scaffold
+          find pkgs -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.tar.gz' \
+            -o -name '*.exe' -o -name '*.dmg' -o -name '*.zip' -o -name '*.apk' -o -name '*.ipa' \) \
+            -exec mv -t pkgs {} +
+          find pkgs -mindepth 1 -type d -empty -delete
+          ls -la pkgs
+
+      - name: Verify every expected package exists
+        if: steps.gate.outputs.ready == 'true' && steps.ver.outputs.exists == 'false'
+        run: |
+          missing=0
+          for pat in '*.AppImage' '*.deb' '*.rpm' '*.tar.gz' '*.exe' '*.dmg' '*.zip' '*.apk' '*.ipa'; do
+            if ! ls pkgs/$pat >/dev/null 2>&1; then echo "MISSING: $pat"; missing=1; fi
+          done
+          exit $missing
+
+      - name: Build release notes
+        if: steps.gate.outputs.ready == 'true' && steps.ver.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.ver.outputs.tag }}"; VERSION="${VERSION#v}"
+          PREV=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .tag_name)
+          echo "PREV_TAG=$PREV" >> "$GITHUB_ENV"
+          {
+            awk -v v="## [$VERSION]" 'index($0,v)==1{f=1;next} /^## \[/{f=0} f' CHANGELOG.md
+            echo
+            echo "**Compared to $PREV:** https://github.com/${{ github.repository }}/compare/$PREV...${{ steps.ver.outputs.tag }}"
+          } > notes.md
+          cat notes.md
+
+      - name: Create prerelease
+        if: steps.gate.outputs.ready == 'true' && steps.ver.outputs.exists == 'false'
+        run: |
+          gh release create "${{ steps.ver.outputs.tag }}" pkgs/* \
+            --target "$SHA" \
+            --title "Xylonic ${{ steps.ver.outputs.tag }}" \
+            --notes-file notes.md --generate-notes --notes-start-tag "$PREV_TAG" \
+            --prerelease

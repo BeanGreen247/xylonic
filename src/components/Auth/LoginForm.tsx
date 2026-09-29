@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { testConnection } from '../../services/subsonicApi';
@@ -8,6 +8,7 @@ import { offlineCacheService } from '../../services/offlineCacheService';
 import XylonicLogo from '../common/XylonicLogo';
 import './LoginForm.css';
 import { logger } from '../../utils/logger';
+import { getBridge, DiscoveredServer } from '../../platform/bridge';
 
 const LoginForm: React.FC = () => {
     const { login } = useAuth();
@@ -23,6 +24,32 @@ const LoginForm: React.FC = () => {
     const [secureStorageAvailable, setSecureStorageAvailable] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [discovered, setDiscovered] = useState<DiscoveredServer[]>([]);
+    const [scanning, setScanning] = useState(false);
+    const stopScanRef = useRef<(() => void) | null>(null);
+
+    const startScan = useCallback(() => {
+        stopScanRef.current?.();
+        setDiscovered([]);
+        setScanning(true);
+        stopScanRef.current = getBridge().discoverServers(
+            (server) => setDiscovered((prev) => (prev.some((p) => p.url === server.url) ? prev : [...prev, server])),
+            () => setScanning(false),
+        );
+    }, []);
+
+    // Look for Subsonic servers on the LAN / VPN / Tailscale while the login page is open
+    useEffect(() => {
+        startScan();
+        return () => stopScanRef.current?.();
+    }, [startScan]);
+
+    const handleDiscoveredSelect = (server: DiscoveredServer) => {
+        setSelectedConnection('');
+        setServerUrl(server.url);
+        setPassword('');
+        setTestResult(null);
+    };
 
     // Check secure storage availability on mount
     useEffect(() => {
@@ -240,6 +267,35 @@ const LoginForm: React.FC = () => {
                 <div className="login-logo-area">
                     <XylonicLogo size={72} />
                     <h1>Xylonic</h1>
+                </div>
+
+                <div className="discovered-servers">
+                    <div className="discovered-header">
+                        <span className="discovered-title">
+                            <i className="fas fa-search"></i>
+                            {scanning ? 'Looking for servers…' : discovered.length > 0 ? 'Servers found' : 'No servers found nearby'}
+                        </span>
+                        <button type="button" className="discovered-rescan" onClick={startScan} disabled={scanning}>
+                            Rescan
+                        </button>
+                    </div>
+                    {discovered.length > 0 && (
+                        <div className="discovered-list">
+                            {discovered.map((server) => (
+                                <button
+                                    key={server.url}
+                                    type="button"
+                                    className={`discovered-item${serverUrl === server.url ? ' active' : ''}`}
+                                    onClick={() => handleDiscoveredSelect(server)}
+                                >
+                                    <span className="discovered-name">{server.name}</span>
+                                    <span className="discovered-meta">
+                                        {server.type}{server.version ? ` ${server.version}` : ''} · {server.via} · {server.url}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="login-form-columns">

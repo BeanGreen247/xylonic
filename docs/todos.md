@@ -5,6 +5,11 @@
 
 ## In Progress
 
+- [ ] **26.09.29 device pass (owner)** — verify on real hardware: gaming-mode CPU/RAM
+      while a game runs; AppImage/rpm RSS vs the old 400–800 MB (Nobara); rpm install;
+      login-page discovery on LAN + Tailscale. Follow-up: remove now-redundant
+      `set-performance-priority` bridge method.
+
 - [ ] **Phase re-plan (2026-09-10)** — see `tasks/plan.md` / `tasks/todo.md`.
       Owner: drop react-router (**ADR 0008 Rejected**, struck from WS-ARCH);
       tiered Balanced/Eco/Gaming perf modes; README trim (keep quick-start

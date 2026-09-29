@@ -268,3 +268,76 @@
         height: 48px !important;
     }
 }
+
+/* Servers found on the LAN / VPN / Tailscale */
+.discovered-servers {
+    margin-bottom: var(--spacing-md, 16px);
+}
+
+.discovered-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm, 13px);
+}
+
+.discovered-title i {
+    margin-right: 6px;
+    color: var(--primary-color);
+}
+
+.discovered-rescan {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    padding: 3px 12px;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+.discovered-rescan:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.discovered-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    max-height: 132px;
+    overflow-y: auto;
+}
+
+.discovered-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 8px 14px;
+    background: var(--surface-variant);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.discovered-item:hover,
+.discovered-item.active {
+    border-color: var(--primary-color);
+}
+
+.discovered-name {
+    font-weight: 600;
+}
+
+.discovered-meta {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm, 13px);
+    word-break: break-all;
+}

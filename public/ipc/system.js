@@ -2,7 +2,7 @@
 // modes) and app CPU/RAM stats. Extracted from public/electron.js (WS-ARCH).
 const os = require('os');
 
-function registerSystemIpc({ ipcMain, app, execFile }) {
+function registerSystemIpc({ ipcMain, app, execFile, session }) {
   // All app process PIDs (main + renderers + GPU + utility).
   const allAppPids = () => {
     const pids = new Set([process.pid]);
@@ -58,6 +58,33 @@ function registerSystemIpc({ ipcMain, app, execFile }) {
   };
   ipcMain.handle('restore-process-priority', restoreFull);
   ipcMain.handle('set-performance-priority', restoreFull);
+
+  // Drop Chromium's HTTP + compiled-code caches (RAM held by the network service
+  // and renderer code cache). Safe at any time; they refill lazily.
+  const trimMemory = async () => {
+    try {
+      const ses = session.defaultSession;
+      await ses.clearCache();
+      await ses.clearCodeCaches({});
+    } catch {
+      /* session not ready / API unavailable */
+    }
+  };
+  ipcMain.handle('trim-memory', trimMemory);
+
+  // Gaming tier: lowest scheduling priority and a quarter of the cores (min 2 so
+  // audio decoding never starves) so a foreground game keeps the machine.
+  ipcMain.handle('set-gaming-mode', (_event, enabled) => {
+    if (!enabled) return restoreFull();
+    const pids = allAppPids();
+    const totalCores = os.cpus().length;
+    const allowedCores = Math.min(totalCores, Math.max(2, Math.floor(totalCores / 4)));
+    setPriority(pids, os.constants.priority.PRIORITY_LOW);
+    if (process.platform === 'linux') setAffinityLinux(pids, `0-${allowedCores - 1}`);
+    else if (process.platform === 'win32')
+      setAffinityWin(pids, Math.round(Math.pow(2, allowedCores)) - 1);
+    return trimMemory();
+  });
 
   const PROC_LABEL = {
     Browser: 'MAIN',

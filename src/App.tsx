@@ -41,8 +41,7 @@ import SplashScreen from './components/common/SplashScreen';
 import RenderTimerHUD from './components/common/RenderTimerHUD';
 import SettingsView from './components/common/SettingsView';
 import { isReleaseBuild } from './config/buildVariant';
-import { getPerfMode, YIELDS_CPU } from './services/perfModeService';
-import { getBridge } from './platform/bridge';
+import { applyNativePriority } from './services/perfModeService';
 import LikedSongsView from './components/Library/LikedSongsView';
 import './styles/index.css';
 import { credentialsService } from './services/credentialsService';
@@ -156,9 +155,7 @@ const AppContent: React.FC = () => {
 
   // Apply mode-specific core affinity after the bridge (IPC) is available
   React.useEffect(() => {
-    const bridge = getBridge();
-    // gaming + eco yield cores (half); balanced keeps normal (3/4).
-    bridge.setPowerSaverPriority(YIELDS_CPU[getPerfMode()]).catch(() => {});
+    applyNativePriority();
   }, []);
 
   // Load preferred library view for current user

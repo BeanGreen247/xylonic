@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, protocol, Menu, Tray, shell, dialog, safeStorage, session, nativeImage, net, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, Menu, shell, dialog, safeStorage, session, nativeImage, net, powerSaveBlocker } = require('electron');
 const { execFile } = require('child_process');
 const https = require('https');
 const http = require('http');
@@ -16,6 +16,7 @@ const { registerMiscIpc } = require('./ipc/misc');
 const { registerDownloadNotificationIpc } = require('./ipc/downloadNotification');
 const { registerCacheIpc, pathToFileUrl } = require('./ipc/cache');
 const { registerPlayerWindowIpc } = require('./ipc/playerWindow');
+const { registerServerDiscoveryIpc } = require('./ipc/serverDiscovery');
 
 let mpris = null;
 if (process.platform === 'linux') {
@@ -31,6 +32,17 @@ if (process.platform === 'linux') {
 if (process.platform === 'win32') {
     app.setAppUserModelId('beangreen247.xylonic.musicplayer');
 }
+
+// Memory/CPU trims (before app ready). SpareRendererForSitePerProcess keeps an
+// idle pre-warmed renderer alive (~40-100 MB) that a single-page app never uses;
+// the rest are Chromium services with no role in a music player.
+app.commandLine.appendSwitch(
+    'disable-features',
+    'SpareRendererForSitePerProcess,MediaRouter,Translate,OptimizationHints,AutofillServerCommunication'
+);
+app.commandLine.appendSwitch('disable-background-networking');
+app.commandLine.appendSwitch('disable-sync');
+app.commandLine.appendSwitch('no-pings');
 
 // Get version from package.json
 const { version } = require('../package.json');
@@ -185,6 +197,7 @@ function createWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js'),
             webSecurity: false,
+            spellcheck: false,
         },
         autoHideMenuBar: true,
         icon: getIconPath(),
@@ -209,12 +222,14 @@ function createWindow() {
       return { action: 'deny' };
     });
 
-    // Network monitoring for bitrate display in title
+    // Network monitoring for bitrate display in title. Filtered so the handlers
+    // only run for stream requests, not every cover-art / API fetch.
+    const STREAM_FILTER = { urls: ['*://*/*stream.view*'] };
     let lastBytes = 0;
     let lastTime = Date.now();
     let currentDownloadSpeed = 0;
 
-    mainWindow.webContents.session.webRequest.onCompleted((details) => {
+    mainWindow.webContents.session.webRequest.onCompleted(STREAM_FILTER, (details) => {
       if (details.url.includes('stream.view')) {
         const bytes = details.responseHeaders?.['content-length']?.[0] || 0;
         const duration = details.timestamp - details.requestTime;
@@ -235,7 +250,7 @@ function createWindow() {
 
     // Reset title when no streaming activity
     let titleResetTimer;
-    mainWindow.webContents.session.webRequest.onBeforeRequest((details, callback) => {
+    mainWindow.webContents.session.webRequest.onBeforeRequest(STREAM_FILTER, (details, callback) => {
       if (details.url.includes('stream.view')) {
         clearTimeout(titleResetTimer);
         titleResetTimer = setTimeout(() => {
@@ -296,6 +311,12 @@ function createWindow() {
         }
     });
 
+    // Minimised windows aren't drawn; release Chromium's caches while hidden.
+    mainWindow.on('minimize', () => {
+        session.defaultSession.clearCache().catch(() => {});
+        session.defaultSession.clearCodeCaches({}).catch(() => {});
+    });
+
     // Clean up on window close
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -321,6 +342,7 @@ function createMiniPlayer() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js'),
             webSecurity: false,
+            spellcheck: false,
         },
         autoHideMenuBar: true,
         icon: getIconPath(),
@@ -364,9 +386,9 @@ const _remoteIpc = registerRemoteIpc({
 // Small one-off IPC (extracted to ./ipc/misc.js)
 registerMiscIpc({ ipcMain, app });
 
-// Download progress surface — dock/taskbar bar, tray, dock badge (./ipc/downloadNotification.js)
+// Download progress surface — dock/taskbar bar, dock badge (./ipc/downloadNotification.js)
 registerDownloadNotificationIpc({
-  ipcMain, app, Tray, nativeImage,
+  ipcMain, app,
   getMainWindow: () => mainWindow,
   onDownloadActiveChange: (v) => { _activeDownloads = v; _updatePowerSave(); },
 });
@@ -518,7 +540,10 @@ registerCacheIpc({
 });
 
 // Priority / affinity / system stats (extracted to ./ipc/system.js)
-registerSystemIpc({ ipcMain, app, execFile });
+registerSystemIpc({ ipcMain, app, execFile, session });
+
+// Login-page server discovery (extracted to ./ipc/serverDiscovery.js)
+registerServerDiscoveryIpc({ ipcMain });
 
 
 app.on('window-all-closed', () => {

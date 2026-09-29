@@ -13,6 +13,14 @@ export interface SystemStats {
   processBreakdown?: Array<{ label: string; pct: number }>;
 }
 
+export interface DiscoveredServer {
+  url: string;
+  name: string;
+  type: string;
+  version?: string;
+  via: 'local' | 'lan' | 'vpn' | 'tailscale';
+}
+
 export interface PlatformBridge {
   readonly isElectron: boolean;
   readonly isCapacitor: boolean;
@@ -91,9 +99,18 @@ export interface PlatformBridge {
   setPowerSaverPriority(enabled: boolean): Promise<void>;
   setPerformancePriority(): Promise<void>;
 
+  // Gaming tier: lowest priority + fewer cores + cache trim (Electron only; no-op elsewhere)
+  setGamingMode(enabled: boolean): Promise<void>;
+  // Release Chromium HTTP/code caches (Electron only; no-op elsewhere)
+  trimMemory(): Promise<void>;
+
   // Download progress notification (Android OS notification; no-op on Electron/web)
   showDownloadNotification(opts: { title: string; text: string; progress: number; ongoing: boolean; indeterminate?: boolean }): Promise<void>;
   hideDownloadNotification(): Promise<void>;
+
+  // Find Subsonic-API servers on the LAN / VPN / Tailscale. Streams results to
+  // `onFound`, calls `onDone` when the scan ends, returns a cancel function.
+  discoverServers(onFound: (server: DiscoveredServer) => void, onDone: () => void): () => void;
 
   // Tell the main process whether downloads are active (Electron: prevents silent window close)
   setDownloadActive(active: boolean): Promise<void>;

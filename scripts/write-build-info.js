@@ -6,13 +6,34 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const buildType = process.argv[2] || 'debug';
-if (!['debug', 'release'].includes(buildType)) {
-  console.error(`Invalid build type: "${buildType}". Use "debug" or "release".`);
+let buildType = process.argv[2] || 'debug';
+if (!['debug', 'release', 'refresh'].includes(buildType)) {
+  console.error(`Invalid build type: "${buildType}". Use "debug", "release" or "refresh".`);
   process.exit(1);
 }
 
-const buildNumber = buildType === 'debug' ? crypto.randomBytes(3).toString('hex') : null;
+// `refresh` (npm pre-hooks for build / test / dev serve): keep whatever type was
+// last written, but regenerate when the package.json version changed or the file
+// is from an earlier calendar day. Otherwise no-op, so the tracked build-info.json
+// isn't dirtied on every run and a release stamp isn't clobbered by a plain build.
+let keepBuildNumber = null;
+if (buildType === 'refresh') {
+  buildType = 'debug';
+  try {
+    const prev = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'build-info.json'), 'utf8'));
+    const sameDay = new Date(prev.builtAt).toDateString() === new Date().toDateString();
+    if (prev.version === pkg.version && sameDay) {
+      console.log(`[build-info] Up to date: v${pkg.version}`);
+      process.exit(0);
+    }
+    if (prev.buildType === 'release') buildType = 'release';
+    keepBuildNumber = prev.buildNumber;
+  } catch {
+    /* missing / unreadable — write a fresh debug stamp */
+  }
+}
+
+const buildNumber = buildType === 'debug' ? keepBuildNumber || crypto.randomBytes(3).toString('hex') : null;
 
 function stripRange(v) {
   return (v || '').replace(/^[\^~>=< ]+/, '');

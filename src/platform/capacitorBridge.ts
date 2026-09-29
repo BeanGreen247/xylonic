@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { probeKnownHosts } from '../services/serverDiscoveryProbe';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 import type { PlatformBridge } from './bridge';
@@ -296,9 +297,13 @@ export const capacitorBridge: PlatformBridge = {
   },
   async setDownloadActive(_active) {},
 
+  discoverServers: (onFound, onDone) => probeKnownHosts(onFound, onDone),
+
   async getSystemStats() { return null; },
   async setPowerSaverPriority(_enabled: boolean) {},
   async setPerformancePriority() {},
+  async setGamingMode(_enabled: boolean) {},
+  async trimMemory() {},
 
   // ── Multi-window (no-op on Android) ──────────────────────────────────────
   async toggleMiniPlayer() { return false; },

@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { isReleaseBuild } from '../../../config/buildVariant';
 import { getBridge } from '../../../platform/bridge';
 import { logger } from '../../../utils/logger';
-import { getPerfMode, setPerfMode as applyPerfMode, YIELDS_CPU, PerfMode } from '../../../services/perfModeService';
+import { getPerfMode, setPerfMode as applyPerfMode, applyNativePriority, PerfMode } from '../../../services/perfModeService';
 import { isEnabled as isRenderTimerEnabled, setEnabled as setRenderTimerEnabled } from '../../../services/renderTimerService';
 
 const PERF_TIERS: { mode: PerfMode; icon: string; label: string; sub: string; color?: string }[] = [
@@ -47,7 +47,7 @@ const AdvancedSection: React.FC = () => {
     if (mode === perfMode) return;
     setPerfMode(mode);
     applyPerfMode(mode);
-    getBridge().setPowerSaverPriority(YIELDS_CPU[mode]).catch(() => {});
+    applyNativePriority(mode);
   };
 
   const handleRenderTimerToggle = () => {

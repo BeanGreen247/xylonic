@@ -55,9 +55,17 @@ export const electronBridge: PlatformBridge = {
   hideDownloadNotification: () => e().clearDownloadProgress(),
   setDownloadActive: (active) => e().setDownloadActive(active),
 
+  discoverServers(onFound, onDone) {
+    const off = e().onServerDiscovered(onFound);
+    e().discoverServers().catch(() => {}).finally(() => { off(); onDone(); });
+    return () => { off(); e().cancelServerDiscovery().catch(() => {}); };
+  },
+
   getSystemStats: () => e().getSystemStats(),
   setPowerSaverPriority: (en) => e().setPowerSaverPriority(en),
   setPerformancePriority: () => e().setPerformancePriority(),
+  setGamingMode: (en) => e().setGamingMode(en),
+  trimMemory: () => e().trimMemory(),
   toggleMiniPlayer: () => e().toggleMiniPlayer(),
   isMiniPlayer: () => e().isMiniPlayer(),
   requestPlayerState: () => e().requestPlayerState(),

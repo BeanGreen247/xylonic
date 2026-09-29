@@ -2,6 +2,35 @@
 
 All notable changes to Xylonic are documented here.
 
+## [26.09.29] - 2026-09-29
+
+### Added
+- **Servers show up on the login page** — Xylonic scans the local subnets, VPN
+  subnets, Tailscale peers (including relayed ones) and common hostnames for
+  Navidrome / Gonic / Airsonic / Subsonic servers and lists them above the form;
+  tap one to fill in the address. Desktop scans the whole subnet; Android/iOS
+  probe well-known hostnames only.
+- **Fedora / Nobara `.rpm`** built alongside the AppImage, `.deb` and tar.gz
+  (`npm run electron:build:linux-rpm`).
+
+### Changed
+- **Gaming mode now actually lightens the system** — lowest CPU priority on a
+  quarter of the cores, all filter/backdrop/shadow passes removed, image memory
+  cache shrunk immediately, and while the window is unfocused or hidden the UI
+  drops to 2 fps and Chromium's caches are released.
+- **Lower desktop RAM/CPU** — no idle spare renderer, unused Chromium services
+  off, spellcheck off, network-monitor hooks only run for stream requests, caches
+  released on minimise.
+
+- **Settings → About no longer shows a stale version/build date** —
+  `npm run build`, `npm test` and the dev servers now refresh
+  `public/build-info.json` when the version changes or a new day starts (a
+  release stamp is never downgraded).
+
+### Removed
+- **System tray icon** — it was invisible; download progress stays on the
+  taskbar/dock. `icon-tray.png` is no longer bundled.
+
 ## [26.09.20] - 2026-09-20
 
 ### Changed

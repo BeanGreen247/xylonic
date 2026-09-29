@@ -66,6 +66,16 @@ contextBridge.exposeInMainWorld('electron', {
   // Process priority / core affinity per mode
   setPowerSaverPriority: (enabled) => ipcRenderer.invoke(enabled ? 'set-power-saver-priority' : 'restore-process-priority'),
   setPerformancePriority: () => ipcRenderer.invoke('set-performance-priority'),
+  setGamingMode: (enabled) => ipcRenderer.invoke('set-gaming-mode', !!enabled),
+  trimMemory: () => ipcRenderer.invoke('trim-memory'),
+  // Subsonic server discovery (login page)
+  discoverServers: () => ipcRenderer.invoke('discover-servers'),
+  cancelServerDiscovery: () => ipcRenderer.invoke('cancel-server-discovery'),
+  onServerDiscovered: (callback) => {
+    const listener = (_event, server) => callback(server);
+    ipcRenderer.on('server-discovered', listener);
+    return () => ipcRenderer.removeListener('server-discovered', listener);
+  },
   // Remote discovery
   remoteGetDevices: () => ipcRenderer.invoke('remote-get-devices'),
   remoteGetDeviceId: () => ipcRenderer.invoke('remote-get-device-id'),

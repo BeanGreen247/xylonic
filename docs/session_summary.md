@@ -1137,3 +1137,12 @@ Six correctness and performance bugs fixed:
   improved solo-song cover art selection but will NOT show actual artist photos until re-downloaded.
 - Artist photos (from IDB preload) will work correctly after the next bulk download from the
   ArtistList or AlbumList views, which now store the `ar-xxx` ID.
+
+## Session 2026-09-29 — gaming mode, tray removal, RAM trims, rpm, server discovery
+
+- **Tray removed**: `Tray`/`nativeImage` usage gone from `electron.js` + `ipc/downloadNotification.js`; `assets/icon-tray.png` deleted, dropped from `electron-builder.json`.
+- **Gaming mode**: new `set-gaming-mode` / `trim-memory` IPC (`ipc/system.js`, bridge `setGamingMode`/`trimMemory`); `perfModeService` `applyNativePriority()` + unfocused/hidden idle (2 fps + cache trim); `body.gaming-mode` strips filter/backdrop/shadow; `imageCacheService.syncWithAppMode` now shrinks the memory cache immediately.
+- **Desktop RAM/CPU**: startup `disable-features` (spare renderer etc.), `spellcheck:false`, `webRequest` hooks filtered to `stream.view`, cache trim on minimise. Not measured — no profiling done from this environment.
+- **Fedora/Nobara**: `rpm` target + `rpm.depends` in `electron-builder.json`, `desktop.yml` builds/uploads it.
+- **Login discovery**: `public/ipc/serverDiscovery.js` (TCP sweep + `ping.view` confirm; subnets, VPN ifaces, `tailscale status --json` peers, hostnames), `serverDiscoveryProbe.ts` for mobile/web, `LoginForm` list. Unverified on device / with a real Tailscale.
+- Version bumped to 26.09.29; build clean, 148 tests pass.

@@ -854,6 +854,15 @@ class ImageCacheService {
     const tuning = IMAGE_CACHE_TUNING[getPerfMode()];
     this.maxConcurrentFetches = tuning.maxConcurrentFetches;
     this.maxMemoryCacheSize   = tuning.maxMemoryCacheSize;
+    // Shrink immediately (LRU first, deferred revoke) so a lower tier frees RAM now.
+    while (this.memoryCache.size > this.maxMemoryCacheSize) {
+      const firstKey = this.memoryCache.keys().next().value;
+      if (firstKey === undefined) break;
+      const evicted = this.memoryCache.get(firstKey);
+      this.memoryCache.delete(firstKey);
+      if (evicted) this.pendingRevoke.push({ url: evicted, after: Date.now() + 5000 });
+    }
+    this.flushPendingRevokes();
   }
 
   /**

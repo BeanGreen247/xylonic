@@ -1,4 +1,5 @@
 import type { PlatformBridge } from './bridge';
+import { probeKnownHosts } from '../services/serverDiscoveryProbe';
 
 /**
  * Used when running in a plain web browser (not Electron, not Android).
@@ -56,8 +57,12 @@ export const fallbackBridge: PlatformBridge = {
   async hideDownloadNotification() {},
   async setDownloadActive(_active) {},
 
+  discoverServers: (onFound, onDone) => probeKnownHosts(onFound, onDone),
+
   async getSystemStats() { return null; },
   async setPowerSaverPriority(_enabled: boolean) {},
+  async setGamingMode(_enabled: boolean) {},
+  async trimMemory() {},
   async setPerformancePriority() {},
   async toggleMiniPlayer() { return false; },
   async isMiniPlayer() { return false; },

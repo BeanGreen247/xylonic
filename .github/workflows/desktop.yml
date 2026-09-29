@@ -129,7 +129,7 @@ jobs:
           done
 
   linux:
-    name: Build Linux (AppImage / deb / tar.gz)
+    name: Build Linux (AppImage / deb / rpm / tar.gz)
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.platforms == '' || github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux' }}
 
@@ -166,7 +166,7 @@ jobs:
           VITE_BUILD_TYPE: release
 
       - name: Build Linux packages
-        run: npx electron-builder --linux AppImage deb tar.gz
+        run: npx electron-builder --linux AppImage deb rpm tar.gz
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -186,6 +186,14 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Upload rpm (Fedora / Nobara)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xylonic-Linux-rpm-${{ github.sha }}
+          path: dist/*.rpm
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload tar.gz
         uses: actions/upload-artifact@v4
         with:
@@ -200,6 +208,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          for f in dist/*.AppImage dist/*.deb dist/*.tar.gz; do
+          for f in dist/*.AppImage dist/*.deb dist/*.rpm dist/*.tar.gz; do
             [ -f "$f" ] && echo "- **$(basename $f):** $(du -sh $f | cut -f1)" >> $GITHUB_STEP_SUMMARY
           done

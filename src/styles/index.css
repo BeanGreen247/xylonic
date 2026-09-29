@@ -3032,6 +3032,16 @@ body.gaming-mode .quality-picker-modal {
 body.gaming-mode .npo-bg {
     display: none !important;
 }
+
+/* No filter / backdrop / shadow passes anywhere — each one is an extra
+   offscreen render target and draw call per composite. */
+body.gaming-mode * {
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    scroll-behavior: auto !important;
+}
 /* ─── end gaming mode ──────────────────────────────────────────────────────── */
 
 /* ─── Power Saver Mode ───────────────────────────────────────────────────────

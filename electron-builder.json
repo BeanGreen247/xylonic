@@ -22,10 +22,6 @@
     {
       "from": "assets/icon.png",
       "to": "icon.png"
-    },
-    {
-      "from": "assets/icon-tray.png",
-      "to": "icon-tray.png"
     }
   ],
   "win": {
@@ -89,6 +85,10 @@
         "arch": ["x64"]
       },
       {
+        "target": "rpm",
+        "arch": ["x64"]
+      },
+      {
         "target": "tar.gz",
         "arch": ["x64"]
       }
@@ -112,6 +112,24 @@
       "libsecret-1-0",
       "libgbm1",
       "libdrm2"
+    ]
+  },
+  "rpm": {
+    "packageName": "xylonic",
+    "synopsis": "Modern Subsonic music streaming client",
+    "compression": "xz",
+    "depends": [
+      "gtk3",
+      "nss",
+      "libXScrnSaver",
+      "libXtst",
+      "xdg-utils",
+      "at-spi2-core",
+      "alsa-lib",
+      "libnotify",
+      "libsecret",
+      "mesa-libgbm",
+      "libdrm"
     ]
   },
   "portable": {

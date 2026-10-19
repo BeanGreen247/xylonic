@@ -46,6 +46,7 @@ interface RemoteDiscoveryPlugin {
     host: string; port: number; action: string; data: string; controllerId: string;
   }): Promise<RemoteCommandResult>;
   isOnWifi(): Promise<{ onWifi: boolean }>;
+  getLocalNetwork(): Promise<{ ip?: string; prefix?: number }>;
   addListener(event: 'deviceFound',          handler: (d: RemoteDevice) => void): Promise<{ remove(): void }>;
   addListener(event: 'deviceLost',           handler: (d: { id: string }) => void): Promise<{ remove(): void }>;
   addListener(event: 'devicePairingChanged', handler: (d: { id: string; pairedWith: string | null }) => void): Promise<{ remove(): void }>;
@@ -65,6 +66,17 @@ type PlayerStateCallback   = (state: RemotePlayerState) => void;
 const DEVICE_ID_KEY              = '_xylonic_remote_device_id';
 const REMOTE_ENABLED_KEY         = 'xylonic_remote_control_enabled';
 const REMOTE_CONTROLLER_KEY      = 'xylonic_remote_controller_enabled';
+
+/** This device's private IPv4 network (Android native only), for the nearby-server scan. */
+export async function getLocalNetwork(): Promise<{ ip: string; prefix: number } | null> {
+  if (Capacitor.getPlatform() !== 'android') return null;
+  try {
+    const { ip, prefix } = await RemoteDiscovery.getLocalNetwork();
+    return ip && typeof prefix === 'number' ? { ip, prefix } : null;
+  } catch {
+    return null;
+  }
+}
 
 function genUUID(): string {
   if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {

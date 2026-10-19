@@ -377,6 +377,56 @@ public class RemoteDiscoveryPlugin extends Plugin {
         call.resolve(r);
     }
 
+    // ── Local network (for the login screen's nearby-server scan) ─────────────
+
+    /** Resolves { ip, prefix } of this device's private IPv4 network, or {} when there is none. */
+    @PluginMethod
+    public void getLocalNetwork(PluginCall call) {
+        JSObject r = new JSObject();
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getContext()
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                for (Network net : cm.getAllNetworks()) {
+                    NetworkCapabilities caps = cm.getNetworkCapabilities(net);
+                    if (caps == null) continue;
+                    // Wi-Fi and Ethernet carry a LAN; cellular and VPN do not.
+                    if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                        && !caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) continue;
+                    LinkProperties lp = cm.getLinkProperties(net);
+                    if (lp == null) continue;
+                    for (LinkAddress la : lp.getLinkAddresses()) {
+                        InetAddress addr = la.getAddress();
+                        if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
+                            r.put("ip", addr.getHostAddress());
+                            r.put("prefix", la.getPrefixLength());
+                            call.resolve(r);
+                            return;
+                        }
+                    }
+                }
+            }
+            // Older Android: first up, non-loopback IPv4 interface address.
+            Enumeration<NetworkInterface> ifaces = NetworkInterface.getNetworkInterfaces();
+            while (ifaces != null && ifaces.hasMoreElements()) {
+                NetworkInterface iface = ifaces.nextElement();
+                if (iface.isLoopback() || !iface.isUp()) continue;
+                for (java.net.InterfaceAddress ia : iface.getInterfaceAddresses()) {
+                    InetAddress addr = ia.getAddress();
+                    if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
+                        r.put("ip", addr.getHostAddress());
+                        r.put("prefix", (int) ia.getNetworkPrefixLength());
+                        call.resolve(r);
+                        return;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            if (D) Log.w(TAG, "getLocalNetwork failed: " + e.getMessage());
+        }
+        call.resolve(r);
+    }
+
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     private void handlePresencePacket(String msg) {

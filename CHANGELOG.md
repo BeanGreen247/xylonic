@@ -2,6 +2,48 @@
 
 All notable changes to Xylonic are documented here.
 
+## [Unreleased]
+
+### Added
+- **Car Mode** (Settings → Driving display) — a landscape-only full-screen player:
+  large touch controls, shuffle / like / repeat, one draggable progress bar,
+  battery level and a flip button. Android locks to landscape using the
+  accelerometer (flip pins the opposite side); platforms that cannot lock
+  rotate the layout instead.
+- **Pulse Deck** — an optional spectrum view inside Car Mode: 24 log-spaced
+  bands with peak caps and frequency labels over a flowing, theme-coloured
+  gradient that swells with the bass. Reads the shared audio element through
+  `captureStream()` (never rerouted) and falls back to a local animation where
+  that is unavailable.
+- **Per-song bass / treble EQ** (Pulse Deck, downloaded tracks only) — drag the
+  spectrum: left third bass, right third treble, middle both; two fingers work
+  both at once. A "Reset EQ" button appears in the header; changing song resets.
+- **High-resolution album art in Car Mode** — loads the largest available cover
+  (up to 2000 px) into its own bounded cache (`hi:` key: 4 in memory, 40 on
+  disk); the normal-size art shows until it arrives.
+- **Mobile nearby-server scan** — Android and iOS now sweep the local subnet and
+  previously used servers instead of only trying a few hostnames.
+
+### Changed
+- **Contrast-aware theming** — accent colours and the grey text/border tokens
+  are derived per theme and per light/dark mode so they stay readable on tinted
+  fills (checked for every preset in both modes).
+- **Quieter controls** — grey-filled pills, inputs and slider tracks no longer
+  carry a grey fill: icon-only buttons are borderless until hover, text pills
+  get one soft theme-tinted hairline.
+- **Desktop Now Playing** uses the same flowing gradient as Car Mode instead of
+  the blurred cover.
+- Pulse Deck stops drawing when nothing is playing (paused CPU ~4% → ~0.2%).
+
+### Fixed
+- Pressing Play on the song restored at launch left the spinner up forever;
+  it now loads the song first.
+- Cover art cache reused whichever size loaded first for every view.
+
+### Known issues
+- The nearby-server scan does not find servers on the MECHEN H1-Pro (Android 9);
+  a full recheck is planned for the week of 2026-10-19.
+
 ## [26.09.29] - 2026-09-29
 
 ### Added

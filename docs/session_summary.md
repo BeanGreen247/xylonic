@@ -1,5 +1,22 @@
 # Session Summary
 
+## Car Mode, Pulse Deck, contrast theming, mobile scan (2026-10-19)
+
+Rebuilt Car Mode on the app's own design system (Now Playing controls, theme
+tokens), added Pulse Deck with a `captureStream()` spectrum, a per-song bass/treble
+EQ for cached tracks (side path with captureStream + mute, torn down on revert /
+song change / background — the shared audio element is never rerouted), a
+separate `hi:` hi-res cover cache, an Android `ScreenOrientation` plugin and a
+`FlowingBackdrop` gradient shared with desktop Now Playing. Found and fixed an
+existing bug: Play on the restored-at-launch song never loaded it. Theme work:
+`colorContrast.ts` derives accent / secondary text / muted text / border colours
+per theme and mode (tests cover every preset in both modes) and
+`outlined-controls.css` replaces grey fills with hairlines. Mobile nearby-server
+scan now sweeps the subnet (Android reports its network natively). Open item: the
+scan finds nothing on the MECHEN — owner will retest this week (see todos.md).
+Measured, not guessed: desktop UI is not render-bound (layout+style ~1.7 ms per
+frame while scrolling; main UI 2–3% CPU playing).
+
 ## WS-QUAL T9 (no-unused-vars → 0) + WS-TEST status correction (2026-09-14)
 
 Continued the perf/tests/todos track (tasks/todo.md, docs/todos.md), skipping

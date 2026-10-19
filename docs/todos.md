@@ -5,6 +5,14 @@
 
 ## In Progress
 
+- [ ] **Car Mode / mobile recheck (owner, week of 2026-10-19)** — on the MECHEN H1-Pro
+      (Android 9, 480x800): the login-page **nearby-server scan finds nothing on the
+      device** (renderer sweep + native `RemoteDiscovery.getLocalNetwork`; desktop
+      scanner works) — needs a full recheck; also verify Car Mode landscape lock /
+      flip, Pulse Deck bars and EQ on a downloaded track, hi-res art, 533x320 layout,
+      and the light/dark contrast + outlined controls on every screen. Owner will
+      report bugs.
+
 - [ ] **26.09.29 device pass (owner)** — verify on real hardware: gaming-mode CPU/RAM
       while a game runs; AppImage/rpm RSS vs the old 400–800 MB (Nobara); rpm install;
       login-page discovery on LAN + Tailscale. Follow-up: remove now-redundant

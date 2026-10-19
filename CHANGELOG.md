@@ -24,6 +24,22 @@ All notable changes to Xylonic are documented here.
 - **Mobile nearby-server scan** — Android and iOS now sweep the local subnet and
   previously used servers instead of only trying a few hostnames.
 
+- **Minimal Car Mode layout** — on very small screens (or by choice in Settings →
+  Driving display → Minimal layout: Auto / Always / Never, also a button inside Car
+  Mode): no top or bottom bars and no album art; the seek bar runs along the top
+  with Previous/Next at its ends, title, artist and shuffle · play/pause · repeat ·
+  like are centered, and everything scales with the screen.
+- **Keep screen on** in Car Mode (setting plus a button) — no sleep, dimming or
+  auto-lock while it is open; Android uses the window flag, other platforms the
+  Screen Wake Lock API. Android also hides the status and navigation bars.
+- **Pulse Deck lag guard** — if it cannot hold ~30 fps it switches itself off
+  (tap the bars icon to retry).
+- **Permanent cache location (Android)** — Settings → Storage lets you keep
+  downloads, cover art and indexes on internal storage or an SD card / adopted
+  volume, moving what is cached with progress; falls back to internal storage if
+  the volume is missing. The manifest now allows moving the app itself to
+  adoptable storage (`installLocation="auto"`).
+
 ### Changed
 - **Contrast-aware theming** — accent colours and the grey text/border tokens
   are derived per theme and per light/dark mode so they stay readable on tinted
@@ -36,13 +52,19 @@ All notable changes to Xylonic are documented here.
 - Pulse Deck stops drawing when nothing is playing (paused CPU ~4% → ~0.2%).
 
 ### Fixed
+- A failed performance-cache build (weak connection, server timeouts) was
+  marked complete over an empty cache and never retried; it now shows the failure
+  with Try Again, retries failed requests in adaptive batches, and only sets the
+  'built' flag when the library actually loaded. The end of the build also threw a
+  ReferenceError (an undefined state setter) that was silently swallowed.
 - Pressing Play on the song restored at launch left the spinner up forever;
   it now loads the song first.
 - Cover art cache reused whichever size loaded first for every view.
 
 ### Known issues
 - The nearby-server scan does not find servers on the MECHEN H1-Pro (Android 9);
-  a full recheck is planned for the week of 2026-10-19.
+  a full recheck is planned for the week of 2026-10-19 (likely the weak Wi-Fi
+  link there: -79 dBm, 15 s request timeouts, rather than the scan itself).
 
 ## [26.09.29] - 2026-09-29
 

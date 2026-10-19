@@ -134,7 +134,7 @@ public class NativeDownloaderPlugin extends Plugin {
      */
     @PluginMethod
     public void readCompletionLog(PluginCall call) {
-        File logFile = new File(getContext().getFilesDir(), "permanent_cache/completion_log.ndjson");
+        File logFile = new File(CacheStorage.root(getContext()), "completion_log.ndjson");
         JSArray entries = new JSArray();
         if (logFile.exists()) {
             try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
@@ -156,7 +156,7 @@ public class NativeDownloaderPlugin extends Plugin {
     /** Deletes the completion log after reconcileOrphans() has processed it. */
     @PluginMethod
     public void clearCompletionLog(PluginCall call) {
-        File logFile = new File(getContext().getFilesDir(), "permanent_cache/completion_log.ndjson");
+        File logFile = new File(CacheStorage.root(getContext()), "completion_log.ndjson");
         if (logFile.exists()) logFile.delete();
         call.resolve();
     }
@@ -182,6 +182,8 @@ public class NativeDownloaderPlugin extends Plugin {
 
                 // Permanent audio/cover-art cache — delete the whole tree so orphaned
                 // files and other-user audio (skipped by JS ref-counting) are removed too.
+                deleteRecursive(CacheStorage.root(ctx));
+                // a cache left behind on the default location after a move failed or was undone
                 deleteRecursive(new File(ctx.getFilesDir(), "permanent_cache"));
 
                 // WebView disk HTTP cache

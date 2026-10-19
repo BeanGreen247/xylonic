@@ -5,6 +5,7 @@ import { Preferences } from '@capacitor/preferences';
 import type { PlatformBridge } from './bridge';
 import { logger } from '../utils/logger';
 import { bytesToBase64 } from '../utils/dataUrl';
+import { getCacheRoot } from '../services/cacheStorageService';
 
 interface DownloadNotificationPlugin {
   showProgress(opts: { title: string; text: string; progress: number; ongoing: boolean; indeterminate?: boolean }): Promise<void>;
@@ -25,57 +26,76 @@ const MediaControl = registerPlugin<MediaControlPlugin>('MediaControl');
 const DATA = Directory.Data;
 const CACHE_BASE = 'permanent_cache';
 
+// Where the permanent cache lives. '' = the default (Directory.Data/permanent_cache); otherwise
+// the absolute directory of the user's chosen volume (see cacheStorageService / CacheStoragePlugin).
+// Resolved once, natively, before any cache file is touched.
+let _customRoot = '';
+const rootReady: Promise<void> = getCacheRoot().then(path => { _customRoot = path; }).catch(() => {});
+
 // Absolute file:// URI of the cache root, captured on the first getCacheDir()
 // call so cached-audio URLs can be built synchronously (no native round-trip),
 // which keeps audio.play() inside the tap's user-activation window on iOS.
 let _cacheRootUri = '';
 
+/** Filesystem arguments for a path relative to the cache root ('' = the root itself). */
+function loc(rel: string): { path: string; directory?: Directory } {
+  const tail = rel ? `/${rel}` : '';
+  return _customRoot
+    ? { path: `file://${_customRoot}${tail}` }
+    : { path: `${CACHE_BASE}${tail}`, directory: DATA };
+}
+
 function toBase64(buffer: number[]): string {
   return bytesToBase64(new Uint8Array(buffer));
 }
 
-async function ensureDir(path: string): Promise<void> {
+async function ensureDir(rel: string): Promise<void> {
+  await rootReady;
   try {
-    await Filesystem.mkdir({ path, directory: DATA, recursive: true });
+    await Filesystem.mkdir({ ...loc(rel), recursive: true });
   } catch {
     // already exists — ignore
   }
 }
 
-async function pathExists(path: string): Promise<boolean> {
+async function pathExists(rel: string): Promise<boolean> {
+  await rootReady;
   try {
-    await Filesystem.stat({ path, directory: DATA });
+    await Filesystem.stat(loc(rel));
     return true;
   } catch {
     return false;
   }
 }
 
-async function readText(path: string): Promise<string | null> {
+async function readText(rel: string): Promise<string | null> {
+  await rootReady;
   try {
-    const r = await Filesystem.readFile({ path, directory: DATA, encoding: Encoding.UTF8 });
+    const r = await Filesystem.readFile({ ...loc(rel), encoding: Encoding.UTF8 });
     return r.data as string;
   } catch {
     return null;
   }
 }
 
-async function writeText(path: string, data: string): Promise<boolean> {
+async function writeText(rel: string, data: string): Promise<boolean> {
+  await rootReady;
   try {
-    await Filesystem.writeFile({ path, directory: DATA, data, encoding: Encoding.UTF8, recursive: true });
+    await Filesystem.writeFile({ ...loc(rel), data, encoding: Encoding.UTF8, recursive: true });
     return true;
   } catch {
     return false;
   }
 }
 
-async function calcDirSize(path: string): Promise<{ totalSize: number; fileCount: number }> {
+async function calcDirSize(rel: string): Promise<{ totalSize: number; fileCount: number }> {
+  await rootReady;
   let totalSize = 0;
   let fileCount = 0;
   try {
-    const { files } = await Filesystem.readdir({ path, directory: DATA });
+    const { files } = await Filesystem.readdir(loc(rel));
     for (const f of files) {
-      const sub = `${path}/${f.name}`;
+      const sub = rel ? `${rel}/${f.name}` : f.name;
       if (f.type === 'directory') {
         const s = await calcDirSize(sub);
         totalSize += s.totalSize;
@@ -106,9 +126,14 @@ export const capacitorBridge: PlatformBridge = {
 
   // ── Cache root ────────────────────────────────────────────────────────────
   async getCacheDir() {
-    const { uri } = await Filesystem.getUri({ path: CACHE_BASE, directory: DATA });
-    _cacheRootUri = uri;
-    return uri;
+    await rootReady;
+    if (_customRoot) {
+      _cacheRootUri = `file://${_customRoot}`;
+    } else {
+      const { uri } = await Filesystem.getUri({ path: CACHE_BASE, directory: DATA });
+      _cacheRootUri = uri;
+    }
+    return _cacheRootUri;
   },
 
   getCachedAudioUrlSync(hash, filename) {
@@ -118,39 +143,37 @@ export const capacitorBridge: PlatformBridge = {
   },
 
   // ── Legacy v1 index ───────────────────────────────────────────────────────
-  readCacheIndex: () => readText(`${CACHE_BASE}/cache_index.json`),
-  writeCacheIndex: (d) => writeText(`${CACHE_BASE}/cache_index.json`, d),
+  readCacheIndex: () => readText('cache_index.json'),
+  writeCacheIndex: (d) => writeText('cache_index.json', d),
 
   // ── Per-user index ────────────────────────────────────────────────────────
-  readUserCacheIndex: (uid) => readText(`${CACHE_BASE}/users/${uid}/cache_index.json`),
-  writeUserCacheIndex: (uid, d) => writeText(`${CACHE_BASE}/users/${uid}/cache_index.json`, d),
+  readUserCacheIndex: (uid) => readText(`users/${uid}/cache_index.json`),
+  writeUserCacheIndex: (uid, d) => writeText(`users/${uid}/cache_index.json`, d),
 
   // ── Per-user metadata ─────────────────────────────────────────────────────
-  readUserMetadata: (uid) => readText(`${CACHE_BASE}/users/${uid}/metadata.json`),
-  writeUserMetadata: (uid, d) => writeText(`${CACHE_BASE}/users/${uid}/metadata.json`, d),
+  readUserMetadata: (uid) => readText(`users/${uid}/metadata.json`),
+  writeUserMetadata: (uid, d) => writeText(`users/${uid}/metadata.json`, d),
 
   // ── Shared audio registry ─────────────────────────────────────────────────
-  readAudioRegistry: () => readText(`${CACHE_BASE}/registry.json`),
-  writeAudioRegistry: (d) => writeText(`${CACHE_BASE}/registry.json`, d),
+  readAudioRegistry: () => readText('registry.json'),
+  writeAudioRegistry: (d) => writeText('registry.json', d),
 
   // ── Audio file storage ────────────────────────────────────────────────────
   async saveAudioFile(buffer, hash, extension) {
-    const dir = `${CACHE_BASE}/audio/${hash}`;
+    const dir = `audio/${hash}`;
     await ensureDir(dir);
     await Filesystem.writeFile({
-      path: `${dir}/audio${extension}`,
-      directory: DATA,
+      ...loc(`${dir}/audio${extension}`),
       data: toBase64(buffer),
     });
     return { success: true, path: `audio/${hash}/audio${extension}` };
   },
 
   async saveCoverArtFile(buffer, hash, extension) {
-    const dir = `${CACHE_BASE}/audio/${hash}`;
+    const dir = `audio/${hash}`;
     await ensureDir(dir);
     await Filesystem.writeFile({
-      path: `${dir}/cover${extension}`,
-      directory: DATA,
+      ...loc(`${dir}/cover${extension}`),
       data: toBase64(buffer),
     });
     return { success: true, path: `audio/${hash}/cover${extension}` };
@@ -158,15 +181,16 @@ export const capacitorBridge: PlatformBridge = {
 
   async deleteAudioDir(hash) {
     try {
-      await Filesystem.rmdir({ path: `${CACHE_BASE}/audio/${hash}`, directory: DATA, recursive: true });
+      await rootReady;
+      await Filesystem.rmdir({ ...loc(`audio/${hash}`), recursive: true });
       return true;
     } catch { return false; }
   },
 
   async getAudioFilePath(hash, filename) {
-    const path = `${CACHE_BASE}/audio/${hash}/${filename}`;
-    if (!await pathExists(path)) return null;
-    const { uri } = await Filesystem.getUri({ path, directory: DATA });
+    const rel = `audio/${hash}/${filename}`;
+    if (!await pathExists(rel)) return null;
+    const uri = _customRoot ? `file://${_customRoot}/${rel}` : (await Filesystem.getUri(loc(rel))).uri;
     // convertFileSrc makes the file:// URI usable from inside the WebView
     return Capacitor.convertFileSrc(uri);
   },
@@ -174,7 +198,8 @@ export const capacitorBridge: PlatformBridge = {
   // ── Image reading ─────────────────────────────────────────────────────────
   async readCachedImage(relativePath) {
     try {
-      const r = await Filesystem.readFile({ path: `${CACHE_BASE}/${relativePath}`, directory: DATA });
+      await rootReady;
+      const r = await Filesystem.readFile(loc(relativePath));
       const base64 = r.data as string;
       const ext = relativePath.split('.').pop()?.toLowerCase();
       const mime =
@@ -188,27 +213,28 @@ export const capacitorBridge: PlatformBridge = {
   // ── Cache management ──────────────────────────────────────────────────────
   async deleteCachedFile(relativePath) {
     try {
-      await Filesystem.deleteFile({ path: `${CACHE_BASE}/${relativePath}`, directory: DATA });
+      await rootReady;
+      await Filesystem.deleteFile(loc(relativePath));
       return true;
     } catch { return false; }
   },
 
   async clearCacheDir() {
     try {
-      const { files } = await Filesystem.readdir({ path: CACHE_BASE, directory: DATA });
+      await rootReady;
+      const { files } = await Filesystem.readdir(loc(''));
       for (const f of files) {
-        const p = `${CACHE_BASE}/${f.name}`;
         if (f.type === 'directory') {
-          await Filesystem.rmdir({ path: p, directory: DATA, recursive: true });
+          await Filesystem.rmdir({ ...loc(f.name), recursive: true });
         } else {
-          await Filesystem.deleteFile({ path: p, directory: DATA });
+          await Filesystem.deleteFile(loc(f.name));
         }
       }
       return true;
     } catch { return false; }
   },
 
-  getCacheStats: () => calcDirSize(CACHE_BASE),
+  getCacheStats: () => calcDirSize(''),
 
   // ── Art lookup ────────────────────────────────────────────────────────────
   async findSiblingArt(audioHash) {
@@ -219,9 +245,9 @@ export const capacitorBridge: PlatformBridge = {
       'cover.png', 'album.png', 'folder.png',
     ];
     for (const name of candidates) {
-      const path = `${CACHE_BASE}/audio/${audioHash}/${name}`;
       try {
-        const r = await Filesystem.readFile({ path, directory: DATA });
+        await rootReady;
+        const r = await Filesystem.readFile(loc(`audio/${audioHash}/${name}`));
         const ext = name.split('.').pop()?.toLowerCase();
         const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
         return `data:${mime};base64,${r.data}`;
@@ -235,11 +261,12 @@ export const capacitorBridge: PlatformBridge = {
 
   async migrateFileToHashStorage(oldPath, hash, filename) {
     try {
-      const r = await Filesystem.readFile({ path: `${CACHE_BASE}/${oldPath}`, directory: DATA });
-      const newDir = `${CACHE_BASE}/audio/${hash}`;
+      await rootReady;
+      const r = await Filesystem.readFile(loc(oldPath));
+      const newDir = `audio/${hash}`;
       await ensureDir(newDir);
-      await Filesystem.writeFile({ path: `${newDir}/${filename}`, directory: DATA, data: r.data as string });
-      await Filesystem.deleteFile({ path: `${CACHE_BASE}/${oldPath}`, directory: DATA });
+      await Filesystem.writeFile({ ...loc(`${newDir}/${filename}`), data: r.data as string });
+      await Filesystem.deleteFile(loc(oldPath));
       return { success: true, newPath: `audio/${hash}/${filename}` };
     } catch (err: any) {
       return { success: false, error: err?.message ?? String(err) };

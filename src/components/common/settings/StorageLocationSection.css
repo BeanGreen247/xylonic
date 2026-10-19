@@ -1,0 +1,68 @@
+.storage-warning {
+  margin: 4px 16px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+.storage-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--scrim);
+}
+.storage-dialog {
+  width: min(480px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--elevation-modal);
+}
+.storage-title { margin: 0 0 6px; font-size: var(--font-size-lg); }
+.storage-sub, .storage-note { margin: 0 0 12px; color: var(--text-secondary); font-size: var(--font-size-sm); }
+.storage-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.storage-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.storage-option.selected { border-color: var(--primary-color); }
+.storage-option.selected i { color: var(--primary-color); }
+.storage-option-text { display: flex; flex-direction: column; gap: 2px; }
+.storage-option-text small { color: var(--text-muted); font-size: var(--font-size-xs); }
+.storage-progress { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: var(--font-size-sm); color: var(--text-secondary); }
+.storage-progress-bar { height: 8px; border-radius: var(--radius-full); background: var(--hover-overlay); overflow: hidden; }
+.storage-progress-fill { height: 100%; background: var(--primary-color); transition: width .2s; }
+.storage-error { margin: 0 0 12px; color: var(--primary-color); font-size: var(--font-size-sm); font-weight: 600; }
+.storage-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.storage-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.storage-btn.primary { background: var(--primary-color); border-color: var(--primary-color); color: var(--on-primary, #000); }
+.storage-btn:disabled { opacity: .45; cursor: default; }
+.storage-radio { width: 1em; height: 1em; border: 2px solid var(--border-strong); border-radius: 50%; box-sizing: border-box; flex-shrink: 0; }
+.storage-option i { flex-shrink: 0; }

@@ -285,7 +285,7 @@ public class DownloadService extends Service {
         long   totalBytes = conn.getContentLengthLong();
         String extension  = extensionFrom(conn.getContentType());
 
-        File destDir = new File(getFilesDir(), "permanent_cache/audio/" + hash);
+        File destDir = new File(CacheStorage.root(this), "audio/" + hash);
         if (!destDir.exists() && !destDir.mkdirs())
             throw new Exception("Failed to create cache directory");
 
@@ -350,7 +350,7 @@ public class DownloadService extends Service {
 
     private void appendCompletionLog(String hash, String songId, String extension, long bytesReceived) {
         try {
-            File logFile = new File(getFilesDir(), "permanent_cache/completion_log.ndjson");
+            File logFile = new File(CacheStorage.root(this), "completion_log.ndjson");
             File parent  = logFile.getParentFile();
             if (parent != null && !parent.exists()) parent.mkdirs();
             String line = "{\"hash\":\"" + hash + "\",\"songId\":\"" + songId

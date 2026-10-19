@@ -31,6 +31,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(DownloadNotificationPlugin.class);
         registerPlugin(NativeDownloaderPlugin.class);
         registerPlugin(ScreenOrientationPlugin.class);
+        registerPlugin(CacheStoragePlugin.class);
 
         // Lock portrait on phones; leave tablets and TVs free to rotate
         if (!isTabletOrTv()) {

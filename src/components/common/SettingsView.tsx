@@ -19,6 +19,7 @@ import AdvancedSection from './settings/AdvancedSection';
 import SwitchServerSection from './settings/SwitchServerSection';
 import RemoteSettingsSection from './settings/RemoteSettingsSection';
 import StreamingDownloadsSection from './settings/StreamingDownloadsSection';
+import StorageLocationSection from './settings/StorageLocationSection';
 import LibrarySection from './settings/LibrarySection';
 import './SettingsView.css';
 
@@ -35,6 +36,8 @@ function clearPrecacheFlags(user: string, server: string) {
 interface SettingsViewProps {
   onOpenCarMode?: () => void;
 }
+
+import { CAR_LAYOUT_ORDER, readCarLayout, readKeepAwake, writeCarLayout, writeKeepAwake, type CarLayout } from '../../utils/carModePrefs';
 
 const CAR_MODE_AUTOSTART_KEY = 'xylonic_car_mode_autostart';
 const PULSE_DECK_AUTOSTART_KEY = 'xylonic_pulse_deck_autostart';
@@ -55,6 +58,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onOpenCarMode }) => {
   const [carModeAutostart, setCarModeAutostart] = useState(
     () => localStorage.getItem(CAR_MODE_AUTOSTART_KEY) === 'true'
   );
+  const [carLayout, setCarLayout] = useState<CarLayout>(readCarLayout);
+  const [keepAwake, setKeepAwake] = useState(readKeepAwake);
   const [pulseDeckAutostart, setPulseDeckAutostart] = useState(
     () => localStorage.getItem(PULSE_DECK_AUTOSTART_KEY) === 'true'
   );
@@ -70,6 +75,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onOpenCarMode }) => {
     const next = !carModeAutostart;
     setCarModeAutostart(next);
     localStorage.setItem(CAR_MODE_AUTOSTART_KEY, String(next));
+  };
+
+  const handleKeepAwake = () => {
+    const next = !keepAwake;
+    setKeepAwake(next);
+    writeKeepAwake(next);
+  };
+
+  const handleCarLayout = () => {
+    const next = CAR_LAYOUT_ORDER[(CAR_LAYOUT_ORDER.indexOf(carLayout) + 1) % CAR_LAYOUT_ORDER.length];
+    setCarLayout(next);
+    writeCarLayout(next);
   };
 
   const handlePulseDeckAutostart = () => {
@@ -253,6 +270,28 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onOpenCarMode }) => {
             <span className="settings-row-action"><span className="settings-badge on">Launch</span><i className="fas fa-chevron-right" /></span>
           </button>
           <div className="settings-divider" />
+          <button className="settings-row" onClick={handleCarLayout}>
+            <span className="settings-row-icon"><i className="fas fa-compress" /></span>
+            <span className="settings-row-label">
+              Minimal layout
+              <span className="settings-row-sub">
+                {carLayout === 'auto' && 'Automatic: no top and bottom bars on very small screens'}
+                {carLayout === 'minimal' && 'Always: seek bar on top, art as large as possible'}
+                {carLayout === 'full' && 'Never: always show the full layout with its bars'}
+              </span>
+            </span>
+            <span className="settings-row-action"><span className={`settings-badge ${carLayout === 'full' ? 'off' : 'on'}`}>{carLayout === 'auto' ? 'Auto' : carLayout === 'minimal' ? 'Always' : 'Never'}</span></span>
+          </button>
+          <div className="settings-divider" />
+          <button className={`settings-row${keepAwake ? ' active' : ''}`} onClick={handleKeepAwake}>
+            <span className="settings-row-icon"><i className="fas fa-lightbulb" /></span>
+            <span className="settings-row-label">
+              Keep screen on
+              <span className="settings-row-sub">Stop the screen from dimming, sleeping or locking while Car Mode is open</span>
+            </span>
+            <span className="settings-row-action"><span className={`settings-badge ${keepAwake ? 'on' : 'off'}`}>{keepAwake ? 'On' : 'Off'}</span></span>
+          </button>
+          <div className="settings-divider" />
           <button className={`settings-row${carModeAutostart ? ' active' : ''}`} onClick={handleCarModeAutostart}>
             <span className="settings-row-icon"><i className="fas fa-power-off" /></span>
             <span className="settings-row-label">
@@ -384,6 +423,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onOpenCarMode }) => {
       <RemoteSettingsSection />
 
       <StreamingDownloadsSection />
+
+      <StorageLocationSection />
 
       <LibrarySection />
 

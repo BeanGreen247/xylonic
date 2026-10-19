@@ -322,3 +322,8 @@
   .cpd-ring-center       { font-size: var(--font-size-xs); }
   .cpd-gauge--done .cpd-ring-center { font-size: var(--font-size-sm); }
 }
+
+/* Failed build: message plus Try Again / Skip, instead of a false "Library Ready". */
+.cpd-failure { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; margin-top: 8px; }
+.cpd-failure-icon { font-size: 28px; color: var(--primary-color); }
+.cpd-failure-text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-sm); max-width: 420px; }

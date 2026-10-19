@@ -71,6 +71,10 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
   const [artistsElapsed, setArtistsElapsed] = useState<string | null>(null);
   const [albumsElapsed, setAlbumsElapsed] = useState<string | null>(null);
   const [searchElapsed, setSearchElapsed] = useState<string | null>(null);
+  // A failed build never counts as done: it shows here with Try Again instead of
+  // setting the 'preloaded' flag over an empty or partial cache.
+  const [failure, setFailure] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const handleSkip = () => {
     precacheStateService.completePrecaching();
@@ -83,6 +87,13 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
     const startCaching = async () => {
       if (cancelled) return;
       logger.log('[CachePreloadDialog] Starting pre-cache process');
+      setFailure(null);
+      setArtistsCached(0); setTotalArtists(0); setAlbumsCached(0); setTotalAlbums(0);
+      setSearchProgress('Waiting...'); setSearchProgressPct(0);
+      setArtistsElapsed(null); setAlbumsElapsed(null); setSearchElapsed(null);
+      let failureMessage: string | null = null;
+      let artistMetaFailed = 0;
+      let albumMetaFailed = 0;
 
       precacheStateService.startPrecaching();
 
@@ -101,6 +112,42 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
+      };
+
+      const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+      /**
+       * Runs `worker` over `items` in adaptive batches. A batch where a quarter or more
+       * failed halves the batch size (a weak link or a busy server), clean batches grow
+       * it back, and items that still failed get up to two more passes at a smaller
+       * size after a pause. Returns what is still failing so the caller can decide
+       * whether the result is trustworthy instead of silently using a partial one.
+       */
+      const runResilient = async <T, R>(items: T[], worker: (item: T) => Promise<R>): Promise<{ results: R[]; failed: T[] }> => {
+        const results: R[] = [];
+        let pending = items;
+        let size = SAFE_BATCH_SIZE;
+        for (let pass = 0; pass < 3 && pending.length > 0 && !cancelled; pass += 1) {
+          if (pass > 0) {
+            size = Math.max(1, Math.floor(SAFE_BATCH_SIZE / (2 ** pass)));
+            await sleep(2000 * pass);
+          }
+          const failed: T[] = [];
+          for (let i = 0; i < pending.length && !cancelled;) {
+            const batch = pending.slice(i, i + size);
+            i += batch.length;
+            const settled = await Promise.allSettled(batch.map(worker));
+            let bad = 0;
+            settled.forEach((r, k) => {
+              if (r.status === 'fulfilled') results.push(r.value);
+              else { failed.push(batch[k]); bad += 1; }
+            });
+            if (bad * 4 >= batch.length) size = Math.max(1, Math.ceil(size / 2));
+            else if (bad === 0 && size < SAFE_BATCH_SIZE) size += 1;
+          }
+          pending = failed;
+        }
+        return { results, failed: pending };
       };
 
       const fmtTime = (secs: number): string => {
@@ -136,7 +183,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
         try { await imageCacheService.clearCache(); } catch { /* continue anyway */ }
         try { await searchCacheService.clearCache(); } catch { /* continue anyway */ }
 
-        const response = await getArtists(serverUrl, username, password);
+        const response = await fetchWithRetry(() => getArtists(serverUrl, username, password));
         const subsonicResponse = response.data['subsonic-response'];
 
         if (subsonicResponse?.status === 'ok' && subsonicResponse.artists?.index) {
@@ -149,45 +196,31 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
 
           // ── Pipeline: album metadata fetch runs while artist images cache ──
           const fetchAllAlbumMeta = async (): Promise<any[]> => {
-            const allAlbums: any[] = [];
-            for (let i = 0; i < allArtists.length; i += SAFE_BATCH_SIZE) {
-              if (cancelled) break;
-              const artistBatch = allArtists.slice(i, i + SAFE_BATCH_SIZE);
-              const results = await Promise.allSettled(
-                artistBatch.map(async (artist) =>
-                  fetchWithRetry(async () => {
-                    const artistResponse = await getArtist(serverUrl, username, password, artist.id);
-                    const artistData = artistResponse.data['subsonic-response'];
-                    if (artistData?.status === 'ok' && artistData.artist?.album) return artistData.artist.album;
-                    return [];
-                  })
-                )
-              );
-              results.forEach(r => { if (r.status === 'fulfilled' && Array.isArray(r.value)) allAlbums.push(...r.value); });
-            }
+            const { results, failed } = await runResilient(allArtists, (artist) =>
+              fetchWithRetry(async () => {
+                const artistResponse = await getArtist(serverUrl, username, password, artist.id);
+                const artistData = artistResponse.data['subsonic-response'];
+                if (artistData?.status !== 'ok') throw new Error(`getArtist ${artist.id}: ${artistData?.status ?? 'no response'}`);
+                return (artistData.artist?.album ?? []) as any[];
+              }, 2)
+            );
+            artistMetaFailed = failed.length;
             const seen = new Set<string>();
-            return allAlbums.filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
+            return results.flat().filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
           };
 
           // ── Pipeline: song metadata fetch runs while album images cache ──
           const fetchAllSongMeta = async (albums: any[]): Promise<any[]> => {
-            const allSongs: any[] = [];
-            for (let i = 0; i < albums.length; i += SAFE_BATCH_SIZE) {
-              if (cancelled) break;
-              const albumBatch = albums.slice(i, i + SAFE_BATCH_SIZE);
-              const results = await Promise.allSettled(
-                albumBatch.map(async (album) =>
-                  fetchWithRetry(async () => {
-                    const songResponse = await getAlbum(serverUrl, username, password, album.id);
-                    const albumData = songResponse.data['subsonic-response'];
-                    if (albumData?.status === 'ok' && albumData.album?.song) return albumData.album.song;
-                    return [];
-                  })
-                )
-              );
-              results.forEach(r => { if (r.status === 'fulfilled' && Array.isArray(r.value)) allSongs.push(...r.value); });
-            }
-            return allSongs;
+            const { results, failed } = await runResilient(albums, (album) =>
+              fetchWithRetry(async () => {
+                const songResponse = await getAlbum(serverUrl, username, password, album.id);
+                const albumData = songResponse.data['subsonic-response'];
+                if (albumData?.status !== 'ok') throw new Error(`getAlbum ${album.id}: ${albumData?.status ?? 'no response'}`);
+                return (albumData.album?.song ?? []) as any[];
+              }, 2)
+            );
+            albumMetaFailed = failed.length;
+            return results.flat();
           };
 
           // Start album metadata fetch immediately — runs in background during Phase 1
@@ -334,6 +367,12 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
 
             const allSongs = await songMetaPromise;
             logger.log(`📚 ${allSongs.length} songs from ${allAlbumsData.length} albums`);
+            // More than 2% of artists/albums still failing after every retry pass means the
+            // index would silently miss part of the library: report it instead of saving it.
+            const tolerated = (n: number) => Math.floor(n * 0.02);
+            if (artistMetaFailed > tolerated(allArtistsData.length) || albumMetaFailed > tolerated(allAlbumsData.length)) {
+              throw new Error(`${artistMetaFailed} artists and ${albumMetaFailed} albums could not be loaded`);
+            }
 
             setSearchProgress('Saving search index…');
             setSearchProgressPct(50);
@@ -341,18 +380,24 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
 
             setSearchProgress('Search index ready!');
             setSearchProgressPct(100);
-            setSearchIndexComplete(true);
             setSearchElapsed(fmtTime((performance.now() - searchPhaseStart) / 1000));
           } catch (error) {
             logger.error('Error building search index:', error);
-            setSearchIndexComplete(true);
+            failureMessage = `The library could not be fully loaded (${(error as Error).message}).`;
           }
         }
       } catch (error) {
         logger.error('Error pre-caching images:', error);
+        failureMessage = failureMessage ?? 'The server could not be reached.';
       }
 
       if (cancelled) return;
+      if (failureMessage) {
+        // Not complete: leave the 'preloaded' flag unset so the build is offered again.
+        precacheStateService.completePrecaching();
+        setFailure(failureMessage);
+        return;
+      }
       // Clear preload-inflated API call counts so Settings stats reflect browsing only.
       networkStatsService.reset();
       setCurrentPhase('complete');
@@ -362,7 +407,7 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
 
     startCaching();
     return () => { cancelled = true; };
-  }, []);
+  }, [attempt]);
 
   useEffect(() => {
     if (currentPhase !== 'complete') return;
@@ -447,9 +492,18 @@ export const CachePreloadDialog: React.FC<CachePreloadDialogProps> = ({ onComple
           />
         </div>
 
-        {statusText && <p className="cpd-status">{statusText}</p>}
+        {statusText && !failure && <p className="cpd-status">{statusText}</p>}
 
-        {currentPhase === 'complete' ? (
+        {failure ? (
+          <div className="cpd-failure" role="alert">
+            <i className="fas fa-exclamation-triangle cpd-failure-icon" />
+            <p className="cpd-failure-text">{failure} Check the connection to the server, then try again.</p>
+            <div className="cache-preload-actions">
+              <button className="cache-restart-now-btn" onClick={() => setAttempt(a => a + 1)}>Try Again</button>
+              <button className="cache-skip-button" onClick={handleSkip}>Skip for Now</button>
+            </div>
+          </div>
+        ) : currentPhase === 'complete' ? (
           <div className="cache-restart-banner">
             <div className="cache-restart-header">
               <i className="fas fa-check-circle cache-restart-icon" />

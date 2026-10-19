@@ -14,6 +14,7 @@
     /* Accent Colors */
     --accent-color: #00e5ff;
     --accent-light: #84ffff;
+    --on-primary: #000000;
     
     /* Background Colors - Material You uses softer blacks */
     --bg-dark: #121212;
@@ -24,8 +25,8 @@
     
     /* Text Colors */
     --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.7);
-    --text-muted: rgba(255, 255, 255, 0.5);
+    --text-secondary: rgba(255, 255, 255, 0.78);
+    --text-muted: rgba(255, 255, 255, 0.6);
     
     /* Elevation Shadows - Material You style */
     --elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
@@ -65,9 +66,9 @@
     /* Surface-interaction tokens (WS-UX) — borders / hover / active / scrim that
        must flip with the theme. Replace scattered rgba(255,255,255,…) /
        rgba(0,0,0,…) literals with these. Dark values here; light overrides below. */
-    --border-subtle: rgba(255, 255, 255, 0.10);
-    --border: rgba(255, 255, 255, 0.18);
-    --border-strong: rgba(255, 255, 255, 0.30);
+    --border-subtle: rgba(255, 255, 255, 0.12);
+    --border: rgba(255, 255, 255, 0.24);
+    --border-strong: rgba(255, 255, 255, 0.40);
     --hover-overlay: rgba(255, 255, 255, 0.06);
     --active-overlay: rgba(255, 255, 255, 0.13);
     --scrim: rgba(0, 0, 0, 0.55);
@@ -91,16 +92,16 @@
         --surface: #ffffff;
         --surface-variant: #f0f0f2;
         --text-primary: #1b1b1f;
-        --text-secondary: rgba(0, 0, 0, 0.66);
-        --text-muted: rgba(0, 0, 0, 0.45);
+        --text-secondary: rgba(0, 0, 0, 0.76);
+        --text-muted: rgba(0, 0, 0, 0.6);
         --elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 1px 3px 1px rgba(0, 0, 0, 0.04);
         --elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
         --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.08);
         --elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.06), 0 2px 3px 0 rgba(0, 0, 0, 0.08);
         --elevation-modal: 0 16px 48px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.10);
-        --border-subtle: rgba(0, 0, 0, 0.08);
-        --border: rgba(0, 0, 0, 0.12);
-        --border-strong: rgba(0, 0, 0, 0.18);
+        --border-subtle: rgba(0, 0, 0, 0.12);
+        --border: rgba(0, 0, 0, 0.22);
+        --border-strong: rgba(0, 0, 0, 0.36);
         --hover-overlay: rgba(0, 0, 0, 0.04);
         --active-overlay: rgba(0, 0, 0, 0.07);
         --scrim: rgba(0, 0, 0, 0.32);
@@ -116,16 +117,16 @@
     --surface: #ffffff;
     --surface-variant: #f0f0f2;
     --text-primary: #1b1b1f;
-    --text-secondary: rgba(0, 0, 0, 0.66);
-    --text-muted: rgba(0, 0, 0, 0.45);
+    --text-secondary: rgba(0, 0, 0, 0.76);
+    --text-muted: rgba(0, 0, 0, 0.6);
     --elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 1px 3px 1px rgba(0, 0, 0, 0.04);
     --elevation-2: 0 2px 6px 2px rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
     --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.08);
     --elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.06), 0 2px 3px 0 rgba(0, 0, 0, 0.08);
     --elevation-modal: 0 16px 48px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.10);
-    --border-subtle: rgba(0, 0, 0, 0.08);
-    --border: rgba(0, 0, 0, 0.12);
-    --border-strong: rgba(0, 0, 0, 0.18);
+    --border-subtle: rgba(0, 0, 0, 0.12);
+    --border: rgba(0, 0, 0, 0.22);
+    --border-strong: rgba(0, 0, 0, 0.36);
     --hover-overlay: rgba(0, 0, 0, 0.04);
     --active-overlay: rgba(0, 0, 0, 0.07);
     --scrim: rgba(0, 0, 0, 0.32);

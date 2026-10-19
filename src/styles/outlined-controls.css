@@ -1,0 +1,332 @@
+/* Quiet controls, both themes: nothing sits on a grey fill any more, and accent
+   colour is kept for emphasis instead of outlining everything.
+     - icon-only buttons: no fill, no border at rest (their own hover rules draw
+       the state), so clusters of round buttons stay calm;
+     - text pills, inputs, selects: no fill and ONE soft hairline, a blend of the
+       theme colour and the neutral border (--control-outline);
+     - chips/badges that were plain grey blocks: neutral hairline, no accent;
+     - slider tracks: a faint neutral track with the theme colour as the fill.
+   Focus, hover, active and selected states keep their own (stronger) accent.
+   Generated from the base-state rules that fill a control with a grey token; each
+   selector keeps its own specificity and this file loads last, so state rules
+   written for the same element still win. Accent text/icons are already tuned
+   for contrast per mode by ThemeContext; the hairline here is decorative. */
+:root {
+  --control-outline: var(--border-strong); /* fallback for engines without color-mix */
+  --control-outline: color-mix(in srgb, var(--primary-color) 32%, var(--border));
+}
+
+.support-link {
+  background: transparent;
+  border-color: transparent;
+}
+
+.offline-mode-button {
+  background: transparent;
+  border-color: transparent;
+}
+
+.hamburger-button {
+  background: transparent;
+  border-color: transparent;
+}
+
+.offline-toggle-btn {
+  background: transparent;
+  border-color: transparent;
+}
+
+.discover-refresh-btn {
+  background: transparent;
+  border-color: transparent;
+}
+
+.developer-link {
+  background: transparent;
+  border-color: transparent;
+}
+
+.queue-panel-btn:not(.active) {
+  background: transparent;
+  border-color: transparent;
+}
+
+.logout-button {
+  background: transparent;
+  border-color: transparent;
+}
+
+.app-nav-collapse-btn {
+  background: transparent;
+  border-color: transparent;
+}
+
+.download-manager-button {
+  background: transparent;
+  border-color: transparent;
+}
+
+.help-button {
+  background: transparent;
+  border-color: transparent;
+}
+
+.apt-close {
+  background: transparent;
+  border-color: transparent;
+}
+
+.playback-controls button:not(.play-pause-btn):not(.active) {
+  background: transparent;
+  border-color: transparent;
+}
+
+.github-link {
+  background: transparent;
+  border-color: transparent;
+}
+
+.mini-player-button {
+  background: transparent;
+  border-color: var(--control-outline);
+  border-width: 1px;
+}
+
+button.mini-player-button {
+  background: transparent;
+  border-color: var(--control-outline);
+  border-width: 1px;
+}
+
+.connection-select {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.control-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.quality-select {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.toggle-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.delete-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.location-path {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.queue-toggle-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.library-view-toggle {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.quality-option {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.cancel-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.speed-selector-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.right-panel-header {
+  background: transparent;
+}
+
+.panel-section-header {
+  background: transparent;
+}
+
+.apt-new {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.slot-button {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.form-field input[type="text"] {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.color-hex-input {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.fwd-tab {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.fwd-copy-btn {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.fwd-note kbd {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.menu-item-shortcut {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.switch-pass-input {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.shortcut-row {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.shortcut-key {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.lfm-field input {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.lfm-toggle {
+  background: transparent;
+  outline: 1px solid var(--control-outline);
+  outline-offset: -1px;
+}
+
+.rdp-disconnect-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.settings-thankyou-github {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.settings-view-btn {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.sleep-timer-trigger {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+button.theme-button {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.theme-card {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.search-bar {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.search-clear {
+  background: transparent;
+  outline: 1px solid var(--control-outline);
+  outline-offset: -1px;
+}
+
+.sr-mobile-input-wrap {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.form-group input {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.test-button {
+  background: transparent;
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+
+.library-stats {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.quality-picker-cancel {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.library-stats {
+  background: transparent;
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+
+.settings-badge.off {
+  background: transparent;
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+
+.streaming-quality-selector {
+  background: transparent;
+  border-color: var(--control-outline);
+}
+
+.progress-bar {
+  background-color: var(--border); /* fallback for engines without color-mix */
+  background-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.volume-slider {
+  background-color: var(--border); /* fallback for engines without color-mix */
+  background-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.volume-slider-fill {
+  background-color: var(--primary-color);
+}
+
+/* Focus uses the full accent so keyboard users always see where they are. */
+.search-bar:focus-within,
+:where(input, select):focus-visible {
+  border-color: var(--primary-color);
+}

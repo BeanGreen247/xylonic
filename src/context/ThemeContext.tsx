@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { ThemeType, Theme, presetThemes, generateColorVariants } from '../types/theme';
 import { readUserColorConfig, writeUserColorConfig } from '../utils/colorConfigManager';
 import { logger } from '../utils/logger';
+import { deriveNeutrals, ensureContrast, hexToRgbTriplet, onColor } from '../utils/colorContrast';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -20,6 +21,14 @@ interface ThemeContextType {
 
 const THEME_MODE_KEY = 'xylonic_theme_mode';
 const BG = { dark: '#121212', light: '#f7f7f8' } as const;
+// Worst-case surface an accent has to stay readable on in each mode (--surface-variant).
+const ACCENT_SURFACE = { dark: '#2a2a2a', light: '#f0f0f2' } as const;
+
+function effectiveMode(): 'light' | 'dark' {
+  const attr = document.documentElement.getAttribute('data-theme');
+  if (attr === 'light' || attr === 'dark') return attr;
+  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
 
 function readThemeMode(): ThemeMode {
   try {
@@ -141,26 +150,30 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       }
       const root = document.documentElement;
 
-      const hexToRgb = (hex: string) => {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        if (result) {
-          const r = parseInt(result[1], 16);
-          const g = parseInt(result[2], 16);
-          const b = parseInt(result[3], 16);
-          return `${r}, ${g}, ${b}`;
-        }
-        return '0, 188, 212';
-      };
-
-      root.style.setProperty('--primary-color', theme.primaryColor);
-      root.style.setProperty('--primary-light', theme.primaryLight);
+      // Accents are tuned per mode so text/icons stay readable whatever colour
+      // combo is chosen: lightened on dark, darkened on light, until they reach
+      // WCAG AA (4.5:1) against the worst surface (3:1 for the light accent).
+      const mode = effectiveMode();
+      const surface = ACCENT_SURFACE[mode];
+      // Neutrals (secondary/muted text, borders) are derived from the accent too,
+      // so greys keep their contrast on this theme's tinted hover/selected fills.
+      const neutrals = deriveNeutrals(mode, theme.primaryColor);
+      const primary = neutrals.accent;
+      root.style.setProperty('--text-secondary', neutrals.textSecondary);
+      root.style.setProperty('--text-muted', neutrals.textMuted);
+      root.style.setProperty('--border', neutrals.border);
+      root.style.setProperty('--border-strong', neutrals.borderStrong);
+      root.style.setProperty('--primary-color', primary);
+      root.style.setProperty('--primary-light', ensureContrast(theme.primaryLight, surface, 4.5));
       root.style.setProperty('--primary-dark', theme.primaryDark);
-      root.style.setProperty('--secondary-color', theme.secondaryColor);
+      root.style.setProperty('--secondary-color', ensureContrast(theme.secondaryColor, surface, 4.5));
       root.style.setProperty('--secondary-light', theme.secondaryLight);
       root.style.setProperty('--secondary-dark', theme.secondaryDark);
-      root.style.setProperty('--accent-color', theme.accentColor);
-      root.style.setProperty('--accent-light', theme.accentLight);
-      root.style.setProperty('--primary-color-rgb', hexToRgb(theme.primaryColor));
+      root.style.setProperty('--accent-color', ensureContrast(theme.accentColor, surface, 4.5));
+      root.style.setProperty('--accent-light', ensureContrast(theme.accentLight, surface, 3));
+      // Tinted fills keep the theme's own hue; only text/icon shades are adjusted.
+      root.style.setProperty('--primary-color-rgb', hexToRgbTriplet(theme.primaryColor));
+      root.style.setProperty('--on-primary', onColor(primary));
       
       // Set gradient variables for mini player
       root.style.setProperty('--gradient-start', theme.primaryDark);
@@ -270,6 +283,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       applyTheme(currentTheme);
     }
   }, [currentTheme, customThemes, loaded, applyTheme]);
+
+  // Light/dark switches (including the OS flipping while on 'system') change which
+  // accent shades pass contrast, so retune the accents whenever the mode changes.
+  useEffect(() => {
+    if (!loaded) return;
+    applyTheme(currentTheme);
+    if (themeMode !== 'system' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => applyTheme(currentTheme);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, [themeMode, loaded, currentTheme, applyTheme]);
 
   // Persist theme changes per user (only when logged in & loaded)
   useEffect(() => {

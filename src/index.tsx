@@ -13,6 +13,8 @@ import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
 import './styles/fa-solid-subset.css';
 import './styles/index.css';
 import App from './App';
+// Last, so its equal-specificity outlined-control overrides win by source order.
+import './styles/outlined-controls.css';
 import { initPerfMode } from './services/perfModeService';
 import { persistentCache } from './services/persistentCache';
 import { playerQueueStore } from './services/playerQueueStore';

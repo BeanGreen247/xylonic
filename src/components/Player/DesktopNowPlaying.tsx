@@ -3,6 +3,7 @@ import { usePlayer, usePlayerTime } from '../../context/PlayerContext';
 import { useUI } from '../../context/UIContext';
 import { usePlayback } from '../../hooks/usePlayback';
 import AlbumArt from '../common/AlbumArt';
+import FlowingBackdrop from '../common/FlowingBackdrop';
 import ProgressBar from './ProgressBar';
 import './DesktopNowPlaying.css';
 
@@ -199,12 +200,8 @@ const DesktopNowPlaying: React.FC = () => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Ambient blurred background */}
-      <div className="dnp-bg" aria-hidden="true">
-        {currentSong?.coverArt && (
-          <AlbumArt coverArtId={currentSong.coverArt} alt="" size={400} className="dnp-bg-img" />
-        )}
-      </div>
+      {/* Ambient background: the same flowing gradient as Car Mode (no cover art) */}
+      <FlowingBackdrop live={isPlaying} className="dnp-bg" />
       <div className="dnp-bg-scrim" aria-hidden="true" />
 
       {/* Drag handle */}

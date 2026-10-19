@@ -1,0 +1,50 @@
+/* Flowing gradient backdrop, shared by Car Mode and the desktop Now Playing overlay
+   (the Apple Music-style approach): a heavily blurred
+   copy of the cover for the song's own colours, plus three big theme-coloured
+   blobs that drift slowly and swell with the bass. Only transforms animate. */
+.flow-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #05070a; /* fallback for engines without color-mix */
+  background: color-mix(in srgb, var(--primary-color) 6%, #05070a);
+}
+.flow-backdrop-art {
+  position: absolute;
+  inset: -25%;
+  opacity: .5;
+  filter: blur(46px) saturate(1.7);
+  transform: scale(1.15);
+  transition: opacity .6s;
+}
+.flow-backdrop-art img { width: 100%; height: 100%; object-fit: cover; }
+.flow-blob {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(36px);
+  opacity: calc(.32 + var(--beat, 0) * .42);
+  will-change: transform;
+}
+.flow-blob-a { left: -12%; top: -30%; background: radial-gradient(circle, var(--primary-color), transparent 68%); animation: flow-drift-a 19s ease-in-out infinite alternate; }
+.flow-blob-b { right: -16%; bottom: -38%; background: radial-gradient(circle, var(--accent-color), transparent 68%); animation: flow-drift-b 25s ease-in-out infinite alternate; }
+.flow-blob-c { left: 28%; bottom: -46%; width: 52%; background: radial-gradient(circle, var(--secondary-color), transparent 68%); animation: flow-drift-c 22s ease-in-out infinite alternate; }
+.flow-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 38%, rgba(0, 0, 0, .55) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, .25), transparent 30%, rgba(0, 0, 0, .35));
+}
+@keyframes flow-drift-a { from { transform: translate(0, 0) scale(1); } to { transform: translate(18%, 22%) scale(1.25); } }
+@keyframes flow-drift-b { from { transform: translate(0, 0) scale(1.1); } to { transform: translate(-22%, -14%) scale(.9); } }
+@keyframes flow-drift-c { from { transform: translate(0, 0) scale(.95); } to { transform: translate(-30%, -20%) scale(1.2); } }
+/* Nothing playing: freeze the drift so the blurred layers stop costing compositor time. */
+.flow-backdrop:not(.is-live) .flow-blob { animation-play-state: paused; }
+/* Low-power modes and reduced-motion users get the static gradient. */
+body.performance-mode .flow-blob,
+body.gaming-mode .flow-blob { animation: none; }
+body.performance-mode .flow-backdrop-art { display: none; }
+@media (prefers-reduced-motion: reduce) { .flow-blob { animation: none; } }
+

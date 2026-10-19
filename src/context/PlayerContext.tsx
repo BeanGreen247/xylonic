@@ -89,6 +89,7 @@ export interface PlayerContextType {
     clearQueue: () => void;
     setPlaybackSpeed: (speed: number) => void;
     setSleepTimer: (minutes: number | null) => void;
+    getAudioElement: () => HTMLAudioElement | null;
 }
 
 // Separate context for high-frequency time updates so that components which
@@ -214,6 +215,7 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
     const lastIpcPositionRef = useRef(0);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const getAudioElement = useCallback(() => audioRef.current, []);
 
     // Per-user playback prefs — bitrate + speed (extracted to ./usePlaybackPrefs)
     const { bitrate, setBitrate, playbackSpeed, setPlaybackSpeed, speedRef: playbackSpeedRef } =
@@ -975,13 +977,14 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         clearQueue,
         setPlaybackSpeed,
         setSleepTimer,
+        getAudioElement,
     }), [
         currentSong, playlist, isPlaying, isLoading, volume, shuffle, repeat,
         bitrate, muted, isLiked, playbackSpeed, sleepTimerRemaining,
         nextSong, prevSong,
         playSong, playPlaylist, togglePlayPause, playNext, playPrevious, playPreviousForcedStable, seek,
         setVolume, toggleShuffle, toggleRepeat, setBitrate, toggleMute, toggleLike,
-        clearPlayback, addToQueue, insertNext, removeFromQueue, moveInQueue,
+        clearPlayback, addToQueue, insertNext, removeFromQueue, moveInQueue, getAudioElement,
         clearQueue, setPlaybackSpeed, setSleepTimer,
     ]);
 

@@ -32,7 +32,14 @@ function clearPrecacheFlags(user: string, server: string) {
   localStorage.removeItem(makeCacheKey('cachePreloadTimestamp', user, server));
 }
 
-const SettingsView: React.FC = () => {
+interface SettingsViewProps {
+  onOpenCarMode?: () => void;
+}
+
+const CAR_MODE_AUTOSTART_KEY = 'xylonic_car_mode_autostart';
+const PULSE_DECK_AUTOSTART_KEY = 'xylonic_pulse_deck_autostart';
+
+const SettingsView: React.FC<SettingsViewProps> = ({ onOpenCarMode }) => {
   const { offlineModeEnabled, toggleOfflineMode, config: offlineConfig, updateConfig: updateOfflineConfig } = useOfflineMode();
   const { username } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
@@ -45,6 +52,31 @@ const SettingsView: React.FC = () => {
   const [isClearingAllData,  setIsClearingAllData]   = useState(false);
   const [perfCacheStats,     setPerfCacheStats]      = useState<PerformanceCacheStats | null>(null);
   const [perfCacheRefreshTick, setPerfCacheRefreshTick] = useState(0);
+  const [carModeAutostart, setCarModeAutostart] = useState(
+    () => localStorage.getItem(CAR_MODE_AUTOSTART_KEY) === 'true'
+  );
+  const [pulseDeckAutostart, setPulseDeckAutostart] = useState(
+    () => localStorage.getItem(PULSE_DECK_AUTOSTART_KEY) === 'true'
+  );
+
+  const handleOpenCarMode = () => {
+    if (!onOpenCarMode) return;
+    if (window.confirm('Start Car Mode?\n\nCar Mode opens a distraction-free widescreen player with large driving-friendly controls.')) {
+      onOpenCarMode();
+    }
+  };
+
+  const handleCarModeAutostart = () => {
+    const next = !carModeAutostart;
+    setCarModeAutostart(next);
+    localStorage.setItem(CAR_MODE_AUTOSTART_KEY, String(next));
+  };
+
+  const handlePulseDeckAutostart = () => {
+    const next = !pulseDeckAutostart;
+    setPulseDeckAutostart(next);
+    localStorage.setItem(PULSE_DECK_AUTOSTART_KEY, String(next));
+  };
 
   useEffect(() => {
     setPerfCacheStats(null);
@@ -206,6 +238,38 @@ const SettingsView: React.FC = () => {
             </span>
             <span className="settings-row-action"><i className="fas fa-chevron-right" /></span>
           </SleepTimerPicker>
+        </div>
+      </section>
+
+      <section className="settings-section settings-car-mode-section">
+        <h3 className="settings-section-title">Driving display</h3>
+        <div className="settings-card settings-car-mode-card">
+          <button className="settings-row settings-car-mode-launch" onClick={handleOpenCarMode}>
+            <span className="settings-row-icon"><i className="fas fa-car" /></span>
+            <span className="settings-row-label">
+              Car Mode
+              <span className="settings-row-sub">A high-contrast widescreen player for your dashboard</span>
+            </span>
+            <span className="settings-row-action"><span className="settings-badge on">Launch</span><i className="fas fa-chevron-right" /></span>
+          </button>
+          <div className="settings-divider" />
+          <button className={`settings-row${carModeAutostart ? ' active' : ''}`} onClick={handleCarModeAutostart}>
+            <span className="settings-row-icon"><i className="fas fa-power-off" /></span>
+            <span className="settings-row-label">
+              Start in Car Mode
+              <span className="settings-row-sub">Open the driving display automatically when the app starts</span>
+            </span>
+            <span className="settings-row-action"><span className={`settings-badge ${carModeAutostart ? 'on' : 'off'}`}>{carModeAutostart ? 'On' : 'Off'}</span></span>
+          </button>
+          <div className="settings-divider" />
+          <button className={`settings-row${pulseDeckAutostart ? ' active' : ''}`} onClick={handlePulseDeckAutostart}>
+            <span className="settings-row-icon"><i className="fas fa-chart-bar" /></span>
+            <span className="settings-row-label">
+              Start in Pulse Deck
+              <span className="settings-row-sub">Open the animated spectrum visualizer when the app starts</span>
+            </span>
+            <span className="settings-row-action"><span className={`settings-badge ${pulseDeckAutostart ? 'on' : 'off'}`}>{pulseDeckAutostart ? 'On' : 'Off'}</span></span>
+          </button>
         </div>
       </section>
 

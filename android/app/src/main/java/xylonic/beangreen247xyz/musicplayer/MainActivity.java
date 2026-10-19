@@ -30,6 +30,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(RemoteDiscoveryPlugin.class);
         registerPlugin(DownloadNotificationPlugin.class);
         registerPlugin(NativeDownloaderPlugin.class);
+        registerPlugin(ScreenOrientationPlugin.class);
 
         // Lock portrait on phones; leave tablets and TVs free to rotate
         if (!isTabletOrTv()) {
@@ -61,6 +62,13 @@ public class MainActivity extends BridgeActivity {
         // to launch a system settings dialog — plugin getActivity() can silently be null.
         new Handler(Looper.getMainLooper()).postDelayed(
             this::requestBatteryOptimization, 3000);
+    }
+
+    /** Restores the app's normal orientation policy after a screen (Car Mode) forced landscape. */
+    void restoreDefaultOrientation() {
+        setRequestedOrientation(isTabletOrTv()
+            ? ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private boolean isTabletOrTv() {

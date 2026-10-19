@@ -36,6 +36,7 @@ import RightPanel from './components/RightPanel/RightPanel';
 import MobileBottomNav from './components/Player/MobileBottomNav';
 import NowPlayingOverlay from './components/Player/NowPlayingOverlay';
 import DesktopNowPlaying from './components/Player/DesktopNowPlaying';
+import CarMode from './components/Player/CarMode';
 import { CachePreloadDialog } from './components/common/CachePreloadDialog';
 import SplashScreen from './components/common/SplashScreen';
 import RenderTimerHUD from './components/common/RenderTimerHUD';
@@ -110,6 +111,7 @@ const AppContent: React.FC = () => {
   const [showCachePreload, setShowCachePreload] = useState(false);
   const [cachePreloadReason, setCachePreloadReason] = useState<'first-run' | 'library-change'>('first-run');
   const [showNewContentPrompt, setShowNewContentPrompt] = useState(false);
+  const [showCarMode, setShowCarMode] = useState(false);
   const [newContentCounts, setNewContentCounts] = useState({ artists: 0, albums: 0, songs: 0 });
 
   // Missing songs (download cache) detection
@@ -124,6 +126,12 @@ const AppContent: React.FC = () => {
   // Pushed on entering those sections; popped on back/close. Home and library are
   // root sections and clear the stack when navigated to directly.
   const [sectionHistory, setSectionHistory] = useState<AppSection[]>([]);
+
+  React.useEffect(() => {
+    if (isAuthenticated && (localStorage.getItem('xylonic_car_mode_autostart') === 'true' || localStorage.getItem('xylonic_pulse_deck_autostart') === 'true')) {
+      setShowCarMode(true);
+    }
+  }, [isAuthenticated]);
 
   // ── Android back button ──────────────────────────────────────────────────────
   // backHandlerRef is updated directly in the render body (below, after all nav
@@ -584,6 +592,7 @@ const AppContent: React.FC = () => {
   // closure over navigation, appSection, overlays, and nav functions.
   backHandlerRef.current = () => {
     if (showCachePreload) return;
+    if (showCarMode)          { setShowCarMode(false);          return; }
     if (showNewContentPrompt) { setShowNewContentPrompt(false); return; }
     if (showOfflinePrompt)    { setShowOfflinePrompt(false);    return; }
     if (showCellularModePrompt) { setShowCellularModePrompt(false); return; }
@@ -780,7 +789,7 @@ const AppContent: React.FC = () => {
               setAppSection(prev);
             }} />
           ) : appSection === 'settings' ? (
-            <SettingsView />
+            <SettingsView onOpenCarMode={() => setShowCarMode(true)} />
           ) : (
             <>
               {/* Drill-down: artist → albums */}
@@ -874,6 +883,7 @@ const AppContent: React.FC = () => {
         remoteActive={isRemoteMode}
         remoteEnabled={isRemoteModeAvailable && isOnWifi && availableDevices.length > 0}
       />
+      {showCarMode && <CarMode onClose={() => setShowCarMode(false)} startInTeku={localStorage.getItem('xylonic_pulse_deck_autostart') === 'true'} />}
       {showRemotePicker && (
         <RemoteDevicePicker
           devices={availableDevices}

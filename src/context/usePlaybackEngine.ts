@@ -1,5 +1,6 @@
 import { useEffect, MutableRefObject } from 'react';
 import { logger } from '../utils/logger';
+import { serverAllowsCors } from './audioCors';
 
 interface PlaybackEngineParams {
   audioRef: MutableRefObject<HTMLAudioElement | null>;
@@ -30,6 +31,14 @@ export function usePlaybackEngine({
   useEffect(() => {
     const audio = new Audio();
     audioRef.current = audio;
+
+    // When the server sends CORS headers, mark the element crossOrigin so the
+    // Car Mode analyser can read streamed audio. If a load then fails, drop the
+    // attribute and retry the same source so playback is never the casualty.
+    let corsEnabled = false;
+    void serverAllowsCors().then(ok => {
+      if (ok && audioRef.current === audio) { audio.crossOrigin = 'anonymous'; corsEnabled = true; }
+    });
 
     let pendingTime: number | null = null;
     let rafId: number | null = null;
@@ -62,7 +71,18 @@ export function usePlaybackEngine({
     const handlePause = () => { setIsPlaying(false); setIsLoading(false); };
     const handleWaiting = () => setIsLoading(true);
     const handlePlaying = () => setIsLoading(false);
-    const handleError = () => setIsLoading(false);
+    const handleError = () => {
+      if (corsEnabled && audio.src && audio.error) {
+        corsEnabled = false;
+        audio.removeAttribute('crossorigin');
+        const resumeAt = audio.currentTime;
+        audio.addEventListener('loadedmetadata', () => { if (resumeAt > 0) audio.currentTime = resumeAt; }, { once: true });
+        audio.load();
+        audio.play().catch(() => {});
+        return;
+      }
+      setIsLoading(false);
+    };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);

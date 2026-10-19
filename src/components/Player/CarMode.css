@@ -1,0 +1,406 @@
+/* Car Mode is landscape-only: every size below is driven by viewport height so it
+   holds from a small handheld player up to a desktop window. */
+.car-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 2100; /* above the mobile bottom nav (2000), below dialogs (3000) */
+  overflow: hidden;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: inherit;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.car-mode-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.car-mode.is-flipped .car-mode-frame { transform: rotate(180deg); }
+
+/* Where the platform cannot lock orientation, rotate the layout into landscape. */
+.car-mode.force-landscape .car-mode-frame {
+  inset: auto;
+  top: 0;
+  left: 100%;
+  width: 100vh;
+  height: 100vw;
+  width: 100dvh;
+  height: 100dvw;
+  transform-origin: top left;
+  transform: rotate(90deg);
+}
+.car-mode.force-landscape.is-flipped .car-mode-frame {
+  left: 0;
+  top: 100%;
+  transform: rotate(-90deg);
+}
+
+/* ── Header ─────────────────────────────── */
+.car-header {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: calc(clamp(48px, 11vh, 64px) + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) clamp(10px, 2vw, 20px) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.car-header-actions { display: flex; align-items: center; gap: clamp(6px, 1.2vw, 12px); }
+
+.car-icon-btn {
+  width: clamp(40px, 9vh, 48px);
+  height: clamp(40px, 9vh, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 17px;
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.car-icon-btn:hover { color: var(--text-primary); background: var(--hover-overlay); }
+.car-icon-btn.active {
+  color: var(--primary-color);
+  border-color: rgba(var(--primary-color-rgb), .45);
+  background: rgba(var(--primary-color-rgb), .14);
+}
+
+.car-battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 44px;
+  justify-content: flex-end;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.car-eq-icon { width: 20px; height: 20px; fill: currentColor; }
+
+/* ── Shared touch-friendly transport (Now Playing buttons) ─── */
+.car-mode .npo-ctrl {
+  width: clamp(52px, 13vh, 76px);
+  height: clamp(52px, 13vh, 76px);
+  font-size: clamp(20px, 5vh, 28px);
+  color: var(--text-primary);
+}
+.car-mode .npo-ctrl.primary {
+  width: clamp(64px, 17vh, 96px);
+  height: clamp(64px, 17vh, 96px);
+  font-size: clamp(24px, 6.4vh, 34px);
+  background: var(--text-primary);
+  color: var(--bg-dark);
+}
+.car-mode .npo-ctrl.secondary { color: var(--text-secondary); font-size: clamp(18px, 4.4vh, 24px); }
+.car-mode .npo-ctrl.secondary.active { color: var(--primary-color); }
+.car-mode .npo-spinner { border-color: var(--bg-dark); border-top-color: transparent; }
+
+.car-transport {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(6px, 1.6vw, 18px);
+}
+
+/* ── Player layout ──────────────────────── */
+.car-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(14px, 4vw, 64px);
+  align-items: center;
+  padding: clamp(8px, 2vh, 24px) clamp(14px, 4vw, 64px);
+}
+
+.car-left { display: flex; flex-direction: column; justify-content: center; gap: clamp(6px, 1.6vh, 14px); min-width: 0; }
+
+.car-track-text { display: flex; flex-direction: column; gap: clamp(4px, 1.2vh, 10px); min-width: 0; }
+.car-track-text h1,
+.car-track-text h2,
+.car-transport,
+.car-extra-controls,
+.car-art-frame {
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface); /* fallback for engines without color-mix */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary-color) 7%, var(--surface)), var(--surface));
+  box-shadow: inset 0 0 0 1px var(--border-subtle), inset 0 0 24px rgba(var(--primary-color-rgb), .08);
+}
+.car-track-text h1,
+.car-track-text h2 {
+  margin: 0;
+  padding: clamp(6px, 1.6vh, 14px) clamp(12px, 2vw, 20px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+  text-transform: uppercase;
+}
+.car-track-text h1 { font-size: clamp(18px, 5.4vh, 38px); font-weight: 800; letter-spacing: .03em; line-height: 1.15; color: var(--text-primary); }
+.car-track-text h2 { font-size: clamp(14px, 3.6vh, 24px); font-weight: 700; letter-spacing: .05em; color: var(--primary-color); }
+
+.car-transport,
+.car-extra-controls { padding: clamp(2px, .8vh, 8px) clamp(10px, 2vw, 22px); }
+.car-extra-controls { display: flex; align-items: center; justify-content: space-between; }
+
+.car-art-frame {
+  justify-self: center;
+  width: 100%;
+  max-width: min(680px, calc(100vh - 190px));
+  max-width: min(680px, calc(100dvh - 190px));
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: var(--elevation-3);
+}
+.car-art-frame img { width: 100%; height: 100%; object-fit: cover; }
+.car-art-frame > i { font-size: 72px; color: var(--text-muted); }
+
+/* ── Progress (one draggable bar spanning the bottom) ─── */
+.car-progress {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: calc(clamp(48px, 11vh, 64px) + env(safe-area-inset-bottom, 0px));
+  padding: 0 clamp(12px, 3vw, 24px) env(safe-area-inset-bottom, 0px);
+  background: var(--surface); /* fallback for engines without color-mix */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary-color) 8%, var(--surface)), var(--surface));
+  border-top: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+.car-time { min-width: 40px; font-variant-numeric: tabular-nums; }
+.car-progress input[type="range"] {
+  flex: 1;
+  height: 32px;           /* tall hit area, thin visible track */
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background:
+    linear-gradient(90deg, var(--primary-color) var(--progress), var(--hover-overlay) var(--progress))
+    center / 100% 6px no-repeat;
+  border-radius: var(--radius-full);
+  outline: 0;
+  cursor: pointer;
+}
+.car-progress input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  box-shadow: 0 0 0 5px rgba(var(--primary-color-rgb), .2);
+}
+.car-progress input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--primary-color); }
+
+/* ── Pulse Deck ─────────────────────────── */
+.pulse-deck {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pd-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: clamp(8px, 2vh, 22px) clamp(14px, 4vw, 56px) 0;
+  display: flex;
+}
+
+/* Spectrum — the whole area is a touch scrubber */
+.pd-spectrum {
+  --label-h: 28px;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.pd-bars {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: clamp(3px, .7vw, 10px);
+}
+.pd-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pd-bar-track { position: relative; flex: 1; min-height: 0; }
+.pd-bar-fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleY(.03);
+  transform-origin: bottom;
+  border-radius: var(--radius-full) var(--radius-full) 2px 2px;
+  background: linear-gradient(to top, var(--primary-color), var(--accent-light, var(--primary-color)) 70%, #fff);
+  box-shadow: 0 0 calc(10px + var(--beat, 0) * 34px) rgba(var(--primary-color-rgb), calc(.4 + var(--beat, 0) * .5));
+  will-change: transform;
+}
+.pd-bar-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3%;
+  height: 4px;
+  margin-bottom: -6px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  opacity: .85;
+  box-shadow: 0 0 8px rgba(var(--primary-color-rgb), .9);
+}
+.pd-bar-label {
+  /* One fixed box for every column, labelled or not: a text line taller than an
+     empty min-height used to shrink the labelled columns' bars by 1-2px. */
+  height: var(--label-h);
+  line-height: var(--label-h);
+  text-align: center;
+  font-size: clamp(10px, 2.6vh, 15px);
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: visible;
+}
+/* EQ curve over the bars + readouts */
+.pd-eq-curve { position: absolute; left: 0; right: 0; top: 0; bottom: var(--label-h); width: 100%; height: calc(100% - var(--label-h)); pointer-events: none; overflow: visible; }
+.pd-eq-zero { stroke: rgba(255, 255, 255, .25); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.pd-eq-line { fill: none; stroke: #fff; stroke-width: 3; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 6px rgba(var(--primary-color-rgb), .9)); }
+.pd-eq-line.flat { opacity: .25; }
+.pd-eq-chip {
+  position: absolute;
+  top: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, .55);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+.pd-eq-chip.left { left: 4px; }
+.pd-eq-chip.right { right: 4px; }
+.pd-eq-chip.mid { left: 50%; transform: translateX(-50%); opacity: .6; }
+.pd-eq-notice {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+.car-eq-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: clamp(40px, 9vh, 48px);
+  padding: 0 16px;
+  border: 1px solid rgba(var(--primary-color-rgb), .45);
+  border-radius: var(--radius-full);
+  background: rgba(var(--primary-color-rgb), .14);
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Dock: big transport on the left, what's playing on the right */
+.pd-dock {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(12px, 3vw, 40px);
+  margin: clamp(6px, 1.6vh, 14px) clamp(10px, 3vw, 40px);
+  padding: clamp(6px, 1.4vh, 12px) clamp(12px, 2vw, 24px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, .5);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.pd-dock .car-transport { gap: clamp(8px, 2vw, 26px); border: 0; background: none; box-shadow: none; padding: 0; }
+.pd-track { display: flex; align-items: center; justify-content: flex-end; gap: clamp(10px, 1.6vw, 18px); min-width: 0; flex: 1; }
+.pd-track-text { min-width: 0; text-align: right; }
+.pd-track-text h1 {
+  margin: 0;
+  font-size: clamp(18px, 5vh, 34px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: .02em;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-track-text h2 {
+  margin: 2px 0 0;
+  font-size: clamp(13px, 3.4vh, 22px);
+  font-weight: 600;
+  color: var(--primary-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-track > .npo-ctrl { flex-shrink: 0; }
+.pd-track-art {
+  flex-shrink: 0;
+  width: clamp(52px, 14vh, 96px);
+  height: clamp(52px, 14vh, 96px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.pd-track-art img { width: 100%; height: 100%; object-fit: cover; }
+.pd-track-art > i { color: var(--text-muted); font-size: 22px; }
+
+/* Narrow landscape (small handhelds): tighten gutters, drop secondary bits */
+@media (max-width: 720px) {
+  .pd-dock { gap: 8px; padding-left: 8px; padding-right: 8px; }
+  .pd-dock .car-transport { gap: 4px; }
+  .pd-dock .npo-ctrl { width: 44px; height: 44px; }
+  .pd-dock .npo-ctrl.primary { width: 56px; height: 56px; }
+  .pd-track-art { display: none; }
+  .car-main { gap: 12px; padding-left: 12px; padding-right: 12px; }
+  .car-time { min-width: 34px; }
+  .pd-bar-label { font-size: 10px; }
+}
+@media (max-height: 380px) {
+  .pd-eq-chip { font-size: 10px; padding: 2px 8px; }
+  .car-track-text h1, .car-track-text h2 { padding-top: 3px; padding-bottom: 3px; }
+  .car-track-text h1 { font-size: 18px; }
+  .car-track-text h2 { font-size: 13px; }
+  .car-extra-controls { padding-top: 0; padding-bottom: 0; }
+}

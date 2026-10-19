@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { usePlayer, usePlayerTime } from '../../context/PlayerContext';
 import { Capacitor } from '@capacitor/core';
-import { currentLandscape, setOrientation } from '../../platform/screenOrientation';
+import { currentLandscape, setImmersive, setOrientation } from '../../platform/screenOrientation';
 import { EQ_RANGE_DB, useSongEq } from './useSongEq';
+import { readCarLayout, readKeepAwake, writeCarLayout, writeKeepAwake, type CarLayout } from '../../utils/carModePrefs';
+import { acquireKeepAwake } from '../../platform/keepAwake';
 import AlbumArt from '../common/AlbumArt';
 import FlowingBackdrop from '../common/FlowingBackdrop';
 import './CarMode.css';
@@ -74,9 +76,12 @@ function usePulseDeckBars(
   fillRefs: React.MutableRefObject<(HTMLSpanElement | null)[]>,
   capRefs: React.MutableRefObject<(HTMLSpanElement | null)[]>,
   beatRef: React.RefObject<HTMLElement | null>,
+  onSlow: () => void,
 ): void {
   const playingRef = useRef(isPlaying);
   playingRef.current = isPlaying;
+  const onSlowRef = useRef(onSlow);
+  onSlowRef.current = onSlow;
   // Lets a play/pause change restart the draw loop after it has parked itself.
   const wakeRef = useRef<(() => void) | null>(null);
   useEffect(() => { wakeRef.current?.(); }, [isPlaying]);
@@ -138,6 +143,13 @@ function usePulseDeckBars(
     let frame = 0;
     let lastRetry = 0;
     let silentSince = 0;
+    // Frame-rate guard: while audio is really playing, a device that cannot hold ~30 fps
+    // (software rendering, a weak GPU) gets the visualizer switched off for good measure.
+    let lastFrameTs = 0;
+    let warmup = 45;
+    let deltaSum = 0;
+    let deltaCount = 0;
+    let slowStrikes = 0;
     let retriedSrc = '';
     let retries = 0;
     const draw = (now: number) => {
@@ -149,6 +161,23 @@ function usePulseDeckBars(
       }
       // Loading a song is not playing it: bars rest until audio is really flowing.
       const audible = !!audio && !audio.paused && audio.readyState >= 3 && playingRef.current;
+      if (audible) {
+        const delta = lastFrameTs ? now - lastFrameTs : 0;
+        lastFrameTs = now;
+        if (delta > 0 && delta < 400) {
+          if (warmup > 0) warmup -= 1;
+          else {
+            deltaSum += delta; deltaCount += 1;
+            if (deltaCount >= 90) {
+              slowStrikes = deltaSum / deltaCount > 34 ? slowStrikes + 1 : 0;
+              deltaSum = 0; deltaCount = 0;
+              if (slowStrikes >= 2) { onSlowRef.current(); return; }
+            }
+          }
+        }
+      } else {
+        lastFrameTs = 0;
+      }
       const live = !!(analyser && data && context?.state === 'running' && audible && sources.length);
       let energy = 0;
       if (live && analyser && data && context) {
@@ -236,6 +265,18 @@ function usePortrait(): boolean {
   return portrait;
 }
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const update = () => setMatches(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
 const CarMode: React.FC<CarModeProps> = ({ onClose, startInTeku = false }) => {
   const {
     currentSong, isPlaying, isLoading, isLiked, shuffle, repeat,
@@ -243,7 +284,20 @@ const CarMode: React.FC<CarModeProps> = ({ onClose, startInTeku = false }) => {
   } = usePlayer();
   const { currentTime, duration } = usePlayerTime();
   const [flipped, setFlipped] = useState(false);
-  const [pulseDeck, setPulseDeck] = useState(startInTeku);
+  const [autoDisabled, setAutoDisabled] = useState(() => {
+    try { return localStorage.getItem('xylonic_pulse_deck_auto_disabled') === 'true'; } catch { return false; }
+  });
+  const [pulseDeck, setPulseDeck] = useState(startInTeku && !autoDisabled);
+  const [slowNotice, setSlowNotice] = useState(false);
+  const smallScreen = useMediaQuery('(max-height: 420px)');
+  const [layoutPref, setLayoutPref] = useState<CarLayout>(readCarLayout);
+  const minimal = layoutPref === 'minimal' || (layoutPref === 'auto' && smallScreen);
+  // The in-mode switch pins a layout (and remembers it); Settings can put it back on Auto.
+  const toggleLayout = () => {
+    const next: CarLayout = minimal ? 'full' : 'minimal';
+    setLayoutPref(next);
+    writeCarLayout(next);
+  };
   const [nativeLandscape, setNativeLandscape] = useState(false);
   const [eqNotice, setEqNotice] = useState(false);
   const barRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -256,7 +310,48 @@ const CarMode: React.FC<CarModeProps> = ({ onClose, startInTeku = false }) => {
   const { eq, status: eqStatus, setBand, revert: revertEq } = useSongEq(getAudioElement, currentSong?.id, isPlaying, volume, muted);
   const eqFlat = eq.bass === 0 && eq.treble === 0;
 
-  usePulseDeckBars(pulseDeck, isPlaying, getAudioElement, barRefs, capRefs, deckRef);
+  const handleSlow = useCallback(() => {
+    setPulseDeck(false);
+    setAutoDisabled(true);
+    setSlowNotice(true);
+    try { localStorage.setItem('xylonic_pulse_deck_auto_disabled', 'true'); } catch { /* storage unavailable */ }
+  }, []);
+  usePulseDeckBars(pulseDeck, isPlaying, getAudioElement, barRefs, capRefs, deckRef, handleSlow);
+  useEffect(() => {
+    if (!slowNotice) return;
+    const timer = window.setTimeout(() => setSlowNotice(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [slowNotice]);
+  // Tapping the icon again is an explicit retry, so it clears the automatic switch-off.
+  const togglePulseDeck = () => {
+    if (!pulseDeck && autoDisabled) {
+      setAutoDisabled(false);
+      try { localStorage.removeItem('xylonic_pulse_deck_auto_disabled'); } catch { /* storage unavailable */ }
+    }
+    setSlowNotice(false);
+    setPulseDeck(v => !v);
+  };
+
+  // Optional: keep the screen on (no sleep or auto-lock) while Car Mode is open.
+  const [keepAwake, setKeepAwake] = useState(readKeepAwake);
+  useEffect(() => {
+    if (!keepAwake) return;
+    let release: (() => void) | null = null;
+    let cancelled = false;
+    acquireKeepAwake().then(fn => { if (cancelled) fn(); else release = fn; });
+    return () => { cancelled = true; release?.(); };
+  }, [keepAwake]);
+  const toggleKeepAwake = () => {
+    const next = !keepAwake;
+    setKeepAwake(next);
+    writeKeepAwake(next);
+  };
+
+  // Car Mode is a full-screen display: hide Android's status/navigation bars while it is open.
+  useEffect(() => {
+    void setImmersive(true);
+    return () => { void setImmersive(false); };
+  }, []);
 
   // EQ only works on downloaded/cached tracks; tell the user, then drop the pending change.
   useEffect(() => {
@@ -383,6 +478,160 @@ const CarMode: React.FC<CarModeProps> = ({ onClose, startInTeku = false }) => {
     </footer>
   );
 
+  const playButton = (
+    <button className="npo-ctrl primary" onClick={togglePlayPause} disabled={!currentSong} aria-label={isPlaying ? 'Pause' : 'Play'}>
+      {isLoading ? <span className="npo-spinner" /> : <i className={`fas fa-${isPlaying ? 'pause' : 'play'}`} />}
+    </button>
+  );
+  // Minimal layout: the four main controls in a fixed order (previous/next flank the seek bar).
+  const miniControls = (
+    <div className="cm-controls">
+      {shuffleButton}
+      {playButton}
+      {repeatButton}
+      {likeButton}
+    </div>
+  );
+  const seekRow = (
+    <div className="cm-seek-row">
+      <button className="npo-ctrl" onClick={playPrevious} aria-label="Previous"><i className="fas fa-step-backward" /></button>
+      <span className="car-time">{formatTime(currentTime)}</span>
+      <input
+        type="range"
+        min="0"
+        max={duration || 1}
+        step="0.1"
+        value={Math.min(currentTime, duration || 1)}
+        onChange={event => seek(Number(event.target.value))}
+        style={{ '--progress': `${progress}%` } as React.CSSProperties}
+        aria-label="Song progress"
+      />
+      <span className="car-time">{formatTime(duration)}</span>
+      <button className="npo-ctrl" onClick={playNext} aria-label="Next"><i className="fas fa-step-forward" /></button>
+    </div>
+  );
+  const eqIcon = (
+    <svg className="car-eq-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="12" width="3.5" height="9" rx="1.75" />
+      <rect x="8.5" y="5" width="3.5" height="16" rx="1.75" />
+      <rect x="14" y="9" width="3.5" height="12" rx="1.75" />
+      <rect x="19.5" y="14" width="3" height="7" rx="1.5" />
+    </svg>
+  );
+  const chromeButtons = (
+    <>
+      {pulseDeck && !eqFlat && (
+        <button className="car-eq-reset" onClick={revertEq} aria-label="Reset EQ">
+          <i className="fas fa-undo" /><span>Reset EQ</span>
+        </button>
+      )}
+      <button className="car-icon-btn" onClick={handleFlip} aria-label="Flip display" aria-pressed={flipped}>
+        <i className="fas fa-sync" />
+      </button>
+      <button className={`car-icon-btn${minimal ? ' active' : ''}`} onClick={toggleLayout} aria-label={minimal ? 'Show full layout' : 'Show minimal layout'} aria-pressed={minimal}>
+        <i className={`fas fa-${minimal ? 'expand' : 'compress'}`} />
+      </button>
+      <button className={`car-icon-btn${keepAwake ? ' active' : ''}`} onClick={toggleKeepAwake} aria-label={keepAwake ? 'Let the screen sleep' : 'Keep the screen on'} aria-pressed={keepAwake}>
+        <i className="fas fa-lightbulb" />
+      </button>
+      <button className={`car-icon-btn${pulseDeck ? ' active' : ''}`} onClick={togglePulseDeck} aria-label="Pulse Deck visualization" aria-pressed={pulseDeck}>
+        {eqIcon}
+      </button>
+      {battery && (
+        <span className="car-battery" aria-label={`Battery ${battery.level}%${battery.charging ? ', charging' : ''}`}>
+          {battery.charging && <i className="fas fa-bolt" />}{battery.level}%
+        </span>
+      )}
+    </>
+  );
+  const closeButton = (
+    <button className="car-icon-btn" onClick={onClose} aria-label="Exit Car Mode"><i className="fas fa-times" /></button>
+  );
+  const slowToast = slowNotice && (
+    <div className="car-toast" role="status">Pulse Deck turned off — this device is too slow for it. Tap the bars icon to try again.</div>
+  );
+  const albumArt = currentSong?.coverArt
+    ? <AlbumArt coverArtId={currentSong.coverArt} alt="Album art" hiRes />
+    : <i className="fas fa-music" />;
+
+  const pulseDeckMain = (
+  <main className={`pulse-deck${isPlaying ? ' is-live' : ''}`} aria-label="Pulse Deck visualization" ref={deckRef}>
+    <FlowingBackdrop coverArtId={currentSong?.coverArt} live={isPlaying} />
+    {minimal && <div className="cm-chrome cm-chrome--bar">{closeButton}{chromeButtons}</div>}
+    <div className="pd-stage">
+      <div
+        className="pd-spectrum"
+        onPointerDown={onEqDown}
+        onPointerMove={onEqMove}
+        onPointerUp={onEqEnd}
+        onPointerCancel={onEqEnd}
+        role="group"
+        aria-label="Drag to adjust bass (left), treble (right) or both (middle) for this song"
+      >
+        <div className="pd-bars">
+          {BAND_LABELS.map((label, i) => (
+            <div className="pd-bar" key={i}>
+              <div className="pd-bar-track">
+                <span className="pd-bar-fill" ref={el => { barRefs.current[i] = el; }} />
+                <span className="pd-bar-cap" ref={el => { capRefs.current[i] = el; }} />
+              </div>
+              <span className="pd-bar-label">{label}</span>
+            </div>
+          ))}
+        </div>
+        <svg className="pd-eq-curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="50" x2="100" y2="50" className="pd-eq-zero" />
+          <polyline points={eqCurve} className={eqFlat ? 'pd-eq-line flat' : 'pd-eq-line'} />
+        </svg>
+        <span className="pd-eq-chip left">Bass {formatDb(eq.bass)}</span>
+        <span className="pd-eq-chip right">Treble {formatDb(eq.treble)}</span>
+        <span className="pd-eq-chip mid">Both</span>
+        {eqNotice && <span className="pd-eq-notice">EQ works on downloaded tracks only</span>}
+      </div>
+    </div>
+    <div className="pd-dock">
+      {minimal ? miniControls : transport(true)}
+      <div className="pd-track">
+        {!minimal && likeButton}
+        <div className="pd-track-text">
+          <h1>{currentSong?.title || 'Nothing playing'}</h1>
+          <h2>{currentSong?.artist || ''}</h2>
+        </div>
+        <div className="pd-track-art">
+          {currentSong?.coverArt
+            ? <AlbumArt coverArtId={currentSong.coverArt} alt="Album art" />
+            : <i className="fas fa-music" />}
+        </div>
+      </div>
+    </div>
+  </main>
+  );
+
+  if (minimal) {
+    return (
+      <div className={`${rootClass} car-minimal`} role="dialog" aria-label="Car Mode">
+        <div className="car-mode-frame">
+          {seekRow}
+          {pulseDeck ? (
+            pulseDeckMain
+          ) : (
+            <main className="cm-main">
+              <section className="cm-center">
+                <div className="car-track-text">
+                  <h1>{currentSong?.title || 'Nothing playing'}</h1>
+                  <h2>{currentSong?.artist || ''}</h2>
+                </div>
+                {miniControls}
+              </section>
+              <div className="cm-chrome">{closeButton}{chromeButtons}</div>
+            </main>
+          )}
+          {slowToast}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={rootClass} role="dialog" aria-label="Car Mode">
       <div className="car-mode-frame">
@@ -396,6 +645,12 @@ const CarMode: React.FC<CarModeProps> = ({ onClose, startInTeku = false }) => {
             )}
             <button className="car-icon-btn" onClick={handleFlip} aria-label="Flip display" aria-pressed={flipped}>
               <i className="fas fa-sync" />
+            </button>
+            <button className={`car-icon-btn${minimal ? ' active' : ''}`} onClick={toggleLayout} aria-label={minimal ? 'Show full layout' : 'Show minimal layout'} aria-pressed={minimal}>
+              <i className={`fas fa-${minimal ? 'expand' : 'compress'}`} />
+            </button>
+            <button className={`car-icon-btn${keepAwake ? ' active' : ''}`} onClick={toggleKeepAwake} aria-label={keepAwake ? 'Let the screen sleep' : 'Keep the screen on'} aria-pressed={keepAwake}>
+              <i className="fas fa-lightbulb" />
             </button>
             <button className={`car-icon-btn${pulseDeck ? ' active' : ''}`} onClick={() => setPulseDeck(v => !v)} aria-label="Pulse Deck visualization" aria-pressed={pulseDeck}>
               <svg className="car-eq-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -413,57 +668,7 @@ const CarMode: React.FC<CarModeProps> = ({ onClose, startInTeku = false }) => {
           </div>
         </header>
 
-        {pulseDeck ? (
-          <main className={`pulse-deck${isPlaying ? ' is-live' : ''}`} aria-label="Pulse Deck visualization" ref={deckRef}>
-            <FlowingBackdrop coverArtId={currentSong?.coverArt} live={isPlaying} />
-            <div className="pd-stage">
-              <div
-                className="pd-spectrum"
-                onPointerDown={onEqDown}
-                onPointerMove={onEqMove}
-                onPointerUp={onEqEnd}
-                onPointerCancel={onEqEnd}
-                role="group"
-                aria-label="Drag to adjust bass (left), treble (right) or both (middle) for this song"
-              >
-                <div className="pd-bars">
-                  {BAND_LABELS.map((label, i) => (
-                    <div className="pd-bar" key={i}>
-                      <div className="pd-bar-track">
-                        <span className="pd-bar-fill" ref={el => { barRefs.current[i] = el; }} />
-                        <span className="pd-bar-cap" ref={el => { capRefs.current[i] = el; }} />
-                      </div>
-                      <span className="pd-bar-label">{label}</span>
-                    </div>
-                  ))}
-                </div>
-                <svg className="pd-eq-curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                  <line x1="0" y1="50" x2="100" y2="50" className="pd-eq-zero" />
-                  <polyline points={eqCurve} className={eqFlat ? 'pd-eq-line flat' : 'pd-eq-line'} />
-                </svg>
-                <span className="pd-eq-chip left">Bass {formatDb(eq.bass)}</span>
-                <span className="pd-eq-chip right">Treble {formatDb(eq.treble)}</span>
-                <span className="pd-eq-chip mid">Both</span>
-                {eqNotice && <span className="pd-eq-notice">EQ works on downloaded tracks only</span>}
-              </div>
-            </div>
-            <div className="pd-dock">
-              {transport(true)}
-              <div className="pd-track">
-                {likeButton}
-                <div className="pd-track-text">
-                  <h1>{currentSong?.title || 'Nothing playing'}</h1>
-                  <h2>{currentSong?.artist || ''}</h2>
-                </div>
-                <div className="pd-track-art">
-                  {currentSong?.coverArt
-                    ? <AlbumArt coverArtId={currentSong.coverArt} alt="Album art" />
-                    : <i className="fas fa-music" />}
-                </div>
-              </div>
-            </div>
-          </main>
-        ) : (
+        {pulseDeck ? pulseDeckMain : (
           <main className="car-main">
             <section className="car-left">
               <div className="car-track-text">
@@ -477,15 +682,12 @@ const CarMode: React.FC<CarModeProps> = ({ onClose, startInTeku = false }) => {
                 {repeatButton}
               </div>
             </section>
-            <section className="car-art-frame">
-              {currentSong?.coverArt
-                ? <AlbumArt coverArtId={currentSong.coverArt} alt="Album art" hiRes />
-                : <i className="fas fa-music" />}
-            </section>
+            <section className="car-art-frame">{albumArt}</section>
           </main>
         )}
 
         {progressBar}
+        {slowToast}
       </div>
     </div>
   );

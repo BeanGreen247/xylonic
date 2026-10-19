@@ -4,6 +4,7 @@ export type OrientationMode = 'landscape' | 'landscape-primary' | 'landscape-sec
 
 interface ScreenOrientationPlugin {
   setMode(opts: { mode: OrientationMode }): Promise<void>;
+  setImmersive(opts: { enabled: boolean }): Promise<void>;
 }
 const NativeOrientation = registerPlugin<ScreenOrientationPlugin>('ScreenOrientation');
 
@@ -41,4 +42,14 @@ export async function setOrientation(mode: OrientationMode): Promise<boolean> {
 export function currentLandscape(): 'landscape-primary' | 'landscape-secondary' | null {
   const type = typeof screen !== 'undefined' ? screen.orientation?.type : undefined;
   return type === 'landscape-primary' || type === 'landscape-secondary' ? type : null;
+}
+
+/** Hides (or restores) the Android status and navigation bars. A no-op elsewhere. */
+export async function setImmersive(enabled: boolean): Promise<void> {
+  if (Capacitor.getPlatform() !== 'android') return;
+  try {
+    await NativeOrientation.setImmersive({ enabled });
+  } catch {
+    /* older build without the method: keep the system bars */
+  }
 }

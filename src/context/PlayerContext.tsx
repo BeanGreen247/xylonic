@@ -609,10 +609,14 @@ export const PlayerProvider: React.FC<PlayerProviderProps> = ({ children }) => {
         if (!audioRef.current) return;
         if (isPlaying) {
             audioRef.current.pause();
+        } else if (!audioRef.current.getAttribute('src') && currentSong) {
+            // Song restored from the last session: the element has nothing loaded yet,
+            // so play() alone would leave the spinner up forever.
+            playSong(currentSong);
         } else {
             audioRef.current.play().catch(err => logger.error('Play error:', err));
         }
-    }, [isPlaying]);
+    }, [isPlaying, currentSong, playSong]);
 
     const playNext = useCallback(() => {
         playNextWithRefs();

@@ -51,6 +51,18 @@ const ARTIST_REVALIDATE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const isArtistId = (coverArtId: string): boolean => coverArtId.startsWith('ar-');
 
+/**
+ * The cache is keyed by cover-art id alone, so whichever size is fetched first
+ * would be reused everywhere. High-resolution art (Car Mode) therefore lives under
+ * its own `hi:<id>` key, fetched at the largest size we ask the server for, and is
+ * kept in small, separate budgets because each entry can be several MB.
+ */
+export const HI_RES_PREFIX = 'hi:';
+/** Largest edge requested for hi-res art. Navidrome returns the original when it is smaller. */
+export const HI_RES_SIZE = 2000;
+const HI_RES_MAX_MEMORY = 4;
+const HI_RES_MAX_DISK = 40;
+
 async function isArtistPlaceholder(coverArtId: string, blob: Blob): Promise<boolean> {
   if (!isArtistId(coverArtId) || blob.size !== ARTIST_PLACEHOLDER_SIZE) return false;
   try {
@@ -493,6 +505,7 @@ class ImageCacheService {
         return { status: 'placeholder' };
       }
       await this.cacheImage(coverArtId, url, blob);
+      if (coverArtId.startsWith(HI_RES_PREFIX)) void this.pruneHiRes();
       return { status: 'ok', blob };
     } catch (error) {
       logger.error(`[ImageCache] ERROR: Failed to fetch and cache image ${coverArtId}:`, error);
@@ -583,7 +596,38 @@ class ImageCacheService {
       }
     }
     this.memoryCache.set(coverArtId, blobUrl);
+    if (coverArtId.startsWith(HI_RES_PREFIX)) {
+      const hiKeys = [...this.memoryCache.keys()].filter(k => k.startsWith(HI_RES_PREFIX));
+      for (const k of hiKeys.slice(0, Math.max(0, hiKeys.length - HI_RES_MAX_MEMORY))) {
+        const evicted = this.memoryCache.get(k);
+        this.memoryCache.delete(k);
+        if (evicted) this.pendingRevoke.push({ url: evicted, after: Date.now() + 5000 });
+      }
+    }
     this.flushPendingRevokes();
+  }
+
+  /** Keeps only the newest HI_RES_MAX_DISK hi-res entries in IndexedDB. */
+  private async pruneHiRes(): Promise<void> {
+    if (!this.db) return;
+    try {
+      const store = this.db.transaction([this.storeName], 'readwrite').objectStore(this.storeName);
+      const request = store.index('userId').openCursor(IDBKeyRange.only(this.userId));
+      const hi: Array<{ key: IDBValidKey; timestamp: number }> = [];
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          const image = cursor.value as CachedImage;
+          if (image.coverArtId.startsWith(HI_RES_PREFIX)) hi.push({ key: cursor.primaryKey, timestamp: image.timestamp });
+          cursor.continue();
+          return;
+        }
+        hi.sort((a, b) => a.timestamp - b.timestamp);
+        for (const entry of hi.slice(0, Math.max(0, hi.length - HI_RES_MAX_DISK))) store.delete(entry.key);
+      };
+    } catch (error) {
+      logger.error('[ImageCache] Hi-res prune failed:', error);
+    }
   }
 
   private flushPendingRevokes(): void {

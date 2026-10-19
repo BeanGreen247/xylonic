@@ -3,7 +3,7 @@ import { getCoverArtUrl } from '../../services/subsonicApi';
 import { getFromStorage } from '../../utils/storage';
 import { useOfflineMode } from '../../context/OfflineModeContext';
 import { useImageCache } from '../../context/ImageCacheContext';
-import { imageCacheService } from '../../services/imageCacheService';
+import { imageCacheService, HI_RES_PREFIX, HI_RES_SIZE } from '../../services/imageCacheService';
 import { offlineCacheService } from '../../services/offlineCacheService';
 import { precacheStateService } from '../../services/precacheStateService';
 import { fetchArtFromInternet } from '../../services/internetArtworkService';
@@ -18,6 +18,8 @@ interface AlbumArtProps {
     className?: string;
     artist?: string;
     album?: string;
+    /** Load the largest available art (cached separately); the normal-size art shows until it arrives. */
+    hiRes?: boolean;
 }
 
 const AlbumArt: React.FC<AlbumArtProps> = ({
@@ -28,8 +30,10 @@ const AlbumArt: React.FC<AlbumArtProps> = ({
     className = '',
     artist,
     album,
+    hiRes = false,
 }) => {
     const [imageError, setImageError] = useState(false);
+    const [hiUrl, setHiUrl] = useState<string>('');
     // Lazily seed imageUrl from the synchronous memory cache so the component
     // renders with the correct blob URL on the very first paint — no placeholder flash.
     const [imageUrl, setImageUrl] = useState<string>(() => {
@@ -50,7 +54,8 @@ const AlbumArt: React.FC<AlbumArtProps> = ({
     }, []);
 
     useEffect(() => {
-        if (isPrecaching) {
+        // Hi-res art (Car Mode) skips the precache blackout: it is a single, visible image.
+        if (isPrecaching && !hiRes) {
             setImageUrl('');
             return;
         }
@@ -247,7 +252,39 @@ const AlbumArt: React.FC<AlbumArtProps> = ({
         };
     }, [coverArtId, albumId, size, imageCacheInitialized, getCachedImage, artist, album, isPrecaching, offlineModeEnabled, cacheInitialized]);
 
-    if (imageError) {
+    // Hi-res upgrade: its own cache key (see imageCacheService), fetched in parallel with
+    // the normal-size art and swapped in when ready. Not held back by the bulk precache.
+    useEffect(() => {
+        setHiUrl('');
+        if (!hiRes || !coverArtId || !imageCacheInitialized) return;
+        if (coverArtId.startsWith('http://') || coverArtId.startsWith('https://')) return;
+        let cancelled = false;
+        const hiKey = `${HI_RES_PREFIX}${coverArtId}`;
+        (async () => {
+            const memCached = imageCacheService.getFromMemoryCache(hiKey);
+            if (memCached) { setHiUrl(memCached); return; }
+            try {
+                if (offlineModeEnabled) {
+                    const idb = await imageCacheService.getFromIndexedDB(hiKey);
+                    if (idb && !cancelled) {
+                        const blobUrl = URL.createObjectURL(idb.blob);
+                        imageCacheService.addBlobUrlToMemory(hiKey, blobUrl);
+                        setHiUrl(blobUrl);
+                    }
+                    return;
+                }
+                const { username, password, serverUrl } = getFromStorage();
+                if (!username || !password || !serverUrl) return;
+                const url = await getCachedImage(hiKey, () => getCoverArtUrl(serverUrl, username, password, coverArtId, HI_RES_SIZE));
+                if (!cancelled && url) setHiUrl(url);
+            } catch { /* keep the normal-size art */ }
+        })();
+        return () => { cancelled = true; };
+    }, [hiRes, coverArtId, imageCacheInitialized, offlineModeEnabled, getCachedImage]);
+
+    const shownUrl = hiUrl || imageUrl;
+
+    if (imageError && !hiUrl) {
         return (
             <div className={`album-art-fallback ${className}`}>
                 <i className={coverArtId?.startsWith('ar-') ? 'fas fa-user-circle' : 'fas fa-music'}></i>
@@ -255,19 +292,21 @@ const AlbumArt: React.FC<AlbumArtProps> = ({
         );
     }
 
-    if (!imageUrl) {
+    if (!shownUrl) {
         return <div className={`album-art-loading ${className}`} />;
     }
 
     return (
         <img
-            src={imageUrl}
+            src={shownUrl}
             alt={alt}
             className={`album-art ${className}`}
             onError={() => {
                 // If a blob URL fails (e.g. edge-case revocation), fall back to
                 // the server URL instead of showing a permanent placeholder.
-                if (imageUrl.startsWith('blob:') && serverUrlFallback.current) {
+                if (hiUrl) {
+                    setHiUrl('');
+                } else if (imageUrl.startsWith('blob:') && serverUrlFallback.current) {
                     setImageError(false);
                     setImageUrl(serverUrlFallback.current);
                 } else {

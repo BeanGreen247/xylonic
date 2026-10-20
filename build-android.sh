@@ -46,6 +46,8 @@ with open(path, 'w') as fh:
 PYEOF
 }
 
+export JAVA_HOME=/home/bean/android-studio/jbr PATH=$JAVA_HOME/bin:$PATH:$HOME/Android/Sdk/platform-tools
+
 # Run gradlew, filtering informational-only lines that aren't errors.
 # Preserves gradlew's exit code so build failures still abort the script.
 _GRADLE_NOISE='^\[Incubating\]|^To honour the JVM|^Daemon will be stopped|^Deprecated Gradle features|^You can use.*warning-mode|^For more on this.*docs\.gradle|^[[:space:]]*$'

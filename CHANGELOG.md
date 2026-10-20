@@ -4,6 +4,8 @@ All notable changes to Xylonic are documented here.
 
 ## [Unreleased]
 
+## [26.10.20] - 2026-10-20
+
 ### Added
 - **Car Mode** (Settings → Driving display) — a landscape-only full-screen player:
   large touch controls, shuffle / like / repeat, one draggable progress bar,

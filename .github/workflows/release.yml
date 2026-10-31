@@ -9,10 +9,7 @@ name: Release
 # the previous full release.
 
 on:
-  workflow_run:
-    workflows: [CI, Android Build, iOS Build, Desktop Build]
-    types: [completed]
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write

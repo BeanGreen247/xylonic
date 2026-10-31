@@ -10,11 +10,20 @@ import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.os.SystemClock;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.Settings;
+import android.view.Gravity;
+import android.view.ViewGroup;
 import android.webkit.WebView;
+import android.widget.FrameLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import androidx.activity.OnBackPressedCallback;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -26,6 +35,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SessionLog.start(this, savedInstanceState == null ? "launch" : "recreate");
         registerPlugin(MediaControlPlugin.class);
         registerPlugin(RemoteDiscoveryPlugin.class);
         registerPlugin(DownloadNotificationPlugin.class);
@@ -53,6 +63,7 @@ public class MainActivity extends BridgeActivity {
                 getBridge().triggerWindowJSEvent("backbutton");
             }
         });
+        waitForSdCard();
         // Delay permission dialogs until after the WebView finishes its first-time
         // initialization. Showing a system dialog during cold-start init triggers
         // onPause() which can crash the Capacitor bridge on first launch.
@@ -63,6 +74,71 @@ public class MainActivity extends BridgeActivity {
         // to launch a system settings dialog — plugin getActivity() can silently be null.
         new Handler(Looper.getMainLooper()).postDelayed(
             this::requestBatteryOptimization, 3000);
+    }
+
+    /**
+     * Cold boot as Home app: if a removable SD card is present but still mounting (or is
+     * expected to appear shortly after boot), cover the UI with a progress bar until it is
+     * mounted, up to a timeout. No-op when no SD card is involved.
+     */
+    private void waitForSdCard() {
+        final StorageManager sm = (StorageManager) getSystemService(Context.STORAGE_SERVICE);
+        if (sm == null) return;
+        final long start = SystemClock.elapsedRealtime();
+        final boolean freshBoot = start < 60_000;
+        if (!sdPending(sm, freshBoot, 0)) { SessionLog.i("sd", "no SD wait needed"); return; }
+        SessionLog.i("sd", "waiting for SD card (freshBoot=" + freshBoot + ")");
+
+        final long timeoutMs = 30_000;
+        final FrameLayout overlay = new FrameLayout(this);
+        overlay.setBackgroundColor(0xFF000000);
+        overlay.setClickable(true);
+        final ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        bar.setMax(1000);
+        final TextView label = new TextView(this);
+        label.setText("Loading SD card\u2026");
+        label.setTextColor(0xFFFFFFFF);
+        label.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        lp.setMargins(64, 0, 64, 0);
+        FrameLayout.LayoutParams lpl = new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        lpl.setMargins(64, 0, 64, 120);
+        overlay.addView(label, lpl);
+        overlay.addView(bar, lp);
+        addContentView(overlay, new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        final Handler h = new Handler(Looper.getMainLooper());
+        h.post(new Runnable() {
+            @Override public void run() {
+                long elapsed = SystemClock.elapsedRealtime() - start;
+                bar.setProgress((int) Math.min(950, elapsed * 950 / timeoutMs));
+                if (elapsed >= timeoutMs || !sdPending(sm, freshBoot, elapsed)) {
+                    SessionLog.i("sd", (elapsed >= timeoutMs ? "SD wait TIMED OUT after " : "SD ready after ") + elapsed + "ms");
+                    ViewGroup parent = (ViewGroup) overlay.getParent();
+                    if (parent != null) parent.removeView(overlay);
+                    return;
+                }
+                h.postDelayed(this, 250);
+            }
+        });
+    }
+
+    /** True while a removable volume exists and is not mounted, or none has shown up yet on a fresh boot. */
+    private boolean sdPending(StorageManager sm, boolean freshBoot, long elapsedMs) {
+        boolean found = false;
+        for (StorageVolume v : sm.getStorageVolumes()) {
+            if (!v.isRemovable() || v.isPrimary()) continue;
+            found = true;
+            String st = v.getState();
+            if (!Environment.MEDIA_MOUNTED.equals(st) && !Environment.MEDIA_MOUNTED_READ_ONLY.equals(st)) {
+                return true;
+            }
+        }
+        // Card may not be enumerated yet right after boot: give it a short grace period.
+        return !found && freshBoot && elapsedMs < 8_000;
     }
 
     /** Restores the app's normal orientation policy after a screen (Car Mode) forced landscape. */
@@ -127,6 +203,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
+        SessionLog.i("lifecycle", "MainActivity onPause finishing=" + isFinishing());
         if (DownloadService.instance != null || MusicService.instance != null) {
             WebView wv = getBridge().getWebView();
             wv.onResume();
@@ -137,6 +214,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
+        SessionLog.i("lifecycle", "MainActivity onStop");
         if (DownloadService.instance != null || MusicService.instance != null) {
             WebView wv = getBridge().getWebView();
             wv.onResume();
@@ -147,7 +225,27 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        SessionLog.i("lifecycle", "MainActivity onResume");
         lastResumedAt = System.currentTimeMillis();
+    }
+
+    @Override
+    public void onDestroy() {
+        SessionLog.i("lifecycle", "MainActivity onDestroy finishing=" + isFinishing());
+        super.onDestroy();
+        if (isFinishing()) SessionLog.end("activity finished");
+    }
+
+    @Override
+    public void onLowMemory() {
+        SessionLog.i("memory", "onLowMemory");
+        super.onLowMemory();
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        SessionLog.i("memory", "onTrimMemory level=" + level);
+        super.onTrimMemory(level);
     }
 
     private void requestRequiredPermissions() {

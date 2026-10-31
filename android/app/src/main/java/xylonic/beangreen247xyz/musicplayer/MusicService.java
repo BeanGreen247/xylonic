@@ -319,6 +319,10 @@ public class MusicService extends Service {
 
     void updatePlaybackState(boolean playing, long positionMs, long durationMs) {
         if (mediaSession == null) return;
+        if (playing != isPlaying) {
+            SessionLog.i("playback", (playing ? "PLAYING" : "STOPPED/PAUSED") + " pos=" + positionMs
+                + "ms dur=" + durationMs + "ms");
+        }
         isPlaying = playing;
         currentPositionMs = positionMs;
 
@@ -501,6 +505,7 @@ public class MusicService extends Service {
 
     @Override
     public void onDestroy() {
+        SessionLog.i("playback", "MusicService onDestroy isPlaying=" + isPlaying + " pos=" + currentPositionMs + "ms");
         if (noisyReceiver != null) {
             unregisterReceiver(noisyReceiver);
             noisyReceiver = null;

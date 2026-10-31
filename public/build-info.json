@@ -1,8 +1,8 @@
 {
-  "version": "26.10.20",
+  "version": "26.10.28",
   "buildType": "release",
   "buildNumber": null,
-  "builtAt": "2026-10-20T18:30:59.636Z",
+  "builtAt": "2026-10-28T19:49:55.762Z",
   "deps": {
     "react": "18.2.0",
     "typescript": "4.9.5",
